@@ -1,0 +1,32 @@
+.period-selector {
+  display: flex;
+  gap: 0.25rem;
+  background: white;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: var(--radius-md, 8px);
+  padding: 0.25rem;
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(0,0,0,0.04));
+}
+
+.period-chip {
+  padding: 0.3rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--neutral-500, #64748B);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.period-chip:hover:not(.period-chip--active) {
+  background: var(--neutral-100, #F0F4FA);
+  color: var(--neutral-700, #334155);
+}
+
+.period-chip--active {
+  background: var(--color-primary, #1565C0);
+  color: white;
+}

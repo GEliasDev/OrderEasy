@@ -1,0 +1,315 @@
+.ht-page {
+  padding: 1.5rem;
+  max-width: 900px;
+}
+
+/* ─── Header ────────────────────────────────────────────── */
+.ht-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ht-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: var(--neutral-100, #F1F5F9);
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 8px;
+  color: var(--neutral-600, #475569);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ht-back:hover {
+  background: var(--neutral-200, #E2E8F0);
+  color: var(--neutral-900, #0F172A);
+}
+
+.ht-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: var(--color-primary-soft, #EEF4FF);
+  border-radius: 10px;
+  color: var(--color-primary, #1565C0);
+  flex-shrink: 0;
+}
+
+.ht-titulo {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--neutral-900, #0F172A);
+  margin: 0 0 2px;
+}
+
+.ht-subtitulo {
+  font-size: 0.8rem;
+  color: var(--neutral-500, #64748B);
+  margin: 0;
+}
+
+.ht-filtros {
+  display: flex;
+  gap: 0.375rem;
+  margin-left: auto;
+  align-items: center;
+}
+
+.ht-filtro-btn {
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--neutral-600, #475569);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ht-filtro-btn:hover {
+  border-color: var(--color-primary, #1565C0);
+  color: var(--color-primary, #1565C0);
+}
+
+.ht-filtro-btn.activo {
+  background: var(--color-primary, #1565C0);
+  border-color: var(--color-primary, #1565C0);
+  color: #fff;
+}
+
+/* ─── Loading / empty ───────────────────────────────────── */
+.ht-loading {
+  display: flex;
+  justify-content: center;
+  padding: 4rem;
+}
+
+.ht-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--neutral-200, #E2E8F0);
+  border-top-color: var(--color-primary, #1565C0);
+  border-radius: 50%;
+  animation: htSpin 0.7s linear infinite;
+}
+
+@keyframes htSpin {
+  to { transform: rotate(360deg); }
+}
+
+.ht-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 4rem;
+  color: var(--neutral-400, #94A3B8);
+}
+
+.ht-empty p {
+  font-size: 0.875rem;
+  color: var(--neutral-500, #64748B);
+  margin: 0;
+}
+
+/* ─── Lista de turnos ───────────────────────────────────── */
+.ht-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.ht-card {
+  background: #fff;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.ht-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.ht-card.abierto {
+  border-left: 3px solid #16a34a;
+}
+
+/* ─── Fila principal de la card ─────────────────────────── */
+.ht-card-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ht-card-top:hover {
+  background: var(--neutral-50, #F8FAFC);
+}
+
+.ht-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.ht-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-abierto {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-cerrado {
+  background: var(--neutral-100, #F1F5F9);
+  color: var(--neutral-600, #475569);
+}
+
+.ht-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ht-card-nombre {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--neutral-800, #1E293B);
+}
+
+.ht-card-fecha {
+  font-size: 0.73rem;
+  color: var(--neutral-500, #64748B);
+}
+
+.ht-card-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.ht-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.ht-stat-label {
+  font-size: 0.68rem;
+  color: var(--neutral-500, #64748B);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ht-stat-val {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--neutral-800, #1E293B);
+}
+
+.ht-stat-val.verde { color: #16a34a; }
+.ht-stat-val.rojo  { color: var(--color-danger, #DC2626); }
+
+.ht-expand-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--neutral-400, #94A3B8);
+  cursor: pointer;
+  transition: transform 0.2s;
+  padding: 0 0.25rem;
+  flex-shrink: 0;
+}
+
+.ht-expand-btn.expandido {
+  transform: rotate(180deg);
+}
+
+/* ─── Panel de detalle expandido ────────────────────────── */
+.ht-detalle {
+  padding: 1rem 1rem 1rem;
+  border-top: 1px solid var(--neutral-100, #F1F5F9);
+  background: var(--neutral-50, #F8FAFC);
+}
+
+.ht-detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.ht-detalle-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.ht-detalle-titulo {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--neutral-500, #64748B);
+  margin: 0 0 0.25rem;
+}
+
+.ht-detalle-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--neutral-700, #334155);
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--neutral-100, #F1F5F9);
+}
+
+.ht-detalle-fila span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--neutral-600, #475569);
+}
+
+.ht-detalle-fila.negrita span:last-child {
+  font-weight: 700;
+}
+
+.ht-detalle-fila.verde span {
+  color: #16a34a;
+}
+
+.ht-detalle-fila.rojo span {
+  color: var(--color-danger, #DC2626);
+}
+
+@media (max-width: 600px) {
+  .ht-page { padding: 1rem; }
+  .ht-card-stats { display: none; }
+  .ht-detalle-grid { grid-template-columns: 1fr; }
+  .ht-filtros { margin-left: 0; width: 100%; }
+}

@@ -1,0 +1,355 @@
+/* configuracion.css */
+.config-view {
+  padding: 1.25rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+.config-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.config-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.config-header-text h1 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  margin: 0 0 2px;
+}
+
+.config-header-text p {
+  font-size: 0.78rem;
+  color: var(--neutral-400);
+  margin: 0;
+}
+
+/* ── Sección ── */
+.config-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--neutral-400);
+  margin-bottom: 0.75rem;
+}
+
+/* ── Grid de tarjetas ── */
+.config-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.875rem;
+}
+
+/* ── Tarjeta base ── */
+.config-card {
+  background: white;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.config-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--neutral-300, #CBD5E1);
+}
+
+.config-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.config-card-icon.soon {
+  background: var(--neutral-100);
+  color: var(--neutral-400);
+}
+
+.config-card-body {
+  flex: 1;
+}
+
+.config-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  margin: 0 0 4px;
+}
+
+.config-card-desc {
+  font-size: 0.78rem;
+  color: var(--neutral-500);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── Botón de acción ── */
+.config-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.4rem 0.875rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--neutral-200);
+  background: white;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  align-self: flex-start;
+}
+
+.config-card-btn:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+/* ── Badge próximamente ── */
+.config-soon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--neutral-100);
+  color: var(--neutral-500);
+  border: 1px solid var(--neutral-200);
+  align-self: flex-start;
+}
+
+/* ── Negocio card ── */
+.config-negocio-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: white;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 0.5rem;
+}
+
+.config-negocio-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.config-negocio-info { flex: 1; min-width: 0; }
+
+.config-negocio-nombre {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  margin-bottom: 0.25rem;
+}
+
+.config-negocio-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.config-negocio-meta span {
+  font-size: 0.75rem;
+  color: var(--neutral-500);
+  background: var(--neutral-100, #F0F4FA);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.config-negocio-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.4rem 0.875rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--neutral-200);
+  background: white;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.config-negocio-btn:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+/* ── Modal ── */
+.config-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+  backdrop-filter: blur(3px);
+}
+
+.config-modal {
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  width: 100%;
+  max-width: 480px;
+  animation: config-fadeUp 0.2s ease-out;
+}
+
+@keyframes config-fadeUp {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.config-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1.125rem;
+  border-bottom: 1px solid var(--neutral-200);
+  background: var(--neutral-50, #F8FAFC);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.config-modal-header h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--neutral-900);
+}
+
+.config-modal-close {
+  background: none;
+  border: none;
+  color: var(--neutral-500);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius-xs);
+  transition: all 0.15s;
+  line-height: 1;
+}
+
+.config-modal-close:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-soft, #FEF2F2);
+}
+
+.config-form { padding: 1rem 1.125rem; }
+
+.config-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.config-form-group { margin-bottom: 0.875rem; }
+
+.config-form-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--neutral-600, #475569);
+  margin-bottom: 0.25rem;
+}
+
+.config-form-group input {
+  width: 100%;
+  padding: 0.4rem 0.625rem;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--neutral-900);
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.config-form-group input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-soft);
+}
+
+.config-form-actions {
+  display: flex;
+  gap: 0.625rem;
+  margin-top: 1rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--neutral-200);
+}
+
+.config-btn-cancelar {
+  flex: 1;
+  padding: 0.5rem;
+  background: white;
+  color: var(--neutral-600);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.config-btn-cancelar:hover { background: var(--neutral-50, #F8FAFC); }
+
+.config-btn-guardar {
+  flex: 2;
+  padding: 0.5rem;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.config-btn-guardar:hover:not(:disabled) { background: var(--color-primary-dark, #0D47A1); }
+.config-btn-guardar:disabled { opacity: 0.7; cursor: not-allowed; }
+
+@media (max-width: 480px) {
+  .config-cards-grid { grid-template-columns: 1fr; }
+  .config-form-row { grid-template-columns: 1fr; }
+  .config-negocio-card { flex-wrap: wrap; }
+}

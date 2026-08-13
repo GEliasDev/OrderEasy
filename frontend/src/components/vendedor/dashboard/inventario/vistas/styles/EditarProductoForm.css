@@ -1,0 +1,30 @@
+/* EditarProductoForm.css — estilos exclusivos del formulario de edición */
+
+.editar-card {
+  max-width: 540px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+
+.editar-margen-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-primary-soft, #EEF4FF);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.editar-margen-label {
+  font-size: 0.75rem;
+  color: var(--color-primary, #1565C0);
+  font-weight: 500;
+}
+
+.editar-margen-valor {
+  font-size: 0.875rem;
+  color: var(--color-primary, #1565C0);
+  font-weight: 700;
+}

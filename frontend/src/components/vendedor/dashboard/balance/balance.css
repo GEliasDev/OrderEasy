@@ -1,0 +1,261 @@
+/* balance.css */
+.balance-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.875rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  background-color: var(--neutral-100, #F0F4FA);
+  border-radius: 4px;
+}
+
+/* Top Action Buttons */
+.top-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.875rem;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(0,0,0,0.05));
+}
+
+.action-button-income { background-color: var(--color-success, #059669); }
+.action-button-income:hover { background-color: #047857; }
+.action-button-expense { background-color: var(--color-danger, #DC2626); }
+.action-button-expense:hover { background-color: #B91C1C; }
+
+.button-icon { width: 14px; height: 14px; }
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.metric-card {
+  background: white;
+  border-radius: var(--radius-md, 8px);
+  padding: 0.875rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.metric-card:hover { transform: translateY(-2px); }
+
+/* Featured card — Balance General */
+.metric-featured {
+  border-left: 3px solid var(--color-primary, #1565C0);
+  background: linear-gradient(135deg, #fff 60%, #EEF4FF 100%);
+}
+
+.metric-negative { color: var(--color-danger, #DC2626) !important; }
+
+.metric-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.total-balance .metric-icon { background-color: var(--color-primary, #1565C0); color: white; }
+.income .metric-icon { background-color: var(--color-success, #059669); color: white; }
+.expense .metric-icon { background-color: var(--color-danger, #DC2626); color: white; }
+
+.metric-content { flex: 1; min-width: 0; }
+
+.metric-content h3 {
+  font-size: 0.75rem;
+  color: var(--neutral-500, #64748B);
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.metric-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--neutral-900, #0F172A);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tab Controls */
+.tab-controls {
+  display: flex;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+  padding: 0.3rem;
+  background: white;
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-xs);
+  width: 100%;
+  max-width: 360px;
+}
+
+.tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--neutral-500, #64748B);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-button.active { background: var(--neutral-100, #F0F4FA); color: var(--neutral-900, #0F172A); }
+.tab-button:hover:not(.active) { background: #f9fafb; color: #374151; }
+
+/* Table Styles */
+.table-container, .table {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: white;
+  padding: 0.875rem;
+  overflow-x: auto;
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-sm);
+}
+
+.table { border-collapse: collapse; width: 100%; }
+
+.table th, .table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--neutral-200, #E2E8F0);
+}
+
+.table th {
+  background-color: var(--neutral-50, #F8FAFC);
+  font-weight: 600;
+  color: var(--neutral-700, #334155);
+  font-size: 0.75rem;
+}
+
+.table tr:hover { background-color: var(--neutral-50, #F8FAFC); }
+
+.filters-container { display: flex; justify-content: space-between; margin: 0.75rem 0; }
+.filter-input {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: var(--radius-sm, 6px);
+  width: 48%;
+  font-size: 0.8rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .metrics-grid { grid-template-columns: 1fr 1fr; }
+  .metric-featured { grid-column: 1 / -1; }
+}
+
+@media (max-width: 768px) {
+  .metrics-grid { grid-template-columns: 1fr; }
+  .action-button { padding: 0.375rem 0.75rem; }
+}
+
+@media (max-width: 640px) {
+  .balance-container { padding: 0.625rem; }
+  .top-actions { flex-direction: column; }
+  .action-button { width: 100%; }
+}
+
+/* Period row */
+.balance-period-row {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.metric-skeleton {
+  height: 1.4rem;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+  margin-top: 0.25rem;
+  width: 80%;
+}
+
+/* Margen badge */
+.metric-margen {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-success, #059669);
+  margin-top: 0.15rem;
+  display: block;
+}
+
+.metric-margen--neg {
+  color: var(--color-danger, #DC2626);
+}
+
+/* Trend chart */
+.trend-chart-container {
+  width: 100%;
+  background: white;
+  border-radius: var(--radius-md, 8px);
+  padding: 0.875rem;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
+  margin-bottom: 0.75rem;
+}
+
+.trend-chart-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--neutral-500, #64748B);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chart-skeleton {
+  height: 160px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+}

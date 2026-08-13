@@ -1,0 +1,341 @@
+/* ── Animaciones ── */
+@keyframes modalOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modalOverlayOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+}
+
+@keyframes spinnerBtn {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Overlay ── */
+.edit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: modalOverlayIn 0.2s ease-out forwards;
+  padding: 1rem;
+}
+
+.edit-modal-overlay.closing {
+  animation: modalOverlayOut 0.2s ease-in forwards;
+}
+
+/* ── Contenedor del modal ── */
+.edit-modal-container {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 480px;
+  overflow: hidden;
+  animation: modalSlideIn 0.25s ease-out forwards;
+}
+
+.edit-modal-overlay.closing .edit-modal-container {
+  animation: modalSlideOut 0.2s ease-in forwards;
+}
+
+/* ── Header ── */
+.edit-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.125rem 1.375rem;
+  border-bottom: 1px solid var(--neutral-200);
+  background: var(--neutral-50);
+}
+
+.edit-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.edit-modal-icon.venta {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.edit-modal-icon.egreso {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.edit-modal-header-text {
+  flex: 1;
+}
+
+.edit-modal-header-text h2 {
+  margin: 0;
+  font-size: 0.975rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+}
+
+.edit-modal-header-text p {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--neutral-400);
+  font-weight: 500;
+}
+
+.edit-modal-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--neutral-400);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.edit-modal-close-btn:hover {
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+  border-color: var(--neutral-200);
+}
+
+/* ── Body / Formulario ── */
+.edit-modal-body {
+  padding: 1.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.edit-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.edit-modal-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--neutral-500);
+}
+
+.edit-modal-label svg {
+  opacity: 0.7;
+}
+
+.edit-modal-input,
+.edit-modal-textarea,
+.edit-modal-select {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--neutral-900);
+  background: white;
+  transition: all 0.2s;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.edit-modal-input:hover,
+.edit-modal-textarea:hover,
+.edit-modal-select:hover {
+  border-color: var(--neutral-400);
+}
+
+.edit-modal-input:focus,
+.edit-modal-textarea:focus,
+.edit-modal-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.edit-modal-textarea {
+  min-height: 100px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.edit-modal-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.25rem;
+  cursor: pointer;
+}
+
+.edit-modal-select option {
+  padding: 0.5rem;
+}
+
+/* ── Entidad actual (badge info) ── */
+.edit-modal-current-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+
+.edit-modal-current-badge.empty {
+  background: var(--neutral-100);
+  color: var(--neutral-400);
+}
+
+/* ── Footer / Botones ── */
+.edit-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  padding: 1rem 1.375rem;
+  border-top: 1px solid var(--neutral-200);
+  background: var(--neutral-50);
+}
+
+.edit-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.5rem 1.125rem;
+  border-radius: var(--radius-md);
+  font-size: 0.825rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1.5px solid transparent;
+  font-family: inherit;
+}
+
+.edit-modal-btn-cancel {
+  background: white;
+  color: var(--neutral-700);
+  border-color: var(--neutral-200);
+}
+
+.edit-modal-btn-cancel:hover {
+  background: var(--neutral-100);
+  border-color: var(--neutral-400);
+}
+
+.edit-modal-btn-save {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.edit-modal-btn-save:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  box-shadow: 0 2px 8px rgba(21, 101, 192, 0.3);
+}
+
+.edit-modal-btn-save:active {
+  transform: scale(0.97);
+}
+
+.edit-modal-btn-save:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Spinner en botón ── */
+.edit-modal-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spinnerBtn 0.7s linear infinite;
+}
+
+/* ── Responsive ── */
+@media (max-width: 540px) {
+  .edit-modal-container {
+    max-width: 100%;
+    margin: 0.5rem;
+  }
+
+  .edit-modal-header {
+    padding: 1rem 1.125rem;
+  }
+
+  .edit-modal-body {
+    padding: 1.125rem;
+  }
+
+  .edit-modal-footer {
+    padding: 0.875rem 1.125rem;
+    flex-direction: column;
+  }
+
+  .edit-modal-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .edit-modal-footer .edit-modal-btn-cancel {
+    order: 2;
+  }
+
+  .edit-modal-footer .edit-modal-btn-save {
+    order: 1;
+  }
+}
