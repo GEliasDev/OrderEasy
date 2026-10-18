@@ -9,7 +9,7 @@
 }
 
 .producto-card {
-  background-color: white;
+  background-color: var(--surface);
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-md, 8px);
   width: 178px;

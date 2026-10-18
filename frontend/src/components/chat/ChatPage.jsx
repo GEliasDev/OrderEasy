@@ -46,7 +46,7 @@ function ChatPage() {
         <div className="chat-page-header-left">
           <Bot size={24} color="var(--color-primary, #1565C0)" />
           <div>
-            <h1>Asistente Lumxis</h1>
+            <h1>Asistente OrderEasy</h1>
             <p>IA con acceso a tus datos en tiempo real</p>
           </div>
         </div>

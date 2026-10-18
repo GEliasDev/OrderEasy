@@ -15,7 +15,7 @@ cloudinary.config({
  * @param {String} folder - Carpeta de destino
  * @returns {Promise} - Devuelve el resultado de la subida
  */
-const processAndUploadImage = async (buffer, folder = 'lumxis-products') => {
+const processAndUploadImage = async (buffer, folder = 'ordereasy-products') => {
   try {
     // 🧠 Procesar con Sharp: Convertir a WebP, redimensionar si es muy grande y optimizar
     const processedBuffer = await sharp(buffer)
@@ -45,7 +45,7 @@ const processAndUploadImage = async (buffer, folder = 'lumxis-products') => {
 /**
  * Sube una imagen a Cloudinary desde un buffer (usado con memoryStorage de multer)
  */
-const uploadFromBuffer = (buffer, folder = 'lumxis-products') => {
+const uploadFromBuffer = (buffer, folder = 'ordereasy-products') => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       { folder },

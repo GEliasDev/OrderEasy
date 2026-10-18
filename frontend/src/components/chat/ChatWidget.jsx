@@ -46,7 +46,7 @@ function ChatWidget() {
             <div className="chat-panel-header-left">
               <Bot size={20} />
               <div>
-                <h3>Asistente Lumxis</h3>
+                <h3>Asistente OrderEasy</h3>
                 <p>IA · Datos en tiempo real</p>
               </div>
             </div>

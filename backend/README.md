@@ -1,4 +1,4 @@
-# 📦 Inventario Lumxis - Backend
+# 📦 Inventario OrderEasy - Backend
 
 > Sistema completo de gestión de inventario, ventas, egresos, clientes y proveedores con autenticación segura y control multiusuario.
 
@@ -46,7 +46,7 @@
 ## 📁 Estructura del Proyecto
 
 ```
-Inventario-Lumxis/
+Inventario-OrderEasy/
 │
 ├── 📁 controllers/          # Lógica de negocio
 │   ├── categoryController.js
@@ -93,8 +93,8 @@ Inventario-Lumxis/
 
 1. **Clonar el repositorio**
    ```bash
-   git clone https://github.com/tu-usuario/inventario-lumxis.git
-   cd inventario-lumxis
+   git clone https://github.com/tu-usuario/ordereasy.git
+   cd ordereasy
    ```
 
 2. **Instalar dependencias**
@@ -111,7 +111,7 @@ Inventario-Lumxis/
 4. **Configurar base de datos**
    ```bash
    # Crear base de datos en PostgreSQL
-   createdb inventario_lumxis
+   createdb ordereasy
    
    # Ejecutar migraciones
    npm run migrate
@@ -134,7 +134,7 @@ Crea un archivo `.env` en la raíz del proyecto:
 # Base de datos
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=inventario_lumxis
+DB_NAME=ordereasy
 DB_USER=tu_usuario
 DB_PASS=tu_contraseña
 
@@ -300,6 +300,6 @@ router.get('/productos', verificarToken, productController.getAllProducts);
 - Integridad referencial con foreign keys
 
 <div align="center">
-  <p>Hecho con ❤️ por el equipo de Lumxis</p>
+  <p>Hecho con ❤️ por el equipo de OrderEasy</p>
   <p>⭐ ¡No olvides dar una estrella si te gustó el proyecto!</p>
 </div>

@@ -1,7 +1,7 @@
 .roles-view {
   padding: 1.25rem;
-  max-width: 740px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
 }
 
 /* ── Loading ── */
@@ -92,7 +92,7 @@
 
 /* ── Card ── */
 .roles-card {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
@@ -121,7 +121,7 @@
   height: 30px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--neutral-200);
-  background: white;
+  background: var(--surface);
   color: var(--neutral-500);
   cursor: pointer;
   transition: all 0.15s;
@@ -164,7 +164,7 @@
   backdrop-filter: blur(3px);
 }
 .roles-modal {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   width: 100%;
@@ -242,7 +242,7 @@
   padding: 0.45rem 0.75rem;
   border: 1.5px solid var(--neutral-200);
   border-radius: var(--radius-sm);
-  background: white;
+  background: var(--surface);
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--neutral-600);
@@ -269,7 +269,7 @@
   height: 16px;
   border-radius: 4px;
   border: 1.5px solid var(--neutral-300);
-  background: white;
+  background: var(--surface);
   flex-shrink: 0;
   transition: all 0.15s;
 }
@@ -290,7 +290,7 @@
 .roles-btn-cancelar {
   flex: 1;
   padding: 0.5rem;
-  background: white;
+  background: var(--surface);
   color: var(--neutral-600);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-sm);

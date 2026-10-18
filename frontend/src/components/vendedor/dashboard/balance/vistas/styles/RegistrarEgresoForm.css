@@ -15,7 +15,7 @@
 }
 
 .ventana-flotante {
-  background: white;
+  background: var(--surface);
   width: 100%;
   max-width: 420px;
   border-radius: var(--radius-md, 8px);
@@ -92,7 +92,7 @@
   border-radius: var(--radius-sm, 6px);
   font-size: 0.8rem;
   color: var(--neutral-900, #0F172A);
-  background: white;
+  background: var(--surface);
   transition: all 0.15s ease;
 }
 
@@ -193,7 +193,7 @@
   font-weight: 500;
   font-size: 0.8rem;
   cursor: pointer;
-  background: white;
+  background: var(--surface);
   color: var(--neutral-600, #475569);
   transition: all 0.15s ease;
 }

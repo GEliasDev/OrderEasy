@@ -27,7 +27,7 @@
 .registro-wrapper {
   width: 100%;
   min-height: 100vh;
-  background: white;
+  background: var(--surface);
   display: flex;
   box-shadow: var(--shadow-md, 0 4px 6px rgba(0,0,0,0.07));
 }
@@ -144,7 +144,7 @@
   padding: 0.4rem 0.625rem;
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-sm, 6px);
-  background-color: white;
+  background-color: var(--surface);
   font-size: 0.8rem;
   color: var(--neutral-900, #0F172A);
   transition: all 0.15s ease;
@@ -211,7 +211,7 @@
   align-items: center;
   gap: 0.3rem;
   padding: 0.4rem 0.875rem;
-  background-color: white;
+  background-color: var(--surface);
   border: 1px solid var(--color-primary, #1565C0);
   border-radius: var(--radius-sm, 6px);
   color: var(--color-primary, #1565C0);

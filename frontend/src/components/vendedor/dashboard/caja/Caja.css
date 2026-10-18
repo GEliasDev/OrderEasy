@@ -1,6 +1,6 @@
 /* =============================================
    Caja — Terminal POS
-   Coherente con el sistema de diseño de Lumxis
+   Coherente con el sistema de diseño de OrderEasy
    ============================================= */
 
 @keyframes fadeUp {
@@ -20,10 +20,10 @@
 .caja-page {
   display: flex;
   flex-direction: column;
-  background-color: var(--neutral-100, #F0F4FA);
+  background-color: transparent;
   padding: 0.875rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   width: 100%;
   box-sizing: border-box;
   animation: fadeUp 0.25s ease-out;
@@ -49,7 +49,7 @@
   padding: 0.4rem 0.875rem;
   border: 1.5px solid var(--neutral-300);
   border-radius: var(--radius-sm);
-  background: white;
+  background: var(--surface);
   color: var(--neutral-600);
   font-size: 0.78rem;
   font-weight: 600;
@@ -91,7 +91,7 @@
 }
 
 .apertura-card {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-lg, 12px);
   box-shadow: var(--shadow-md);
@@ -209,7 +209,7 @@
 }
 
 .cierre-card {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-lg, 12px);
   box-shadow: var(--shadow-lg);
   width: 100%;
@@ -437,7 +437,7 @@
    ============================================= */
 
 .buscador-container {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md, 8px);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
   overflow: hidden;
@@ -492,7 +492,7 @@
 .buscador-input:focus {
   border-color: var(--color-primary, #1565C0);
   box-shadow: 0 0 0 2px var(--color-primary-soft, #EEF4FF);
-  background: white;
+  background: var(--surface);
 }
 
 .buscador-hint {
@@ -545,7 +545,7 @@
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.7rem 0.75rem;
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-sm, 6px);
   cursor: pointer;
@@ -623,7 +623,7 @@
    ============================================= */
 
 .carrito-container {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md, 8px);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
   overflow: hidden;
@@ -743,7 +743,7 @@
   width: 22px;
   height: 22px;
   border: 1px solid var(--neutral-200, #E2E8F0);
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xs, 3px);
   font-size: 0.9rem;
   cursor: pointer;
@@ -789,7 +789,7 @@
 
 .cantidad-valor:focus {
   border-color: var(--color-primary, #1565C0);
-  background: white;
+  background: var(--surface);
   box-shadow: 0 0 0 2px var(--color-primary-soft, #EEF4FF);
 }
 
@@ -819,7 +819,7 @@
 .descuento-input:focus {
   border-color: var(--color-primary, #1565C0);
   box-shadow: 0 0 0 2px var(--color-primary-soft, #EEF4FF);
-  background: white;
+  background: var(--surface);
 }
 
 .descuento-tipo-select {
@@ -930,7 +930,7 @@
    ============================================= */
 
 .panel-pago {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md, 8px);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
   overflow: hidden;
@@ -1006,7 +1006,7 @@
   font-weight: 600;
   border: 1.5px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-sm, 6px);
-  background: white;
+  background: var(--surface);
   cursor: pointer;
   transition: all 0.15s ease;
   color: var(--neutral-600, #475569);
@@ -1064,7 +1064,7 @@
 }
 
 .monto-input:focus {
-  background: white;
+  background: var(--surface);
 }
 
 .btn-agregar-pago {
@@ -1239,7 +1239,7 @@
 }
 
 .confirmacion-card {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md, 8px);
   box-shadow: var(--shadow-md, 0 4px 6px rgba(0,0,0,0.07));
   padding: 2rem 2rem 1.75rem;
@@ -1355,7 +1355,7 @@
   padding: 0.6rem 0.5rem;
   font-size: 0.78rem;
   font-weight: 600;
-  background: white;
+  background: var(--surface);
   color: var(--neutral-700, #334155);
   border: 1.5px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-sm, 6px);
@@ -1406,7 +1406,7 @@
   font-family: 'Courier New', monospace;
   font-size: 10px;
   color: #000;
-  background: white;
+  background: var(--surface);
 }
 
 .recibo-header { text-align: center; margin-bottom: 4px; }
@@ -1518,7 +1518,7 @@
     font-family: 'Courier New', monospace;
     font-size: 10px;
     color: #000;
-    background: white;
+    background: var(--surface);
   }
 
   @page {

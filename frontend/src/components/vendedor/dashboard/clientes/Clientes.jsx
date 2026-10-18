@@ -165,11 +165,11 @@ function Clientes() {
               Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
             ) : pagina.length > 0 ? pagina.map((c) => (
               <tr key={c.clienteid}>
-                <td className="clientes-td-nombre">{c.nombreCliente}</td>
-                <td>{c.telefono}</td>
-                <td>{c.correo}</td>
-                <td>{c.direccion}</td>
-                <td className="clientes-td-acciones">
+                <td className="clientes-td-nombre" data-label="Nombre">{c.nombreCliente}</td>
+                <td data-label="Teléfono">{c.telefono}</td>
+                <td data-label="Correo">{c.correo}</td>
+                <td data-label="Dirección">{c.direccion}</td>
+                <td className="clientes-td-acciones" data-label="Acciones">
                   <button className="clientes-btn-edit" onClick={() => abrirEditar(c)}><Edit2 size={13} /></button>
                   <button className="clientes-btn-del" onClick={() => handleEliminar(c.clienteid, c.nombreCliente)}><Trash2 size={13} /></button>
                 </td>

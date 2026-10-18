@@ -20,6 +20,11 @@
   --neutral-700: #334155;
   --neutral-900: #0F172A;
 
+  /* Tokens semánticos de superficie (cambian con el tema) */
+  --bg:        #F4F8FD;
+  --surface:   #FFFFFF;
+  --surface-2: #F8FAFC;
+
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
@@ -28,6 +33,44 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
+
+  color-scheme: light;
+}
+
+/* ── Tema oscuro ──
+   Remapea la escala neutral y los tokens de superficie. Como la mayoría
+   de los componentes usan var(--neutral-*), var(--surface) y los *-soft,
+   el tema se invierte automáticamente al cambiar estas variables. */
+:root[data-theme="dark"] {
+  --color-primary:       #3B82F6;
+  --color-primary-soft:  #1E2C44;
+  --color-primary-dark:  #2563EB;
+  --color-success:       #10B981;
+  --color-success-soft:  #10261E;
+  --color-danger:        #F87171;
+  --color-danger-soft:   #331A1D;
+  --color-warning:       #FBBF24;
+  --color-warning-soft:  #322616;
+
+  --neutral-50:  #232E44;
+  --neutral-100: #1B2436;
+  --neutral-200: #33415A;
+  --neutral-300: #475069;
+  --neutral-400: #8A99B0;
+  --neutral-500: #A7B4C8;
+  --neutral-600: #C0CBDC;
+  --neutral-700: #D4DEEC;
+  --neutral-900: #F1F5F9;
+
+  --bg:        #0F1729;
+  --surface:   #1B2436;
+  --surface-2: #232E44;
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.30);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.40);
+  --shadow-md: 0 4px 10px rgba(0,0,0,0.50);
+
+  color-scheme: dark;
 }
 
 /* ── Base reset ── */
@@ -43,7 +86,7 @@ body {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--neutral-900);
-  background: var(--neutral-100);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   height: 100%;
   overflow: hidden;

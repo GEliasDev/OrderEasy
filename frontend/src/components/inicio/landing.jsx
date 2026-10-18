@@ -24,7 +24,7 @@ import "./landing.css";
 function Landing() {
   // Theme state: light or dark
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem("lumxis-landing-theme");
+    const savedTheme = localStorage.getItem("ordereasy-landing-theme");
     if (savedTheme === "light" || savedTheme === "dark") {
       return savedTheme;
     }
@@ -38,7 +38,7 @@ function Landing() {
   const [chatMessages, setChatMessages] = useState([
     {
       role: "assistant",
-      content: "👋 ¡Hola! Soy el **Asistente Inteligente de Lumxis**. Estoy aquí para ayudarte a gestionar tu negocio. Haz clic en cualquiera de las consultas rápidas de abajo para ver cómo puedo ayudarte en tiempo real:"
+      content: "👋 ¡Hola! Soy el **Asistente Inteligente de OrderEasy**. Estoy aquí para ayudarte a gestionar tu negocio. Haz clic en cualquiera de las consultas rápidas de abajo para ver cómo puedo ayudarte en tiempo real:"
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
@@ -84,7 +84,7 @@ function Landing() {
   const toggleTheme = () => {
     setTheme((prev) => {
       const nextTheme = prev === "dark" ? "light" : "dark";
-      localStorage.setItem("lumxis-landing-theme", nextTheme);
+      localStorage.setItem("ordereasy-landing-theme", nextTheme);
       return nextTheme;
     });
   };
@@ -105,7 +105,7 @@ function Landing() {
         <div className="nav-container">
           <div className="logo">
             <Sparkles className="logo-icon animate-pulse-slow" />
-            <span className="logo-text">Lumxis</span>
+            <span className="logo-text">OrderEasy</span>
             <span className="logo-badge">ERP + IA</span>
           </div>
 
@@ -141,7 +141,7 @@ function Landing() {
               La gestión de tu negocio, <span className="gradient-text">simplificada e impulsada</span> por IA
             </h1>
             <p className="subtitle text-left">
-              Controla tu inventario, procesa ventas en segundos, supervisa turnos de caja y toma decisiones financieras respaldadas por un asistente inteligente en lenguaje natural. **Lumxis** une potencia y sencillez en una sola interfaz diseñada para crecer contigo.
+              Controla tu inventario, procesa ventas en segundos, supervisa turnos de caja y toma decisiones financieras respaldadas por un asistente inteligente en lenguaje natural. **OrderEasy** une potencia y sencillez en una sola interfaz diseñada para crecer contigo.
             </p>
             <div className="button-group">
               <Link
@@ -179,7 +179,7 @@ function Landing() {
                     <Bot className="chat-avatar-icon" />
                   </div>
                   <div>
-                    <h4>Asistente Lumxis IA</h4>
+                    <h4>Asistente OrderEasy IA</h4>
                     <span className="chat-status"><span className="status-dot"></span>En línea (Llama-3.1 8B)</span>
                   </div>
                 </div>
@@ -268,7 +268,7 @@ function Landing() {
             <span className="section-tag">Funcionalidades del Sistema</span>
             <h2>Todo lo que necesitas para controlar tu negocio</h2>
             <p className="section-subtitle">
-              Lumxis está diseñado de punta a punta para cubrir las necesidades operativas de comercios modernos y emprendedores.
+              OrderEasy está diseñado de punta a punta para cubrir las necesidades operativas de comercios modernos y emprendedores.
             </p>
           </div>
           <div className="features-grid">
@@ -334,8 +334,8 @@ function Landing() {
       <section className="benefits">
         <div className="container">
           <div className="section-header text-center anim-fade-up">
-            <span className="section-tag">Ventajas Lumxis</span>
-            <h2>¿Por qué Lumxis es la elección correcta?</h2>
+            <span className="section-tag">Ventajas OrderEasy</span>
+            <h2>¿Por qué OrderEasy es la elección correcta?</h2>
           </div>
           <div className="benefits-grid">
             <div className="benefit-item glass-panel card-hover-lift anim-fade-up">
@@ -419,7 +419,7 @@ function Landing() {
             </div>
             <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
               <p>
-                \"Controlar los turnos de caja era un dolor de cabeza diario. Con Lumxis, mis cajeros abren y cierran turnos fácilmente, y puedo ver si hay descuadres de efectivo inmediatamente desde el panel administrador.\"
+                \"Controlar los turnos de caja era un dolor de cabeza diario. Con OrderEasy, mis cajeros abren y cierran turnos fácilmente, y puedo ver si hay descuadres de efectivo inmediatamente desde el panel administrador.\"
               </p>
               <div className="testimonial-author">
                 <img
@@ -434,7 +434,7 @@ function Landing() {
             </div>
             <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
               <p>
-                \"Implementamos Lumxis por el control de inventario, pero nos quedamos por todo lo demás. El balance financiero mensual y el control de accesos de vendedores nos da una tranquilidad inmensa.\"
+                \"Implementamos OrderEasy por el control de inventario, pero nos quedamos por todo lo demás. El balance financiero mensual y el control de accesos de vendedores nos da una tranquilidad inmensa.\"
               </p>
               <div className="testimonial-author">
                 <img
@@ -456,7 +456,7 @@ function Landing() {
         <div className="container relative">
           <div className="cta-content glass-panel">
             <h2>Toma el control absoluto de tu negocio hoy mismo</h2>
-            <p>Empieza gratis con Lumxis, configura tu inventario en minutos y experimenta la gestión impulsada por inteligencia artificial.</p>
+            <p>Empieza gratis con OrderEasy, configura tu inventario en minutos y experimenta la gestión impulsada por inteligencia artificial.</p>
             <div className="cta-buttons">
               <Link to="/registro" className="btn-primary no-underline btn-lg btn-glow">
                 Crear Mi Cuenta Gratis
@@ -476,7 +476,7 @@ function Landing() {
             <div className="footer-brand">
               <div className="logo">
                 <Sparkles className="logo-icon" />
-                <span className="logo-text">Lumxis</span>
+                <span className="logo-text">OrderEasy</span>
               </div>
               <p>
                 Revolucionando la gestión comercial con tecnología de vanguardia e inteligencia artificial accesible para todos los comercios.
@@ -543,7 +543,7 @@ function Landing() {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; {new Date().getFullYear()} Lumxis. Todos los derechos reservados.</p>
+            <p>&copy; {new Date().getFullYear()} OrderEasy. Todos los derechos reservados.</p>
             <div className="footer-bottom-links">
               <a href="#">Seguridad del Servidor</a>
               <a href="#">Términos y Condiciones</a>

@@ -156,12 +156,12 @@ const TablaEgresos = ({ from = '', to = '' }) => {
                   style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/dashboard/egreso/${egreso.egresoid}`, { state: { egreso } })}
                 >
-                  <td className="text-left">{formatearFecha(egreso.createdAt)}</td>
-                  <td className="text-left"><strong>{resumen}</strong></td>
-                  <td className="text-left">{egreso.descripcion || <span style={{ opacity: 0.4 }}>—</span>}</td>
-                  <td className="text-left">{egreso.proveedor?.nombreProveedor || <span style={{ opacity: 0.5 }}>General</span>}</td>
-                  <td className="text-right">{totalItems}</td>
-                  <td className="text-right total-cell egreso-text">${Number(egreso.total).toLocaleString('es-CO')}</td>
+                  <td className="text-left" data-label="Fecha">{formatearFecha(egreso.createdAt)}</td>
+                  <td className="text-left" data-label="Productos"><strong>{resumen}</strong></td>
+                  <td className="text-left" data-label="Descripción">{egreso.descripcion || <span style={{ opacity: 0.4 }}>—</span>}</td>
+                  <td className="text-left" data-label="Proveedor">{egreso.proveedor?.nombreProveedor || <span style={{ opacity: 0.5 }}>General</span>}</td>
+                  <td className="text-right" data-label="Items">{totalItems}</td>
+                  <td className="text-right total-cell egreso-text" data-label="Total">${Number(egreso.total).toLocaleString('es-CO')}</td>
                 </tr>
               );
             })

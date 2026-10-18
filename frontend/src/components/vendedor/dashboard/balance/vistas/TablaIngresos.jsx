@@ -156,12 +156,12 @@ const TablaIngresos = ({ from = '', to = '' }) => {
                   style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/dashboard/venta/${venta.ventaid}`, { state: { venta } })}
                 >
-                  <td className="text-left">{formatearFecha(venta.createdAt)}</td>
-                  <td className="text-left"><strong>{resumen}</strong></td>
-                  <td className="text-left">{venta.descripcion || <span style={{ opacity: 0.4 }}>—</span>}</td>
-                  <td className="text-left">{venta.cliente?.nombreCliente || <span style={{ opacity: 0.5 }}>General</span>}</td>
-                  <td className="text-right">{totalItems}</td>
-                  <td className="text-right total-cell">${Number(venta.total).toLocaleString('es-CO')}</td>
+                  <td className="text-left" data-label="Fecha">{formatearFecha(venta.createdAt)}</td>
+                  <td className="text-left" data-label="Productos"><strong>{resumen}</strong></td>
+                  <td className="text-left" data-label="Descripción">{venta.descripcion || <span style={{ opacity: 0.4 }}>—</span>}</td>
+                  <td className="text-left" data-label="Cliente">{venta.cliente?.nombreCliente || <span style={{ opacity: 0.5 }}>General</span>}</td>
+                  <td className="text-right" data-label="Items">{totalItems}</td>
+                  <td className="text-right total-cell" data-label="Total">${Number(venta.total).toLocaleString('es-CO')}</td>
                 </tr>
               );
             })

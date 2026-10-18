@@ -147,12 +147,12 @@ function Categorias() {
           <tbody>
             {pagina.length > 0 ? pagina.map((c) => (
               <tr key={c.categoriaid}>
-                <td className="categorias-td-nombre">{c.nombre}</td>
-                <td>{c.descripcion}</td>
-                <td className="text-center">
+                <td className="categorias-td-nombre" data-label="Nombre">{c.nombre}</td>
+                <td data-label="Descripción">{c.descripcion}</td>
+                <td className="text-center" data-label="Productos">
                   <span className="categorias-count-badge">{c.totalProductos || 0}</span>
                 </td>
-                <td className="categorias-td-acciones">
+                <td className="categorias-td-acciones" data-label="Acciones">
                   <button className="categorias-btn-edit" onClick={() => abrirEditar(c)}><Edit2 size={13} /></button>
                   <button className="categorias-btn-del" onClick={() => handleEliminar(c.categoriaid, c.nombre)}><Trash2 size={13} /></button>
                 </td>

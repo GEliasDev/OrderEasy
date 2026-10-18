@@ -20,6 +20,7 @@ const Login = lazy(() => import('./components/vendedor/login/Login'));
 const Home = lazy(() => import('./components/inicio/landing'));
 const Inicio = lazy(() => import('./components/vendedor/dashboard/inicio/Inicio'));
 const Registro = lazy(() => import('./components/vendedor/login/Registro'));
+const RegistrarIngresoForm = lazy(() => import('./components/vendedor/dashboard/balance/vistas/RegistrarIngresoForm'));
 const RegistrarEgresoForm = lazy(() => import('./components/vendedor/dashboard/balance/vistas/RegistrarEgresoForm'));
 const DetalleVenta = lazy(() => import('./components/vendedor/dashboard/balance/vistas/DetalleVenta'));
 const DetalleEgreso = lazy(() => import('./components/vendedor/dashboard/balance/vistas/DetalleEgreso'));
@@ -78,6 +79,7 @@ function App() {
                 <Route path="producto/:id/editar" element={<SeccionRoute seccion="inventario"><EditarProducto /></SeccionRoute>} />
                 <Route path="balance" element={<SeccionRoute seccion="balance"><Balance /></SeccionRoute>} />
                 <Route path="estadisticas" element={<SeccionRoute seccion="estadisticas"><Estadisticas /></SeccionRoute>} />
+                <Route path="nueva-venta" element={<SeccionRoute seccion="balance"><RegistrarIngresoForm /></SeccionRoute>} />
                 <Route path="nuevo-egreso" element={<SeccionRoute seccion="balance"><RegistrarEgresoForm /></SeccionRoute>} />
                 <Route path="venta/:id" element={<SeccionRoute seccion="balance"><DetalleVenta /></SeccionRoute>} />
                 <Route path="egreso/:id" element={<SeccionRoute seccion="balance"><DetalleEgreso /></SeccionRoute>} />

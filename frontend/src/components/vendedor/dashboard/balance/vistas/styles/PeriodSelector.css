@@ -1,7 +1,7 @@
 .period-selector {
   display: flex;
   gap: 0.25rem;
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-md, 8px);
   padding: 0.25rem;

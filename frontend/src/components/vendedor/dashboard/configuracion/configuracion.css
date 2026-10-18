@@ -1,8 +1,8 @@
 /* configuracion.css */
 .config-view {
   padding: 1.25rem;
-  max-width: 960px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
 }
 
 /* ── Header ── */
@@ -57,7 +57,7 @@
 
 /* ── Tarjeta base ── */
 .config-card {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-md);
   padding: 1.25rem;
@@ -115,7 +115,7 @@
   padding: 0.4rem 0.875rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--neutral-200);
-  background: white;
+  background: var(--surface);
   color: var(--color-primary);
   font-size: 0.8rem;
   font-weight: 600;
@@ -149,7 +149,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-md);
   padding: 1rem 1.25rem;
@@ -199,7 +199,7 @@
   padding: 0.4rem 0.875rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--neutral-200);
-  background: white;
+  background: var(--surface);
   color: var(--color-primary);
   font-size: 0.8rem;
   font-weight: 600;
@@ -227,7 +227,7 @@
 }
 
 .config-modal {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   width: 100%;
@@ -320,7 +320,7 @@
 .config-btn-cancelar {
   flex: 1;
   padding: 0.5rem;
-  background: white;
+  background: var(--surface);
   color: var(--neutral-600);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-sm);

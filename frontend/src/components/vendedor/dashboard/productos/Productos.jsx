@@ -128,15 +128,15 @@ const Productos = () => {
           <tbody>
             {pagina.length > 0 ? pagina.map((p) => (
               <tr key={p.productoid}>
-                <td>{formatFecha(p.createdat)}</td>
-                <td className="productos-td-nombre">{p.nombre}</td>
-                <td>{p.descripcion}</td>
-                <td>{p.categoriaNombre}</td>
-                <td className="productos-td-barcode">{p.codigoBarras || <span className="productos-td-empty">—</span>}</td>
-                <td>{p.tasaIva ?? 0}%</td>
-                <td>{p.cantidadDisponible}</td>
-                <td>${Number(p.precioCompra).toLocaleString('es-CO')}</td>
-                <td>${Number(p.precioVenta).toLocaleString('es-CO')}</td>
+                <td data-label="Fecha">{formatFecha(p.createdat)}</td>
+                <td className="productos-td-nombre" data-label="Nombre">{p.nombre}</td>
+                <td data-label="Descripción">{p.descripcion}</td>
+                <td data-label="Categoría">{p.categoriaNombre}</td>
+                <td className="productos-td-barcode" data-label="Cód. Barras">{p.codigoBarras || <span className="productos-td-empty">—</span>}</td>
+                <td data-label="IVA">{p.tasaIva ?? 0}%</td>
+                <td data-label="Stock">{p.cantidadDisponible}</td>
+                <td data-label="Compra">${Number(p.precioCompra).toLocaleString('es-CO')}</td>
+                <td data-label="Venta">${Number(p.precioVenta).toLocaleString('es-CO')}</td>
               </tr>
             )) : (
               <tr>

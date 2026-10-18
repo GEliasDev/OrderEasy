@@ -55,7 +55,7 @@
   height: 34px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--neutral-200);
-  background: white;
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -73,7 +73,7 @@
   padding: 0.375rem 0.75rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--neutral-200);
-  background: white;
+  background: var(--surface);
   color: var(--neutral-700);
   font-size: 0.8rem;
   font-weight: 600;
@@ -106,7 +106,7 @@
 }
 
 .detalle-tx-stat {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-md);
   padding: 1rem 1.125rem;
@@ -156,7 +156,7 @@
 
 /* ── Descripción ── */
 .detalle-tx-description {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-md);
   padding: 0.875rem 1.125rem;
@@ -185,7 +185,7 @@
 
 /* ── Sección de items ── */
 .detalle-items-section {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-md);
   overflow: hidden;

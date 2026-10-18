@@ -88,6 +88,10 @@ function Balance({ token }) {
   return (
     <div className="balance-container">
       <div className="top-actions">
+        <button className="action-button action-button-income" onClick={() => navigate('/dashboard/nueva-venta')}>
+          <Plus className="button-icon" />
+          <span>Registrar Venta</span>
+        </button>
         <button className="action-button action-button-expense" onClick={() => navigate('/dashboard/nuevo-egreso')}>
           <Plus className="button-icon" />
           <span>Registrar Egreso</span>

@@ -5,19 +5,49 @@
   overflow: hidden;
 }
 
+/* Columna derecha: navbar (arriba) + contenido (scroll) */
+.dashboard-main {
+  flex: 1;
+  min-width: 0;
+  margin-left: 220px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .main-content {
   flex: 1;
-  padding: 1rem;
-  margin-left: 155px;
-  height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 1.5rem 1.75rem;
   box-sizing: border-box;
-  background-color: var(--neutral-100, #F0F4FA);
+  background: linear-gradient(160deg, #FAFCFF 0%, #EEF3FB 55%, #E8EFF9 100%);
+}
+
+/* En modo oscuro el gradiente claro se reemplaza por el fondo del tema */
+:root[data-theme="dark"] .main-content {
+  background: var(--bg);
+}
+
+/* Backdrop del sidebar en móvil */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 45;
+  backdrop-filter: blur(1px);
 }
 
 @media (max-width: 1024px) {
-  .main-content {
-    margin-left: 0;
-  }
+  .dashboard-main { margin-left: 0; }
+  .main-content { padding: 1.25rem 1rem; }
+}
+
+@media (min-width: 1025px) {
+  .sidebar-backdrop { display: none; }
+}
+
+@media (max-width: 480px) {
+  .main-content { padding: 1rem 0.625rem; }
 }

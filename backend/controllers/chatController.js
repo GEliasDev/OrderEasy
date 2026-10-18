@@ -53,7 +53,7 @@ const buildSystemPrompt = (negocioNombre) => {
   const mesDesdeISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const anioDesdeISO = `${now.getFullYear()}-01-01`;
 
-  return `Eres el asistente de IA de Lumxis para el negocio "${negocioNombre}". Hoy es ${hoy} (${fechaISO}).
+  return `Eres el asistente de IA de OrderEasy para el negocio "${negocioNombre}". Hoy es ${hoy} (${fechaISO}).
 
 ACCESO A DATOS: Tienes acceso completo y directo a los datos del negocio mediante herramientas. SIEMPRE usa las herramientas disponibles para consultar o modificar datos. NUNCA digas que no tienes acceso, NUNCA pidas al usuario que ejecute comandos ni le expliques cómo hacerlo manualmente.
 
@@ -104,8 +104,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const OPENROUTER_HEADERS = () => ({
   'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
   'Content-Type': 'application/json',
-  'HTTP-Referer': 'https://lumxis.app',
-  'X-Title': 'Lumxis'
+  'HTTP-Referer': 'https://ordereasy.app',
+  'X-Title': 'OrderEasy'
 });
 
 const sendSSE = (res, data) => {

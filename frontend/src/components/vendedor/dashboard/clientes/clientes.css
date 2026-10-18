@@ -2,11 +2,11 @@
 .clientes-main {
   display: flex;
   flex-direction: column;
-  background-color: var(--neutral-100, #F0F4FA);
+  background-color: transparent;
   padding: 0.875rem;
   border-radius: 4px;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   width: 100%;
 }
 
@@ -84,7 +84,7 @@
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-sm, 6px);
   font-size: 0.8rem;
-  background: white;
+  background: var(--surface);
   color: var(--neutral-900, #0F172A);
   transition: border-color 0.15s ease;
 }
@@ -97,7 +97,7 @@
 
 /* Table */
 .clientes-table-wrap {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md, 8px);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
   overflow: hidden;
@@ -171,7 +171,7 @@
   justify-content: space-between;
   padding: 0.5rem 0.75rem;
   margin-top: 0.5rem;
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md, 8px);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
 }
@@ -180,7 +180,7 @@
   padding: 0.3rem 0.625rem;
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-sm, 6px);
-  background: white;
+  background: var(--surface);
   color: var(--neutral-600, #475569);
   font-size: 0.75rem;
   cursor: pointer;
@@ -213,7 +213,7 @@
 }
 
 .clientes-modal {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md, 8px);
   box-shadow: var(--shadow-md, 0 4px 6px rgba(0,0,0,0.07));
   width: 100%;
@@ -307,7 +307,7 @@
 .clientes-btn-cancelar {
   flex: 1;
   padding: 0.5rem;
-  background: white;
+  background: var(--surface);
   color: var(--neutral-600, #475569);
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-sm, 6px);
@@ -338,6 +338,52 @@
 @media (max-width: 640px) {
   .clientes-form-row { grid-template-columns: 1fr; }
   .clientes-header { flex-direction: column; align-items: flex-start; }
-  .clientes-table-wrap { overflow-x: auto; }
-  .clientes-table { min-width: 520px; }
+}
+
+/* ── Tabla → tarjetas apiladas en móvil ── */
+@media (max-width: 768px) {
+  .clientes-table-wrap {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .clientes-table thead { display: none; }
+  .clientes-table,
+  .clientes-table tbody,
+  .clientes-table tr,
+  .clientes-table td { display: block; width: 100%; }
+  .clientes-table tr {
+    background: var(--surface) !important;
+    border: 1px solid var(--neutral-200, #E2E8F0);
+    border-radius: var(--radius-md, 8px);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
+    margin-bottom: 0.625rem;
+    padding: 0.25rem 0.875rem;
+  }
+  .clientes-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    text-align: right;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--neutral-100, #F0F4FA);
+    font-size: 0.85rem;
+  }
+  .clientes-table td:last-child { border-bottom: none; }
+  .clientes-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--neutral-500, #64748B);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .clientes-td-acciones { justify-content: space-between; }
+  /* Estado vacío ocupa toda la tarjeta */
+  .clientes-table td.clientes-empty { display: block; text-align: center; }
+  .clientes-table td.clientes-empty::before { display: none; }
 }

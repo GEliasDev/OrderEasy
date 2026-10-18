@@ -16,7 +16,7 @@
   display: flex;
   align-items: center;
   padding: 0.875rem 1.5rem;
-  background: #fff;
+  background: var(--surface);
   border-bottom: 1px solid var(--neutral-200, #E2E8F0);
   position: sticky;
   top: 0;
@@ -65,7 +65,7 @@
   flex-direction: column;
   overflow: hidden;
   border-right: 1px solid var(--neutral-200, #E2E8F0);
-  background: #fff;
+  background: var(--surface);
 }
 
 .search-filter-bar {
@@ -88,7 +88,7 @@
   border-radius: 8px;
   font-size: 0.85rem;
   color: var(--neutral-900, #0F172A);
-  background: #fff;
+  background: var(--surface);
   transition: border-color 0.15s;
   box-sizing: border-box;
 }
@@ -114,7 +114,7 @@
   border-radius: 8px;
   font-size: 0.8rem;
   color: var(--neutral-700, #334155);
-  background: #fff;
+  background: var(--surface);
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
@@ -175,7 +175,7 @@
 }
 
 .producto-card {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: 10px;
   overflow: hidden;
@@ -257,7 +257,7 @@
   flex: 0 0 340px;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--surface);
   overflow: hidden;
 }
 
@@ -292,7 +292,7 @@
   border-radius: 7px;
   font-size: 0.8rem;
   color: var(--neutral-800, #1E293B);
-  background: #fff;
+  background: var(--surface);
   appearance: none;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
   background-position: right 0.5rem center;
@@ -330,7 +330,7 @@
   border-radius: 7px;
   font-size: 0.8rem;
   color: var(--neutral-800, #1E293B);
-  background: #fff;
+  background: var(--surface);
   resize: none;
   font-family: inherit;
   transition: border-color 0.15s;
@@ -417,7 +417,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: 6px;
   overflow: hidden;

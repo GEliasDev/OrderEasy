@@ -1,8 +1,8 @@
 /* inicio.css */
 .inicio-view {
   padding: 1.25rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -40,7 +40,7 @@
 }
 
 .inicio-kpi-card {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-md);
   padding: 1.125rem 1.25rem;
@@ -116,7 +116,7 @@
 }
 
 .inicio-panel {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--neutral-200);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);

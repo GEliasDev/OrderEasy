@@ -1,4 +1,4 @@
-/* landing.css - Dual Theme & High-Fidelity Transitions for Lumxis */
+/* landing.css - Dual Theme & High-Fidelity Transitions for OrderEasy */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
@@ -641,7 +641,7 @@
   color: white;
 }
 .app.theme-light .message-text strong {
-  color: #0F172A;
+  color: var(--neutral-900);
 }
 
 /* Typing bubble loader */

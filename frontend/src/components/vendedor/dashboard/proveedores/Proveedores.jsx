@@ -182,15 +182,15 @@ function Proveedores() {
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : pagina.length > 0 ? pagina.map((p) => (
               <tr key={p.proveedorid}>
-                <td className="proveedores-td-razon">{p.razonSocial}</td>
-                <td>{p.nombreProveedor}</td>
-                <td>{p.nit}</td>
-                <td>{p.telefono}</td>
-                <td>{p.banco}</td>
-                <td>
+                <td className="proveedores-td-razon" data-label="Razón Social">{p.razonSocial}</td>
+                <td data-label="Nombre Contacto">{p.nombreProveedor}</td>
+                <td data-label="NIT">{p.nit}</td>
+                <td data-label="Teléfono">{p.telefono}</td>
+                <td data-label="Banco">{p.banco}</td>
+                <td data-label="Estado">
                   <span className={`proveedores-estado ${p.estado === 'Activo' ? 'activo' : 'inactivo'}`}>{p.estado}</span>
                 </td>
-                <td className="proveedores-td-acciones">
+                <td className="proveedores-td-acciones" data-label="Acciones">
                   <button className="proveedores-btn-edit" onClick={() => abrirEditar(p)}><Edit2 size={13} /></button>
                   <button className="proveedores-btn-del" onClick={() => handleEliminar(p.proveedorid, p.razonSocial)}><Trash2 size={13} /></button>
                 </td>

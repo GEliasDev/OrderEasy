@@ -23,7 +23,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--neutral-900);
 }
 .chat-page-header-left p {
   margin: 0;
@@ -50,7 +50,7 @@
 
 .chat-page-body {
   flex: 1;
-  background: white;
+  background: var(--surface);
   border-radius: 16px 16px 0 0;
   border: 1px solid #e2e8f0;
   border-bottom: none;
@@ -160,7 +160,7 @@
 }
 .chat-page-input-area textarea:focus {
   border-color: var(--color-primary, #1565C0);
-  background: white;
+  background: var(--surface);
 }
 .chat-page-send-btn {
   height: 42px;

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -6,7 +5,6 @@ import {
   LineChart,
   DollarSign,
   LogOut,
-  Menu,
   ShoppingCart,
   Users,
   Truck,
@@ -67,10 +65,9 @@ const MENU = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ isOpen = false, onClose = () => {} }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
   const { logout, user } = useAuth();
 
   const esAdmin = user?.rol === 'administrador';
@@ -101,15 +98,14 @@ function Sidebar() {
 
   return (
     <>
-      <button className="menu-toggle" onClick={() => setIsOpen(!isOpen)}>
-        {isOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-
       <div className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="logo-container">
-          <Link to="/dashboard" onClick={() => setIsOpen(false)}>
+          <Link to="/dashboard" onClick={onClose} className="logo-link">
             <img src={logo} alt="Logo" className="custom-logo" />
           </Link>
+          <button className="sidebar-close" onClick={onClose} aria-label="Cerrar menú">
+            <X size={20} />
+          </button>
         </div>
 
         <div className="menu-container">
@@ -126,7 +122,7 @@ function Sidebar() {
                       key={to}
                       to={to}
                       className={`menu-item ${isActive(to) ? 'active' : ''}`}
-                      onClick={() => setIsOpen(false)}
+                      onClick={onClose}
                     >
                       <Icon className="menu-icon" />
                       <span>{label}</span>
