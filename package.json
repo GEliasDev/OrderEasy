@@ -4,12 +4,9 @@
   "private": true,
   "description": "Monorepo OrderEasy: backend (API REST) + frontend (SPA)",
   "scripts": {
-    "dev": "concurrently -n backend,frontend -c blue,green \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "dev": "node scripts/dev.mjs",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
-  },
-  "devDependencies": {
-    "concurrently": "^10.0.6"
   }
 }
