@@ -54,8 +54,15 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
+const corsOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || (IS_PROD ? false : '*'),
+  // En desarrollo refleja cualquier origen (localhost, 127.0.0.1, IPs de red);
+  // en producción solo los orígenes configurados en CORS_ORIGIN.
+  origin: IS_PROD ? (corsOrigins.length ? corsOrigins : false) : true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 }));
 

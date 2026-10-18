@@ -38,7 +38,9 @@ function Login() {
       navigate('/dashboard/inicio');
     } catch (error) {
       toast.error(
-        error.response?.data?.mensaje || 'Usuario o contraseña incorrectos.',
+        error.response?.data?.mensaje
+          || error.message
+          || 'Usuario o contraseña incorrectos.',
         { id: toastId }
       );
     } finally {
