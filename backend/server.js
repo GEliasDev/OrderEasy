@@ -36,6 +36,7 @@ require('./models/proveedorModel');
 require('./models/pedidoModel');
 require('./models/pedidoPagoModel');
 require('./models/ordenCompraModel');
+require('./models/ordenCompraAsignacionModel');
 
 // Rutas
 const authRoutes = require('./routes/authRoutes');

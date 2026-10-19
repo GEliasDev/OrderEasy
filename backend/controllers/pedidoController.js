@@ -6,6 +6,7 @@ const Producto = require('../models/productModel');
 const Variante = require('../models/varianteModel');
 const Venta = require('../models/ventaModel');
 const PedidoPago = require('../models/pedidoPagoModel');
+const { crearOrdenDesdePedidos, resumenComprasPorDetalle } = require('../services/compraLoteService');
 const VentaDetalle = require('../models/ventaDetalleModel');
 const Cliente = require('../models/clientModel');
 const Proveedor = require('../models/proveedorModel');
@@ -56,13 +57,28 @@ const conResumen = (pedido) => {
   return json;
 };
 
+// Por línea: cuánto viene en compras activas ('enCompra') y cuánto ya llegó para ella ('recibidoCompra')
+const adjuntarCompras = async (jsons) => {
+  const ids = jsons.flatMap((j) => (j.detalles || []).map((d) => d.detalleid));
+  const mapa = await resumenComprasPorDetalle(ids);
+  for (const json of jsons) {
+    for (const detalle of json.detalles || []) {
+      const compra = mapa.get(detalle.detalleid);
+      detalle.enCompra = compra?.enCompra || 0;
+      detalle.recibidoCompra = compra?.recibido || 0;
+    }
+  }
+};
+
 const cargarPedido = async (id, negocioid) => {
   const pedido = await Pedido.findOne({
     where: { pedidoid: id, negocioid },
     include: includePedido,
   });
   if (!pedido) throw new ErrorPedido('Pedido no encontrado', 404);
-  return conResumen(pedido);
+  const json = conResumen(pedido);
+  await adjuntarCompras([json]);
+  return json;
 };
 
 const buscarProducto = async (item, negocioid, transaction) => {
@@ -164,7 +180,9 @@ const getPedidos = async (req, res) => {
       include: includePedido,
       order: [['createdAt', 'DESC']],
     });
-    res.json(pedidos.map(conResumen));
+    const jsons = pedidos.map(conResumen);
+    await adjuntarCompras(jsons);
+    res.json(jsons);
   } catch {
     res.status(500).json({ mensaje: 'Error al obtener los pedidos' });
   }
@@ -600,7 +618,7 @@ const generarOrdenCompra = async (req, res) => {
   try {
     const { id } = req.params;
     const { negocioid, usuarioid } = req.usuario;
-    const { proveedorid, descripcion } = req.body;
+    const { proveedorid, descripcion } = req.body || {};
 
     const pedido = await Pedido.findOne({
       where: { pedidoid: id, negocioid },
@@ -612,94 +630,15 @@ const generarOrdenCompra = async (req, res) => {
       throw new ErrorPedido('Confirma el pedido antes de generar la orden de compra');
     }
 
-    const detalles = await PedidoDetalle.findAll({ where: { pedidoid: id }, transaction: t });
-    const ordenesActivas = await OrdenCompra.findAll({
-      where: {
-        pedidoid: id,
-        negocioid,
-        estado: { [Op.in]: ['borrador', 'enviada', 'recibida_parcial'] },
-      },
-      include: [{ model: OrdenCompraDetalle, as: 'detalles' }],
+    // Mismo cálculo que la compra por lote (con un solo pedido): descuenta stock libre y compras en curso
+    const orden = await crearOrdenDesdePedidos({
+      pedidoids: [Number(id)],
+      proveedorid,
+      descripcion: descripcion || `Pedido #${id}`,
+      negocioid,
+      usuarioid,
       transaction: t,
     });
-
-    // Una línea es "producto + talla": el faltante se calcula por talla
-    const claveDetalle = (d) => `${d.productoid || d.productoNombre}:${d.varianteid || ''}`;
-
-    const pendientesPorProducto = new Map();
-    for (const orden of ordenesActivas) {
-      for (const detalle of orden.detalles) {
-        const key = claveDetalle(detalle);
-        const pendiente = Number(detalle.cantidad) - Number(detalle.cantidadRecibida);
-        pendientesPorProducto.set(key, (pendientesPorProducto.get(key) || 0) + pendiente);
-      }
-    }
-
-    const orden = await OrdenCompra.create({
-      negocioid,
-      proveedorid: proveedorid || null,
-      pedidoid: id,
-      usuarioid,
-      estado: 'enviada',
-      descripcion: descripcion || `Pedido #${id}`,
-      total: 0,
-    }, { transaction: t });
-
-    let total = 0;
-    for (const detalle of detalles) {
-      if (!detalle.productoid) continue;
-      const producto = await Producto.findOne({
-        where: { productoid: detalle.productoid, negocioid },
-        transaction: t,
-        lock: true,
-      });
-      if (!producto) throw new ErrorPedido(`Producto no encontrado: ${detalle.productoNombre}`);
-
-      const pendienteEntrega = Number(detalle.cantidad) - Number(detalle.cantidadEntregada || 0);
-      if (pendienteEntrega <= 0) continue;
-      const stock = await resolverStockDeDetalle(producto, detalle, t);
-      const key = claveDetalle(detalle);
-      const yaPedido = pendientesPorProducto.get(key) || 0;
-      const reservadoOtros = Math.max(
-        0,
-        Number(stock.cantidadReservada) - pendienteEntrega
-      );
-      const disponibleParaPedido = Math.max(
-        0,
-        Number(stock.cantidadDisponible) - reservadoOtros
-      );
-      const faltante = Math.max(
-        0,
-        pendienteEntrega - disponibleParaPedido - yaPedido
-      );
-      if (faltante <= 0) continue;
-
-      const precioUnitario = Number(producto.precioCompra);
-      const subtotal = faltante * precioUnitario;
-
-      await OrdenCompraDetalle.create({
-        ordenid: orden.ordenid,
-        productoid: producto.productoid,
-        productoNombre: producto.nombre,
-        cantidad: faltante,
-        cantidadRecibida: 0,
-        precioUnitario,
-        subtotal,
-        categoriaid: producto.categoriaid,
-        ...datosTalla(producto, stock),
-      }, { transaction: t });
-
-      total += subtotal;
-    }
-
-    if (total === 0) {
-      throw new ErrorPedido('El stock actual y las órdenes existentes ya cubren este pedido');
-    }
-
-    await orden.update({ total }, { transaction: t });
-    if (pedido.estado === 'confirmado') {
-      await pedido.update({ estado: 'en_compra' }, { transaction: t });
-    }
     await t.commit();
 
     const ordenCompleta = await OrdenCompra.findByPk(orden.ordenid, {

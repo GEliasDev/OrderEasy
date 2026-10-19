@@ -5,9 +5,13 @@ const Egreso = require('../models/egresoModel');
 const EgresoDetalle = require('../models/egresoDetalleModel');
 const Proveedor = require('../models/proveedorModel');
 const Pedido = require('../models/pedidoModel');
+const PedidoDetalle = require('../models/pedidoDetalleModel');
+const Cliente = require('../models/clientModel');
+const Asignacion = require('../models/ordenCompraAsignacionModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 const { resolverStockDeDetalle, guardarStock } = require('../services/stockService');
+const { calcularFaltantes, crearOrdenDesdePedidos, repartirRecepcion, sincronizarEstadoPedido, pedidoidsDeOrden } = require('../services/compraLoteService');
 
 class ErrorOrden extends Error {
   constructor(mensaje, status = 400) {
@@ -17,10 +21,52 @@ class ErrorOrden extends Error {
 }
 
 const includeOrden = [
-  { model: OrdenCompraDetalle, as: 'detalles' },
+  {
+    model: OrdenCompraDetalle,
+    as: 'detalles',
+    include: [{
+      model: Asignacion,
+      as: 'asignaciones',
+      include: [{
+        model: PedidoDetalle,
+        as: 'pedidoDetalle',
+        attributes: ['detalleid', 'pedidoid', 'cantidad', 'cantidadEntregada'],
+        include: [{
+          model: Pedido,
+          as: 'pedido',
+          attributes: ['pedidoid', 'estado', 'clienteid'],
+        }],
+      }],
+    }],
+  },
   { model: Proveedor, as: 'proveedor', attributes: ['proveedorid', 'nombreProveedor', 'razonSocial'] },
   { model: Pedido, as: 'pedido', attributes: ['pedidoid', 'estado'] },
 ];
+
+// Orden en JSON con el reparto de cada línea en orden estable
+const aJson = (orden) => {
+  const json = orden.toJSON();
+  for (const detalle of json.detalles || []) {
+    detalle.asignaciones = (detalle.asignaciones || []).sort((a, b) => a.asignacionid - b.asignacionid);
+  }
+  return json;
+};
+
+// El cliente se carga aparte: anidado tan profundo, Postgres trunca los alias de columnas (límite de 63 caracteres)
+const ordenesJson = async (ordenes) => {
+  const jsons = ordenes.map(aJson);
+  const pedidos = jsons.flatMap((o) => (o.detalles || []).flatMap((d) => (d.asignaciones || []).map((a) => a.pedidoDetalle?.pedido)));
+  const clienteids = [...new Set(pedidos.filter(Boolean).map((p) => p.clienteid).filter(Boolean))];
+  const clientes = clienteids.length
+    ? await Cliente.findAll({ where: { clienteid: clienteids }, attributes: ['clienteid', 'nombreCliente', 'telefono'] })
+    : [];
+  const porId = new Map(clientes.map((c) => [c.clienteid, c.toJSON()]));
+  for (const pedido of pedidos) {
+    if (pedido) pedido.cliente = porId.get(pedido.clienteid) || null;
+  }
+  return jsons;
+};
+const ordenJson = async (orden) => (await ordenesJson([orden]))[0];
 
 const responderError = (res, error, mensaje) => {
   if (error.status) return res.status(error.status).json({ mensaje: error.message });
@@ -42,7 +88,7 @@ const getOrdenes = async (req, res) => {
       include: includeOrden,
       order: [['createdAt', 'DESC']],
     });
-    res.json(ordenes);
+    res.json(await ordenesJson(ordenes));
   } catch {
     res.status(500).json({ mensaje: 'Error al obtener las órdenes de compra' });
   }
@@ -57,7 +103,7 @@ const getOrdenById = async (req, res) => {
       include: includeOrden,
     });
     if (!orden) throw new ErrorOrden('Orden de compra no encontrada', 404);
-    res.json(orden);
+    res.json(await ordenJson(orden));
   } catch (error) {
     responderError(res, error, 'Error al obtener la orden de compra');
   }
@@ -89,7 +135,7 @@ const recibirOrden = async (req, res) => {
     const solicitudes = new Map();
     if (Array.isArray(items) && items.length > 0) {
       for (const item of items) {
-        solicitudes.set(String(item.detalleid), Number(item.cantidad));
+        solicitudes.set(String(item.detalleid), { cantidad: Number(item.cantidad), reparto: item.reparto });
       }
     }
 
@@ -106,9 +152,8 @@ const recibirOrden = async (req, res) => {
 
     for (const detalle of detalles) {
       const restante = Number(detalle.cantidad) - Number(detalle.cantidadRecibida);
-      const solicitado = solicitudes.size > 0
-        ? (solicitudes.get(String(detalle.detalleid)) || 0)
-        : restante;
+      const solicitud = solicitudes.get(String(detalle.detalleid));
+      const solicitado = solicitudes.size > 0 ? (solicitud?.cantidad || 0) : restante;
 
       if (solicitado <= 0) continue;
       if (solicitado > restante) {
@@ -129,6 +174,9 @@ const recibirOrden = async (req, res) => {
       await guardarStock(producto, stock, {
         cantidadDisponible: Number(stock.cantidadDisponible) + solicitado,
       }, t);
+
+      // A qué clientes corresponde lo que llegó (lo elige el usuario o, sin indicar, por orden de pedido)
+      await repartirRecepcion({ detalle, cantidad: solicitado, reparto: solicitud?.reparto, transaction: t });
 
       const subtotal = solicitado * Number(detalle.precioUnitario);
       await EgresoDetalle.create({
@@ -169,31 +217,13 @@ const recibirOrden = async (req, res) => {
       egresoid: egreso.egresoid,
     }, { transaction: t });
 
-    if (completa && orden.pedidoid) {
-      const otrasActivas = await OrdenCompra.count({
-        where: {
-          pedidoid: orden.pedidoid,
-          negocioid,
-          ordenid: { [Op.ne]: orden.ordenid },
-          estado: { [Op.in]: ['borrador', 'enviada', 'recibida_parcial'] },
-        },
-        transaction: t,
-      });
-
-      if (otrasActivas === 0) {
-        const pedido = await Pedido.findOne({
-          where: { pedidoid: orden.pedidoid, negocioid },
-          transaction: t,
-          lock: true,
-        });
-        if (pedido && ['confirmado', 'en_compra'].includes(pedido.estado)) {
-          await pedido.update({ estado: 'recibido' }, { transaction: t });
-        }
-      }
+    // El estado de cada pedido involucrado se recalcula con sus asignaciones (en compra / recibido)
+    for (const pedidoid of await pedidoidsDeOrden(orden.ordenid, t)) {
+      await sincronizarEstadoPedido(pedidoid, t);
     }
 
     await t.commit();
-    res.json(await OrdenCompra.findByPk(id, { include: includeOrden }));
+    res.json(await ordenJson(await OrdenCompra.findByPk(id, { include: includeOrden })));
   } catch (error) {
     await t.rollback();
     responderError(res, error, 'Error al recibir la orden de compra');
@@ -218,37 +248,48 @@ const anularOrden = async (req, res) => {
 
     await orden.update({ estado: 'anulada' }, { transaction: t });
 
-    if (orden.pedidoid) {
-      const activas = await OrdenCompra.count({
-        where: {
-          pedidoid: orden.pedidoid,
-          negocioid,
-          estado: { [Op.in]: ['borrador', 'enviada', 'recibida_parcial'] },
-        },
-        transaction: t,
-      });
-
-      if (activas === 0) {
-        const pedido = await Pedido.findOne({
-          where: { pedidoid: orden.pedidoid, negocioid },
-          transaction: t,
-          lock: true,
-        });
-        if (pedido && pedido.estado === 'en_compra') {
-          await pedido.update({ estado: 'confirmado' }, { transaction: t });
-        }
-      }
+    for (const pedidoid of await pedidoidsDeOrden(orden.ordenid, t)) {
+      await sincronizarEstadoPedido(pedidoid, t);
     }
 
     await t.commit();
-    res.json(await OrdenCompra.findByPk(id, { include: includeOrden }));
+    res.json(await ordenJson(await OrdenCompra.findByPk(id, { include: includeOrden })));
   } catch (error) {
     await t.rollback();
     responderError(res, error, 'Error al anular la orden de compra');
   }
 };
 
+// Vista previa de lo que hay que comprar para un grupo de pedidos (por producto y talla, con el reparto por cliente)
+const previewLote = async (req, res) => {
+  try {
+    const { negocioid } = req.usuario;
+    const pedidoids = String(req.query.pedidoids || '').split(',').map(Number).filter(Boolean);
+    res.json(await calcularFaltantes({ pedidoids, negocioid }));
+  } catch (error) {
+    responderError(res, error, 'Error al calcular la compra');
+  }
+};
+
+// Crea una sola orden de compra para varios pedidos. body: { pedidoids: [], proveedorid?, descripcion? }
+const crearLote = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { negocioid, usuarioid } = req.usuario;
+    const { pedidoids, proveedorid, descripcion } = req.body || {};
+
+    const orden = await crearOrdenDesdePedidos({ pedidoids, proveedorid, descripcion, negocioid, usuarioid, transaction: t });
+    await t.commit();
+    res.status(201).json(await ordenJson(await OrdenCompra.findByPk(orden.ordenid, { include: includeOrden })));
+  } catch (error) {
+    await t.rollback();
+    responderError(res, error, 'Error al crear la compra');
+  }
+};
+
 module.exports = {
+  previewLote,
+  crearLote,
   getOrdenes,
   getOrdenById,
   recibirOrden,
