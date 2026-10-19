@@ -77,7 +77,13 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Las imágenes se consumen desde el frontend en otro origen (Vite), por lo que
+// deben poder cargarse cross-origin; Helmet aplica same-origin por defecto.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  },
+}));
 app.use(bodyParser.json({ limit: '10mb' }));
 
 app.use('/api/auth', authLimiter, authRoutes);
