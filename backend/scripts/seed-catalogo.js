@@ -12,10 +12,11 @@ require('../models/rolModel');
 const Usuario = require('../models/userModel');
 const Categoria = require('../models/categoryModel');
 const Producto = require('../models/productModel');
+const Variante = require('../models/varianteModel');
 
 const CORREO = 'gvaldelamar2003@gmail.com';
 const ORIGEN = process.argv[2] || 'C:\\Users\\GabrielEliasValdelam\\Desktop\\Catalogo\\CatalogoGyC';
-const STOCK_INICIAL = 10;
+const TALLAS = ['35', '36', '37', '38', '39', '40']; // todas las sandalias se manejan por talla; el stock arranca en 0
 const MARGEN_COMPRA = 0.5; // precioCompra provisional = 50% del precio de venta (el catálogo no lo trae)
 
 (async () => {
@@ -53,10 +54,10 @@ const MARGEN_COMPRA = 0.5; // precioCompra provisional = 50% del precio de venta
           imagenes.push(`productos/${path.basename(rel)}`);
         }
 
-        await Producto.create({
+        const producto = await Producto.create({
           nombre,
           descripcion: `Sandalia ${p.name} color ${v.color} - Colección ${p.collection}`,
-          cantidadDisponible: STOCK_INICIAL,
+          cantidadDisponible: 0,
           precioCompra: Math.round(p.price * MARGEN_COMPRA),
           precioVenta: p.price,
           imagenes,
@@ -64,7 +65,11 @@ const MARGEN_COMPRA = 0.5; // precioCompra provisional = 50% del precio de venta
           categoriaid: categorias[p.collection].categoriaid,
           usuarioid: usuario.usuarioid,
           negocioid: usuario.negocioid,
+          usaTallas: true,
         });
+        await Variante.bulkCreate(
+          TALLAS.map((talla) => ({ productoid: producto.productoid, negocioid: usuario.negocioid, talla }))
+        );
         creados++;
       }
     }
