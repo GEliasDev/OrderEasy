@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useDebounce } from '../../../../hooks/useDebounce';
@@ -6,6 +6,10 @@ import VisualizarProductos from './vistas/VisualizarProductos';
 import { getCategoriesByUser } from '../../../../services/categoryServices';
 import { getAllProducts } from '../../../../services/productServices';
 import './inventario.css';
+
+const GRID_GAP = 14;
+const CARD_MIN_WIDTH = 160;
+const CARD_MAX_HEIGHT = 230;
 
 const SkeletonCard = () => (
   <div style={{ background: 'white', borderRadius: 8, padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
@@ -24,7 +28,8 @@ function Inventario() {
   const [selectedCategoriaId, setSelectedCategoriaId] = useState(() => localStorage.getItem('invFilterCategory') || '');
   const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem('invSearchTerm') || '');
   const [currentPage, setCurrentPage] = useState(() => parseInt(localStorage.getItem('invCurrentPage')) || 1);
-  const productosPorPagina = 10;
+  const [gridMetrics, setGridMetrics] = useState({ columns: 5, rows: 2 });
+  const productsRef = useRef(null);
 
   const debouncedSearch = useDebounce(searchTerm, 300);
 
@@ -42,6 +47,28 @@ function Inventario() {
     setCurrentPage(1);
   }, [debouncedSearch, selectedCategoriaId]);
 
+  useEffect(() => {
+    const element = productsRef.current;
+    if (!element) return;
+
+    const updateMetrics = () => {
+      const { width, height } = element.getBoundingClientRect();
+      if (!width || !height) return;
+
+      const columns = Math.max(1, Math.floor((width + GRID_GAP) / (CARD_MIN_WIDTH + GRID_GAP)));
+      const rows = Math.max(1, Math.floor((height + GRID_GAP) / (CARD_MAX_HEIGHT + GRID_GAP)));
+
+      setGridMetrics((prev) => (
+        prev.columns === columns && prev.rows === rows ? prev : { columns, rows }
+      ));
+    };
+
+    updateMetrics();
+    const observer = new ResizeObserver(updateMetrics);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   const fetchProductos = async () => {
     const data = await getAllProducts();
     setProductos(Array.isArray(data) ? data : []);
@@ -57,16 +84,26 @@ function Inventario() {
     return coincideCategoria && coincideNombre;
   });
 
+  const totalFilas = Math.ceil(productosFiltrados.length / gridMetrics.columns);
+  const totalPaginas = Math.max(1, Math.ceil(totalFilas / gridMetrics.rows));
+  const filasPorPagina = Math.ceil(totalFilas / totalPaginas);
+  const productosPorPagina = Math.max(1, filasPorPagina * gridMetrics.columns);
   const indexUltimo = currentPage * productosPorPagina;
   const indexPrimero = indexUltimo - productosPorPagina;
   const productosPaginados = productosFiltrados.slice(indexPrimero, indexUltimo);
-  const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
 
   const paginasAMostrar = (() => {
     const rangoInicio = Math.max(1, currentPage - 2);
     const rangoFin = Math.min(totalPaginas, rangoInicio + 4);
     return Array.from({ length: rangoFin - rangoInicio + 1 }, (_, i) => rangoInicio + i);
   })();
+
+  useEffect(() => {
+    if (currentPage > totalPaginas) {
+      setCurrentPage(totalPaginas);
+      localStorage.setItem('invCurrentPage', totalPaginas);
+    }
+  }, [currentPage, totalPaginas]);
 
   const cambiarPagina = (nuevaPagina) => {
     if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
@@ -126,35 +163,37 @@ function Inventario() {
         />
       </div>
 
-      <div className="inventario-products">
+      <div className="inventario-products" ref={productsRef}>
         {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
-            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+          <div className="productos-container">
+            {Array.from({ length: gridMetrics.columns * gridMetrics.rows }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : (
           <VisualizarProductos productos={productosPaginados} onRefresh={fetchProductos} />
         )}
       </div>
 
-      {!loading && totalPaginas > 1 && (
-        <div className="paginacion">
-          <button className="paginacion-btn" onClick={() => cambiarPagina(currentPage - 1)} disabled={currentPage === 1}>
-            Anterior
-          </button>
-          {paginasAMostrar.map((pagina) => (
-            <button
-              key={pagina}
-              className={`paginacion-btn ${currentPage === pagina ? 'activo' : ''}`}
-              onClick={() => cambiarPagina(pagina)}
-            >
-              {pagina}
+      <div className="paginacion-slot">
+        {!loading && totalPaginas > 1 && (
+          <div className="paginacion">
+            <button className="paginacion-btn" onClick={() => cambiarPagina(currentPage - 1)} disabled={currentPage === 1}>
+              Anterior
             </button>
-          ))}
-          <button className="paginacion-btn" onClick={() => cambiarPagina(currentPage + 1)} disabled={currentPage === totalPaginas}>
-            Siguiente
-          </button>
-        </div>
-      )}
+            {paginasAMostrar.map((pagina) => (
+              <button
+                key={pagina}
+                className={`paginacion-btn ${currentPage === pagina ? 'activo' : ''}`}
+                onClick={() => cambiarPagina(pagina)}
+              >
+                {pagina}
+              </button>
+            ))}
+            <button className="paginacion-btn" onClick={() => cambiarPagina(currentPage + 1)} disabled={currentPage === totalPaginas}>
+              Siguiente
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
