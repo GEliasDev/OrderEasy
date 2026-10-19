@@ -94,7 +94,7 @@
 
 .pedidos-metricas {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -975,3 +975,186 @@
 :root[data-theme="dark"] .pedido-alerta-stock { background: #322616; border-color: #5A4417; color: #FCD34D; }
 :root[data-theme="dark"] .pedidos-btn-peligro { border-color: #5B2A2F; }
 :root[data-theme="dark"] .pedidos-btn-peligro:hover:not(:disabled) { background: #331A1D; }
+
+/* ── Pagos del pedido ── */
+.pedido-pagos {
+  background: var(--surface, #fff);
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.pedido-pagos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pedido-pago-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--neutral-50, #F8FAFC);
+}
+
+.pedido-pago-stat span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--neutral-500, #64748B);
+}
+
+.pedido-pago-stat strong { font-size: 1.05rem; color: var(--neutral-900, #0F172A); }
+
+.pedido-pago-stat-alerta { background: var(--color-warning-soft, #FFFBEB); }
+.pedido-pago-stat-alerta strong { color: var(--color-warning, #D97706); }
+
+.pedido-pagos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--neutral-900, #0F172A);
+}
+
+.pedido-pagos-header > span { display: inline-flex; align-items: center; gap: 6px; }
+.pedido-pagos-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.pedido-pagos-vacio { margin: 0; font-size: 0.8rem; color: var(--neutral-500, #64748B); }
+
+.pedido-mov {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.pedido-mov-abono { background: #DCFCE7; color: #15803D; }
+.pedido-mov-devolucion { background: #FEE2E2; color: #DC2626; }
+.pedido-mov-traslado { background: #EDE9FE; color: #6D28D9; }
+
+.pedido-mov-monto-abono { color: #15803D; }
+.pedido-mov-monto-devolucion,
+.pedido-mov-monto-traslado { color: #DC2626; }
+
+.pedido-mov-nota { color: var(--neutral-500, #64748B); max-width: 18rem; }
+
+.pedido-entregas-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.pedido-saldo-pendiente { font-weight: 700; color: var(--color-warning, #D97706); }
+.pedido-saldo-cero { color: var(--neutral-500, #64748B); }
+
+.pedido-entrega-estado { font-size: 0.8rem; color: var(--neutral-500, #64748B); white-space: nowrap; }
+.pedido-entrega-estado.parcial { color: var(--color-warning, #D97706); font-weight: 600; }
+.pedido-entrega-estado.completa { color: #15803D; font-weight: 600; }
+
+/* ── Modal de entrega y anulación ── */
+.pedido-modal-ancho { max-width: 620px; }
+
+.pedido-entrega-lineas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 38vh;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+
+.pedido-entrega-linea {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6.5rem;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 10px;
+}
+
+.pedido-entrega-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pedido-entrega-info strong { font-size: 0.85rem; color: var(--neutral-900, #0F172A); }
+.pedido-entrega-info small { font-size: 0.7rem; color: var(--neutral-500, #64748B); }
+
+.pedido-entrega-linea input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--neutral-900, #0F172A);
+  font-size: 0.85rem;
+}
+
+.pedido-entrega-resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.pedido-entrega-resumen > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--neutral-50, #F8FAFC);
+}
+
+.pedido-entrega-resumen span { font-size: 0.68rem; color: var(--neutral-500, #64748B); }
+.pedido-entrega-resumen strong { font-size: 0.95rem; color: var(--neutral-900, #0F172A); }
+
+.pedido-abono-inicial { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
+
+.pedido-abono-inicial input,
+.pedido-abono-inicial select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--neutral-900, #0F172A);
+  font-size: 0.85rem;
+}
+
+.pedido-ayuda { display: block; margin-top: 4px; font-size: 0.72rem; color: var(--neutral-500, #64748B); }
+
+.pedido-opcion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.pedido-opcion input { margin-top: 3px; width: auto; }
+.pedido-opcion span { display: flex; flex-direction: column; gap: 2px; }
+.pedido-opcion strong { font-size: 0.85rem; color: var(--neutral-900, #0F172A); }
+.pedido-opcion small { font-size: 0.72rem; color: var(--neutral-500, #64748B); }
+.pedido-opcion.deshabilitada { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+  .pedido-entrega-resumen { grid-template-columns: 1fr; }
+  .pedido-entrega-linea { grid-template-columns: 1fr 5rem; }
+}
+
+/* Modo oscuro */
+:root[data-theme="dark"] .pedido-mov-abono { background: #10261E; color: #6EE7B7; }
+:root[data-theme="dark"] .pedido-mov-devolucion { background: #331A1D; color: #FCA5A5; }
+:root[data-theme="dark"] .pedido-mov-traslado { background: #2A2147; color: #C4B5FD; }
+:root[data-theme="dark"] .pedido-mov-monto-abono { color: #6EE7B7; }
+:root[data-theme="dark"] .pedido-mov-monto-devolucion,
+:root[data-theme="dark"] .pedido-mov-monto-traslado { color: #FCA5A5; }
+:root[data-theme="dark"] .pedido-entrega-estado.completa { color: #6EE7B7; }

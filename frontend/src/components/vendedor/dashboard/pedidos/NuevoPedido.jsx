@@ -25,6 +25,8 @@ function NuevoPedido() {
   const [clienteId, setClienteId] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [fechaEntrega, setFechaEntrega] = useState('');
+  const [abonoMonto, setAbonoMonto] = useState('');
+  const [abonoMetodo, setAbonoMetodo] = useState('efectivo');
   const {
     carrito, productoParaTalla, elegirProducto, elegirTalla, cerrarSelectorTalla,
     actualizarCantidad, setCantidadDirecta, eliminarDelCarrito,
@@ -74,12 +76,21 @@ function NuevoPedido() {
 
   const finalizarPedido = async () => {
     if (carrito.length === 0) return;
+    if (!clienteId) {
+      toast.error('Selecciona el cliente del pedido.');
+      return;
+    }
+    if (Number(abonoMonto) > totalCarrito) {
+      toast.error('El abono no puede superar el total del pedido.');
+      return;
+    }
     try {
       setProcesando(true);
       await createPedido({
-        clienteid: clienteId || null,
+        clienteid: clienteId,
         descripcion,
         fechaEntrega: fechaEntrega || null,
+        abono: Number(abonoMonto) > 0 ? { monto: Number(abonoMonto), metodo: abonoMetodo } : undefined,
         items: carrito.map((item) => ({
           productoid: item.productoid,
           talla: item.talla,
@@ -187,17 +198,37 @@ function NuevoPedido() {
             </div>
 
             <div className="client-selection-cart">
-              <label>Cliente (Opcional)</label>
+              <label>Cliente</label>
               <select
                 value={clienteId}
                 onChange={(e) => setClienteId(e.target.value)}
                 className="cart-select-input"
               >
-                <option value="">Consumidor Final / General</option>
+                <option value="">Selecciona un cliente...</option>
                 {clientes.map((cliente) => (
                   <option key={cliente.clienteid} value={cliente.clienteid}>{cliente.nombreCliente}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="client-selection-cart">
+              <label>Abono inicial (Opcional)</label>
+              <div className="pedido-abono-inicial">
+                <input
+                  type="number"
+                  min="0"
+                  max={totalCarrito || undefined}
+                  className="cart-select-input"
+                  placeholder="$ 0"
+                  value={abonoMonto}
+                  onChange={(e) => setAbonoMonto(e.target.value)}
+                />
+                <select className="cart-select-input" value={abonoMetodo} onChange={(e) => setAbonoMetodo(e.target.value)}>
+                  <option value="efectivo">Efectivo</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="tarjeta">Tarjeta</option>
+                </select>
+              </div>
             </div>
 
             <div className="client-selection-cart">
@@ -286,7 +317,7 @@ function NuevoPedido() {
               </div>
               <button
                 className={`checkout-button ${procesando ? 'loading' : ''}`}
-                disabled={carrito.length === 0 || procesando}
+                disabled={carrito.length === 0 || !clienteId || procesando}
                 onClick={finalizarPedido}
               >
                 {procesando ? (

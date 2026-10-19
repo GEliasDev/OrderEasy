@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TablaIngresos from './vistas/TablaIngresos';
 import TablaEgresos from './vistas/TablaEgresos';
@@ -52,6 +52,7 @@ function Balance({ token }) {
   const [summary, setSummary] = useState({
     totalIngresos: 0,
     totalEgresos: 0,
+    anticiposClientes: 0,
     balance: 0,
     margen: 0
   });
@@ -139,6 +140,18 @@ function Balance({ token }) {
             {loading
               ? <div className="metric-skeleton" />
               : <p className="metric-value">{formatoMoneda(summary.totalEgresos)}</p>}
+          </div>
+        </div>
+
+        {/* Dinero de abonos de pedidos aún sin entregar: no es utilidad, solo está en caja */}
+        <div className="metric-card anticipos">
+          <div className="metric-icon"><Wallet size={20} /></div>
+          <div className="metric-content">
+            <h3>Abonos por entregar</h3>
+            {loading
+              ? <div className="metric-skeleton" />
+              : <p className="metric-value">{formatoMoneda(summary.anticiposClientes || 0)}</p>}
+            <span className="metric-nota">Anticipos de clientes con pedidos pendientes</span>
           </div>
         </div>
       </div>

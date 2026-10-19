@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ClipboardList, Eye, Plus, ShoppingBag, Truck, XCircle } from 'lucide-react';
+import { Check, ClipboardList, Eye, Plus, ShoppingBag, Truck, Wallet, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  anularPedido,
   confirmarPedido,
-  convertirPedidoAVenta,
   getPedidos,
 } from '../../../../services/pedidoService';
 import './Pedidos.css';
@@ -54,7 +52,10 @@ function Pedidos() {
   const pedidosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
     return pedidos.filter((pedido) => {
-      const coincideEstado = filtroEstado === 'todos' || pedido.estado === filtroEstado;
+      const coincideEstado = filtroEstado === 'todos'
+        || (filtroEstado === 'con_saldo'
+          ? pedido.estado !== 'anulado' && Number(pedido.resumen?.saldo) > 0
+          : pedido.estado === filtroEstado);
       const cliente = pedido.cliente?.nombreCliente || 'Consumidor final';
       const coincideBusqueda = !texto
         || cliente.toLowerCase().includes(texto)
@@ -69,6 +70,9 @@ function Pedidos() {
     pendientes: pedidos.filter((pedido) => pedido.estado === 'pendiente').length,
     enCompra: pedidos.filter((pedido) => pedido.estado === 'en_compra').length,
     porEntregar: pedidos.filter((pedido) => ['confirmado', 'recibido'].includes(pedido.estado)).length,
+    porCobrar: pedidos
+      .filter((pedido) => pedido.estado !== 'anulado')
+      .reduce((sum, pedido) => sum + Number(pedido.resumen?.saldo || 0), 0),
   }), [pedidos]);
 
   const handleConfirmar = async (pedido) => {
@@ -81,43 +85,9 @@ function Pedidos() {
     }
   };
 
-  const handleAnular = (pedido) => {
-    toast('¿Anular este pedido?', {
-      description: 'Se liberará el stock reservado y se anularán las órdenes de compra pendientes.',
-      action: {
-        label: 'Sí, anular',
-        onClick: async () => {
-          try {
-            await anularPedido(pedido.pedidoid);
-            toast.success('Pedido anulado.');
-            cargarPedidos();
-          } catch (error) {
-            toast.error(error?.response?.data?.mensaje || 'No se pudo anular el pedido.');
-          }
-        },
-      },
-      cancel: { label: 'Cancelar', onClick: () => {} },
-    });
-  };
-
-  const handleConvertir = (pedido) => {
-    toast('¿Convertir en venta?', {
-      description: 'Se descontará el stock físico y se registrará la venta.',
-      action: {
-        label: 'Sí, convertir',
-        onClick: async () => {
-          try {
-            const data = await convertirPedidoAVenta(pedido.pedidoid);
-            toast.success('Pedido entregado y convertido en venta.');
-            navigate(`/dashboard/venta/${data.ventaid}`);
-          } catch (error) {
-            toast.error(error?.response?.data?.mensaje || 'No se pudo convertir el pedido.');
-          }
-        },
-      },
-      cancel: { label: 'Cancelar', onClick: () => {} },
-    });
-  };
+  // Anular y entregar requieren decidir (devolver abonos, qué líneas entregar): se hacen en el detalle del pedido
+  const handleAnular = (pedido) => navigate(`/dashboard/pedido/${pedido.pedidoid}?accion=anular`);
+  const handleConvertir = (pedido) => navigate(`/dashboard/pedido/${pedido.pedidoid}?accion=entregar`);
 
   return (
     <div className="pedidos-container">
@@ -161,6 +131,13 @@ function Pedidos() {
             <strong>{metricas.porEntregar}</strong>
           </div>
         </div>
+        <div className="pedidos-metrica">
+          <div className="pedidos-metrica-icon pedidos-icon-ambar"><Wallet size={18} /></div>
+          <div>
+            <span>Por cobrar</span>
+            <strong>{formatoMoneda(metricas.porCobrar)}</strong>
+          </div>
+        </div>
       </div>
 
       <div className="pedidos-filtros">
@@ -177,6 +154,7 @@ function Pedidos() {
           onChange={(e) => setFiltroEstado(e.target.value)}
         >
           <option value="todos">Todos los estados</option>
+          <option value="con_saldo">Con saldo por cobrar</option>
           {Object.entries(ESTADOS).map(([key, config]) => (
             <option key={key} value={key}>{config.label}</option>
           ))}
@@ -209,6 +187,8 @@ function Pedidos() {
                 <th>Estado</th>
                 <th>Items</th>
                 <th>Total</th>
+                <th>Abonado</th>
+                <th>Saldo</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -219,12 +199,16 @@ function Pedidos() {
                 return (
                   <tr key={pedido.pedidoid} onClick={() => navigate(`/dashboard/pedido/${pedido.pedidoid}`)}>
                     <td className="pedido-id">#{pedido.pedidoid}</td>
-                    <td>{pedido.cliente?.nombreCliente || 'Consumidor final'}</td>
+                    <td>{pedido.cliente?.nombreCliente || 'Sin cliente'}</td>
                     <td>{formatearFecha(pedido.createdAt)}</td>
                     <td>{pedido.fechaEntrega ? formatearFecha(pedido.fechaEntrega) : 'Sin fecha'}</td>
                     <td><span className={`pedido-estado pedido-estado-${estadoConfig.clase}`}>{estadoConfig.label}</span></td>
                     <td>{items}</td>
                     <td className="pedido-total">{formatoMoneda(pedido.total)}</td>
+                    <td>{formatoMoneda(pedido.resumen?.abonado)}</td>
+                    <td className={Number(pedido.resumen?.saldo) > 0 && pedido.estado !== 'anulado' ? 'pedido-saldo-pendiente' : 'pedido-saldo-cero'}>
+                      {pedido.estado === 'anulado' ? '—' : formatoMoneda(pedido.resumen?.saldo)}
+                    </td>
                     <td>
                       <div className="pedidos-acciones" onClick={(e) => e.stopPropagation()}>
                         <button

@@ -25,8 +25,31 @@ export const confirmarPedido = async (id) => {
   return data;
 };
 
-export const anularPedido = async (id) => {
-  const { data } = await axiosInstance.post(`/api/pedidos/${id}/anular`);
+// payload: { abonos: 'devolver' | 'saldo_a_favor', metodoDevolucion }
+export const anularPedido = async (id, payload = {}) => {
+  const { data } = await axiosInstance.post(`/api/pedidos/${id}/anular`, payload);
+  return data;
+};
+
+// Entrega total o parcial. payload: { items?: [{ detalleid, cantidad }], pagos?: [{ metodo, monto }] }
+export const entregarPedido = async (id, payload = {}) => {
+  const { data } = await axiosInstance.post(`/api/pedidos/${id}/entregar`, payload);
+  return data;
+};
+
+// Abono o devolución manual. payload: { tipo: 'abono' | 'devolucion', monto, metodo, nota }
+export const registrarPagoPedido = async (id, payload) => {
+  const { data } = await axiosInstance.post(`/api/pedidos/${id}/pagos`, payload);
+  return data;
+};
+
+export const getSaldoFavor = async (clienteid) => {
+  const { data } = await axiosInstance.get(`/api/pedidos/saldo-favor/${clienteid}`);
+  return data;
+};
+
+export const usarSaldoFavor = async (id, monto) => {
+  const { data } = await axiosInstance.post(`/api/pedidos/${id}/usar-saldo`, monto ? { monto } : {});
   return data;
 };
 
