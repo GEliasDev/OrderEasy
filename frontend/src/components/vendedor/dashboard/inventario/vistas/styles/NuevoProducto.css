@@ -52,7 +52,7 @@
 
 .minimal-form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
 }
 
@@ -127,7 +127,7 @@
 
 .form-row-minimal {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -247,5 +247,5 @@
 }
 
 @media (max-width: 850px) {
-  .minimal-form-grid { grid-template-columns: 1fr; }
+  .minimal-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
