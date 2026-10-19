@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ClipboardList, Eye, Plus, ShoppingBag, Truck, Wallet, XCircle } from 'lucide-react';
+import { Check, ClipboardList, Eye, Plus, ShoppingBag, Truck, Users, Wallet, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   confirmarPedido,
   getPedidos,
 } from '../../../../services/pedidoService';
+import { ESTADOS_ENTREGABLES, urgenciaEntrega } from '../seguimiento/seguimientoUtils';
 import './Pedidos.css';
+import '../seguimiento/Seguimiento.css';
 
 const ESTADOS = {
   pendiente: { label: 'Pendiente', clase: 'pendiente' },
@@ -97,6 +99,10 @@ function Pedidos() {
           <p className="pedidos-subtitle">Registra pedidos de clientes y compra al proveedor solo lo que falte.</p>
         </div>
         <div className="pedidos-header-acciones">
+          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate('/dashboard/seguimiento')}>
+            <Users size={16} />
+            <span>Seguimiento de clientes</span>
+          </button>
           <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate('/dashboard/compras')}>
             <Truck size={16} />
             <span>Compras al proveedor</span>
@@ -202,12 +208,17 @@ function Pedidos() {
               {pedidosFiltrados.map((pedido) => {
                 const items = (pedido.detalles || []).reduce((sum, detalle) => sum + Number(detalle.cantidad), 0);
                 const estadoConfig = ESTADOS[pedido.estado] || { label: pedido.estado, clase: 'anulado' };
+                // La urgencia solo importa mientras falte entregar
+                const urgencia = ESTADOS_ENTREGABLES.includes(pedido.estado) || pedido.estado === 'pendiente' ? urgenciaEntrega(pedido.fechaEntrega) : null;
                 return (
                   <tr key={pedido.pedidoid} onClick={() => navigate(`/dashboard/pedido/${pedido.pedidoid}`)}>
                     <td className="pedido-id">#{pedido.pedidoid}</td>
                     <td>{pedido.cliente?.nombreCliente || 'Sin cliente'}</td>
                     <td>{formatearFecha(pedido.createdAt)}</td>
-                    <td>{pedido.fechaEntrega ? formatearFecha(pedido.fechaEntrega) : 'Sin fecha'}</td>
+                    <td>
+                      {pedido.fechaEntrega ? formatearFecha(pedido.fechaEntrega) : 'Sin fecha'}
+                      {urgencia && <span className={`seg-urgencia seg-urgencia-${urgencia.clase} pedidos-urgencia`}>{urgencia.etiqueta}</span>}
+                    </td>
                     <td><span className={`pedido-estado pedido-estado-${estadoConfig.clase}`}>{estadoConfig.label}</span></td>
                     <td>{items}</td>
                     <td className="pedido-total">{formatoMoneda(pedido.total)}</td>

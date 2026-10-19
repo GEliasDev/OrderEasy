@@ -1,0 +1,95 @@
+/* Recibo de abono: ventana en pantalla y hoja imprimible */
+
+.recibo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+  overflow-y: auto;
+}
+
+.recibo-contenedor {
+  width: 100%;
+  max-width: 460px;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  overflow: hidden;
+}
+
+.recibo-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--neutral-200, #E2E8F0);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--neutral-900, #0F172A);
+}
+
+.recibo-barra-acciones { display: flex; align-items: center; gap: 6px; }
+
+/* La hoja siempre es clara (como el papel), incluso en modo oscuro */
+.recibo-hoja {
+  padding: 20px 22px;
+  overflow-y: auto;
+  background: #fff;
+  color: #0F172A;
+  font-size: 0.8rem;
+}
+
+.recibo-encabezado { text-align: center; margin-bottom: 12px; }
+.recibo-encabezado h2 { margin: 0; font-size: 1.1rem; }
+.recibo-encabezado p { margin: 2px 0 0; font-size: 0.72rem; color: #475569; }
+
+.recibo-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  border-top: 2px solid #0F172A;
+  border-bottom: 1px solid #CBD5E1;
+  font-size: 0.85rem;
+}
+
+.recibo-datos { margin: 0 0 10px; }
+.recibo-datos > div { display: flex; gap: 8px; padding: 2px 0; }
+.recibo-datos dt { width: 4.5rem; flex-shrink: 0; color: #64748B; }
+.recibo-datos dd { margin: 0; font-weight: 600; }
+
+.recibo-concepto { margin: 8px 0 2px; }
+.recibo-monto { margin: 0 0 12px; font-size: 1.7rem; font-weight: 800; text-align: center; }
+
+.recibo-productos { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 0.72rem; }
+.recibo-productos th { text-align: left; padding: 4px 0; border-bottom: 1px solid #CBD5E1; color: #64748B; font-weight: 600; }
+.recibo-productos td { padding: 3px 0; border-bottom: 1px dotted #E2E8F0; }
+.recibo-productos th:nth-child(n+2), .recibo-productos td:nth-child(n+2) { text-align: right; }
+
+.recibo-resumen { padding: 8px 10px; border-radius: 8px; background: #F1F5F9; }
+.recibo-resumen > div { display: flex; justify-content: space-between; padding: 2px 0; }
+
+.recibo-firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 34px; }
+.recibo-firmas > div { padding-top: 4px; border-top: 1px solid #0F172A; text-align: center; font-size: 0.7rem; color: #475569; }
+
+.recibo-pie { margin: 14px 0 0; text-align: center; font-size: 0.7rem; color: #64748B; }
+
+/* Al imprimir solo sale la hoja del recibo */
+@media print {
+  body > *:not(.recibo-overlay) { display: none !important; }
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+  .recibo-overlay { position: static !important; display: block !important; background: none !important; padding: 0 !important; overflow: visible !important; }
+  .recibo-contenedor { max-width: none !important; max-height: none !important; border-radius: 0 !important; box-shadow: none !important; overflow: visible !important; }
+  .recibo-hoja { max-width: 160mm; margin: 0 auto; padding: 12mm 14mm !important; overflow: visible !important; }
+  .no-imprimir { display: none !important; }
+}

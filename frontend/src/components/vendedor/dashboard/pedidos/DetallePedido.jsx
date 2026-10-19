@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, Minus, Package, Plus, RotateCcw, Search, ShoppingBag, Trash2, Truck, User, Wallet, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, Minus, MessageCircle, Package, Plus, Receipt, RotateCcw, Search, ShoppingBag, Trash2, Truck, User, Wallet, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   anularOrdenCompra,
@@ -20,6 +20,9 @@ import { getAllProducts } from '../../../../services/productServices';
 import { pasoDe, minimoDe } from '../../../../hooks/useCarrito';
 import { stepCantidad, formatearCantidad, admiteDecimales } from '../../../../utils/unidades';
 import SelectorTalla from '../balance/vistas/SelectorTalla';
+import ReciboModal from './ReciboModal';
+import { getNegocio } from '../../../../services/negocioService';
+import { abrirWhatsApp, mensajeListoParaEntregar, mensajeRecordatorioSaldo } from '../../../../utils/whatsapp';
 import '../balance/vistas/styles/DetalleTransaccion.css';
 import './Pedidos.css';
 
@@ -102,6 +105,13 @@ function DetallePedido() {
   const [entregaItems, setEntregaItems] = useState({}); // detalleid -> cantidad a entregar (texto)
   const [entregaPago, setEntregaPago] = useState({ monto: '', metodo: 'efectivo' });
   const [anularForm, setAnularForm] = useState({ abonos: 'devolver', metodo: 'efectivo' });
+  const [reciboPago, setReciboPago] = useState(null);
+  const [negocio, setNegocio] = useState(null);
+
+  // Datos del negocio para los recibos y los mensajes de WhatsApp
+  useEffect(() => {
+    getNegocio().then(setNegocio).catch(() => setNegocio(null));
+  }, []);
   const [productos, setProductos] = useState([]);
   const [busquedaProducto, setBusquedaProducto] = useState('');
   const [cargandoProductos, setCargandoProductos] = useState(false);
@@ -370,6 +380,34 @@ function DetallePedido() {
     }
   };
 
+  // ───── WhatsApp ─────
+  const avisarListo = () => {
+    const listas = (pedido.detalles || [])
+      .filter((d) => pendienteDe(d) > 0 && stockFisicoDe(d) > 0)
+      .map((d) => ({ productoNombre: d.productoNombre, talla: d.talla, cantidad: Math.min(pendienteDe(d), stockFisicoDe(d)) }));
+    const ok = abrirWhatsApp(pedido.cliente?.telefono, mensajeListoParaEntregar({
+      negocio: negocio?.nombre,
+      cliente: pedido.cliente?.nombreCliente,
+      pedidoid: pedido.pedidoid,
+      lineas: listas,
+      saldo: pedido.resumen?.saldo,
+    }));
+    if (!ok) toast.error('Este cliente no tiene un teléfono válido para WhatsApp.');
+  };
+
+  const recordarSaldo = () => {
+    const r = pedido.resumen || {};
+    const ok = abrirWhatsApp(pedido.cliente?.telefono, mensajeRecordatorioSaldo({
+      negocio: negocio?.nombre,
+      cliente: pedido.cliente?.nombreCliente,
+      pedidoid: pedido.pedidoid,
+      total: r.total,
+      abonado: r.abonado,
+      saldo: r.saldo,
+    }));
+    if (!ok) toast.error('Este cliente no tiene un teléfono válido para WhatsApp.');
+  };
+
   // Desde el listado se llega con ?accion=entregar|anular para abrir directamente el modal
   useEffect(() => {
     const accion = searchParams.get('accion');
@@ -377,6 +415,7 @@ function DetallePedido() {
     setSearchParams({}, { replace: true });
     if (accion === 'entregar' && ['confirmado', 'en_compra', 'recibido'].includes(pedido.estado)) abrirEntrega();
     if (accion === 'anular' && !['entregado', 'anulado'].includes(pedido.estado)) abrirAnular();
+    if (accion === 'abono' && pedido.estado !== 'anulado' && Number(pedido.resumen?.saldo) > 0) abrirPago('abono');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedido, searchParams]);
 
@@ -507,6 +546,12 @@ function DetallePedido() {
               <span>Entregar</span>
             </button>
           )}
+          {puedeConvertir && pedido.cliente?.telefono && (
+            <button className="pedidos-btn pedidos-btn-secundario" onClick={avisarListo} title="Avisar por WhatsApp que ya puede recogerlo">
+              <MessageCircle size={14} />
+              <span>Avisar</span>
+            </button>
+          )}
           {puedeEditar && (
             <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirEditar}>
               <Edit2 size={14} />
@@ -587,6 +632,11 @@ function DetallePedido() {
                 <Wallet size={13} /><span>Usar saldo a favor ({formatoMoneda(saldoFavor.total)})</span>
               </button>
             )}
+            {puedeAbonar && pedido.cliente?.telefono && (
+              <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={recordarSaldo} title="Recordar el saldo por WhatsApp">
+                <MessageCircle size={13} /><span>Recordar saldo</span>
+              </button>
+            )}
             {resumen.disponibleAbonos > 0 && pedido.estado !== 'anulado' && (
               <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => abrirPago('devolucion')}>
                 <RotateCcw size={13} /><span>Devolver dinero</span>
@@ -601,7 +651,7 @@ function DetallePedido() {
           <div className="items-table-container">
             <table className="items-table pedido-movimientos">
               <thead>
-                <tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th>Nota</th><th>Monto</th></tr>
+                <tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th>Nota</th><th>Monto</th><th /></tr>
               </thead>
               <tbody>
                 {pedido.pagos.map((pago) => {
@@ -613,6 +663,11 @@ function DetallePedido() {
                       <td>{metodoLabel(pago.metodo)}</td>
                       <td className="pedido-mov-nota">{pago.nota || '—'}</td>
                       <td className={`item-subtotal pedido-mov-monto-${tipo.clase}`}>{tipo.signo} {formatoMoneda(pago.monto)}</td>
+                      <td>
+                        <button className="pedido-recibo-btn" onClick={() => setReciboPago(pago)} title="Ver o imprimir el recibo" aria-label={`Recibo ${pago.pagoid}`}>
+                          <Receipt size={14} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -1169,6 +1224,10 @@ function DetallePedido() {
             </form>
           </div>
         </div>
+      )}
+
+      {reciboPago && (
+        <ReciboModal pedido={pedido} pago={reciboPago} negocio={negocio} onClose={() => setReciboPago(null)} />
       )}
 
       {productoParaTalla && (

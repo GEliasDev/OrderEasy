@@ -1158,3 +1158,19 @@
 :root[data-theme="dark"] .pedido-mov-monto-devolucion,
 :root[data-theme="dark"] .pedido-mov-monto-traslado { color: #FCA5A5; }
 :root[data-theme="dark"] .pedido-entrega-estado.completa { color: #6EE7B7; }
+
+.pedidos-urgencia { margin-left: 6px; }
+
+.pedido-recibo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 6px;
+  background: var(--surface, #fff);
+  color: var(--color-primary, #1565C0);
+  cursor: pointer;
+}
+
+.pedido-recibo-btn:hover { background: var(--color-primary-soft, #EEF4FF); }
