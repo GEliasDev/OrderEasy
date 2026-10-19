@@ -9,7 +9,7 @@ import './inventario.css';
 
 const GRID_GAP = 14;
 const CARD_MIN_WIDTH = 160;
-const CARD_MAX_HEIGHT = 195;
+const CARD_MIN_HEIGHT = 195;
 
 const SkeletonCard = () => (
   <div style={{ background: 'white', borderRadius: 8, padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
@@ -56,7 +56,7 @@ function Inventario() {
       if (!width || !height) return;
 
       const columns = Math.max(1, Math.floor((width + GRID_GAP) / (CARD_MIN_WIDTH + GRID_GAP)));
-      const rows = Math.max(1, Math.floor((height + GRID_GAP) / (CARD_MAX_HEIGHT + GRID_GAP)));
+      const rows = Math.max(1, Math.floor((height + GRID_GAP) / (CARD_MIN_HEIGHT + GRID_GAP)));
 
       setGridMetrics((prev) => (
         prev.columns === columns && prev.rows === rows ? prev : { columns, rows }
@@ -163,7 +163,11 @@ function Inventario() {
         />
       </div>
 
-      <div className="inventario-products" ref={productsRef}>
+      <div
+        className="inventario-products"
+        ref={productsRef}
+        style={{ '--inv-cols': gridMetrics.columns, '--inv-rows': gridMetrics.rows }}
+      >
         {loading ? (
           <div className="productos-container">
             {Array.from({ length: gridMetrics.columns * gridMetrics.rows }).map((_, i) => <SkeletonCard key={i} />)}
