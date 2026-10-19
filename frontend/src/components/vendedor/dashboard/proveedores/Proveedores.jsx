@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { getProveedores, createProveedor, updateProveedor, deleteProveedor } from '../../../../services/proveedorService';
 import './proveedores.css';
+import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 
 const ESTADO_OPTS = ['Activo', 'Inactivo'];
 const TIPO_CUENTA_OPTS = ['Ahorros', 'Corriente'];
@@ -29,11 +30,11 @@ function Proveedores() {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState(() => localStorage.getItem('provSearchTerm') || '');
   const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem('provCurrentPage')) || 1);
+  const { wrapRef: tablaWrapRef, filasPorPagina: registrosPorPagina, medido } = useFilasPorPagina(proveedores.length, 10);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [proveedorEditando, setProveedorEditando] = useState(null);
   const [form, setForm] = useState(formInicial);
   const [cargando, setCargando] = useState(false);
-  const registrosPorPagina = 10;
 
   const debouncedBusqueda = useDebounce(busqueda, 300);
 
@@ -136,6 +137,16 @@ function Proveedores() {
   const total = Math.ceil(filtrados.length / registrosPorPagina);
   const inicio = (paginaActual - 1) * registrosPorPagina;
   const pagina = filtrados.slice(inicio, inicio + registrosPorPagina);
+  // Con la página llena, las filas se reparten el alto sobrante y la tabla llega hasta abajo
+  const paginaLlena = medido && pagina.length === registrosPorPagina;
+
+  // Si al cambiar el tamaño de pantalla la página actual deja de existir, vuelve a la última
+  useEffect(() => {
+    if (total > 0 && paginaActual > total) {
+      setPaginaActual(total);
+      localStorage.setItem('provCurrentPage', total);
+    }
+  }, [total, paginaActual]);
 
   return (
     <div className="proveedores-main">
@@ -164,8 +175,8 @@ function Proveedores() {
         />
       </div>
 
-      <div className="proveedores-table-wrap">
-        <table className="proveedores-table">
+      <div className="proveedores-table-wrap" ref={tablaWrapRef}>
+        <table className={`proveedores-table${paginaLlena ? ' proveedores-table-llena' : ''}`}>
           <thead>
             <tr>
               <th>Razón Social</th>
@@ -181,7 +192,7 @@ function Proveedores() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : pagina.length > 0 ? pagina.map((p) => (
-              <tr key={p.proveedorid}>
+              <tr key={p.proveedorid} data-fila>
                 <td className="proveedores-td-razon" data-label="Razón Social">{p.razonSocial}</td>
                 <td data-label="Nombre Contacto">{p.nombreProveedor}</td>
                 <td data-label="NIT">{p.nit}</td>

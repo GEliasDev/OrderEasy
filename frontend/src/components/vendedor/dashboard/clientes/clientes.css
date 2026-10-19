@@ -8,7 +8,8 @@
   max-width: none;
   margin: 0;
   width: 100%;
-  min-height: 100%; /* la tabla ocupa todo el alto disponible */
+  height: 100%; /* la tabla ocupa todo el alto disponible; las filas por página se calculan con useFilasPorPagina */
+  min-height: 0;
 }
 
 /* Header */
@@ -98,13 +99,24 @@
 
 /* Table */
 .clientes-table-wrap {
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-height: 0;
   background: var(--surface);
   border-radius: var(--radius-md, 8px);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
   overflow: hidden;
   width: 100%;
 }
+
+.clientes-table td {
+  max-width: 22rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Página llena: las filas se reparten el alto sobrante y la tabla llega hasta abajo */
+.clientes-table-llena { height: 100%; }
 
 .clientes-table {
   width: 100%;
@@ -168,9 +180,11 @@
 
 /* Pagination */
 .clientes-paginacion {
+  gap: 1.5rem;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0.5rem 0.75rem;
   margin-top: 0.5rem;
   background: var(--surface);
@@ -344,7 +358,10 @@
 
 /* ── Tabla → tarjetas apiladas en móvil ── */
 @media (max-width: 768px) {
+  .clientes-main { height: auto; min-height: 100%; }
+  .clientes-table td { max-width: none; white-space: normal; overflow: visible; text-overflow: clip; }
   .clientes-table-wrap {
+    flex: 1 1 auto;
     background: transparent;
     box-shadow: none;
     border-radius: 0;

@@ -4,16 +4,17 @@ import { toast } from 'sonner';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { getCategoriesByUser, createCategory, updateCategory, deleteCategory } from '../../../../services/categoryServices';
 import './categorias.css';
+import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 
 function Categorias() {
   const [categorias, setCategorias] = useState([]);
   const [busqueda, setBusqueda] = useState(() => localStorage.getItem('catSearchTerm') || '');
   const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem('catCurrentPage')) || 1);
+  const { wrapRef: tablaWrapRef, filasPorPagina: registrosPorPagina, medido } = useFilasPorPagina(categorias.length, 10);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [categoriaEditando, setCategoriaEditando] = useState(null);
   const [form, setForm] = useState({ nombre: '', descripcion: '' });
   const [cargando, setCargando] = useState(false);
-  const registrosPorPagina = 10;
 
   const debouncedBusqueda = useDebounce(busqueda, 300);
 
@@ -108,6 +109,16 @@ function Categorias() {
   const total = Math.ceil(categoriasFiltradas.length / registrosPorPagina);
   const inicio = (paginaActual - 1) * registrosPorPagina;
   const pagina = categoriasFiltradas.slice(inicio, inicio + registrosPorPagina);
+  // Con la página llena, las filas se reparten el alto sobrante y la tabla llega hasta abajo
+  const paginaLlena = medido && pagina.length === registrosPorPagina;
+
+  // Si al cambiar el tamaño de pantalla la página actual deja de existir, vuelve a la última
+  useEffect(() => {
+    if (total > 0 && paginaActual > total) {
+      setPaginaActual(total);
+      localStorage.setItem('catCurrentPage', total);
+    }
+  }, [total, paginaActual]);
 
   return (
     <div className="categorias-main">
@@ -134,8 +145,8 @@ function Categorias() {
         />
       </div>
 
-      <div className="categorias-table-wrap">
-        <table className="categorias-table">
+      <div className="categorias-table-wrap" ref={tablaWrapRef}>
+        <table className={`categorias-table${paginaLlena ? ' categorias-table-llena' : ''}`}>
           <thead>
             <tr>
               <th>Nombre</th>
@@ -146,9 +157,9 @@ function Categorias() {
           </thead>
           <tbody>
             {pagina.length > 0 ? pagina.map((c) => (
-              <tr key={c.categoriaid}>
+              <tr key={c.categoriaid} data-fila>
                 <td className="categorias-td-nombre" data-label="Nombre">{c.nombre}</td>
-                <td data-label="Descripción">{c.descripcion}</td>
+                <td data-label="Descripción" title={c.descripcion}>{c.descripcion}</td>
                 <td className="text-center" data-label="Productos">
                   <span className="categorias-count-badge">{c.totalProductos || 0}</span>
                 </td>

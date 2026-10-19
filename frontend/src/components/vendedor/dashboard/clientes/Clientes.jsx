@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { getClientes, createCliente, updateCliente, deleteCliente } from '../../../../services/clienteService';
 import './clientes.css';
+import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 
 const SkeletonRow = () => (
   <tr>
@@ -20,11 +21,11 @@ function Clientes() {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState(() => localStorage.getItem('cliSearchTerm') || '');
   const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem('cliCurrentPage')) || 1);
+  const { wrapRef: tablaWrapRef, filasPorPagina: registrosPorPagina, medido } = useFilasPorPagina(clientes.length, 12);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [clienteEditando, setClienteEditando] = useState(null);
   const [form, setForm] = useState({ nombreCliente: '', telefono: '', correo: '', direccion: '' });
   const [cargando, setCargando] = useState(false);
-  const registrosPorPagina = 12;
 
   const debouncedBusqueda = useDebounce(busqueda, 300);
 
@@ -121,6 +122,16 @@ function Clientes() {
   const total = Math.ceil(clientesFiltrados.length / registrosPorPagina);
   const inicio = (paginaActual - 1) * registrosPorPagina;
   const pagina = clientesFiltrados.slice(inicio, inicio + registrosPorPagina);
+  // Con la página llena, las filas se reparten el alto sobrante y la tabla llega hasta abajo
+  const paginaLlena = medido && pagina.length === registrosPorPagina;
+
+  // Si al cambiar el tamaño de pantalla la página actual deja de existir, vuelve a la última
+  useEffect(() => {
+    if (total > 0 && paginaActual > total) {
+      setPaginaActual(total);
+      localStorage.setItem('cliCurrentPage', total);
+    }
+  }, [total, paginaActual]);
 
   return (
     <div className="clientes-main">
@@ -149,8 +160,8 @@ function Clientes() {
         />
       </div>
 
-      <div className="clientes-table-wrap">
-        <table className="clientes-table">
+      <div className="clientes-table-wrap" ref={tablaWrapRef}>
+        <table className={`clientes-table${paginaLlena ? ' clientes-table-llena' : ''}`}>
           <thead>
             <tr>
               <th>Nombre</th>
@@ -164,11 +175,11 @@ function Clientes() {
             {loading ? (
               Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
             ) : pagina.length > 0 ? pagina.map((c) => (
-              <tr key={c.clienteid}>
+              <tr key={c.clienteid} data-fila>
                 <td className="clientes-td-nombre" data-label="Nombre">{c.nombreCliente}</td>
                 <td data-label="Teléfono">{c.telefono}</td>
-                <td data-label="Correo">{c.correo}</td>
-                <td data-label="Dirección">{c.direccion}</td>
+                <td data-label="Correo" title={c.correo}>{c.correo}</td>
+                <td data-label="Dirección" title={c.direccion}>{c.direccion}</td>
                 <td className="clientes-td-acciones" data-label="Acciones">
                   <button className="clientes-btn-edit" onClick={() => abrirEditar(c)}><Edit2 size={13} /></button>
                   <button className="clientes-btn-del" onClick={() => handleEliminar(c.clienteid, c.nombreCliente)}><Trash2 size={13} /></button>

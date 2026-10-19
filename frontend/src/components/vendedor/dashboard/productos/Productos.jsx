@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Search, FileSpreadsheet } from 'lucide-react';
 import { getAllProducts } from '../../../../services/productServices';
+import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 import { exportarProductosPorPaginas } from './exportarExcel';
 import './Productos.css';
+
+// Filas por página al exportar a Excel (la tabla en pantalla ajusta las suyas al alto disponible)
+const FILAS_EXPORTACION = 20;
+// Filas por página en móvil (las filas se muestran como tarjetas y la página hace scroll)
+const FILAS_MOVIL = 20;
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
@@ -10,7 +16,8 @@ const Productos = () => {
   const [categoriaFiltro, setCategoriaFiltro] = useState(() => localStorage.getItem("prodCatFilter") || "Todas");
   const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem("prodCurrentPage")) || 1);
   const [paginasAExportar, setPaginasAExportar] = useState(1);
-  const productosPorPagina = 20;
+  const { wrapRef: tablaWrapRef, filasPorPagina: productosPorPagina, medido } = useFilasPorPagina(productos.length, FILAS_MOVIL);
+
 
   useEffect(() => {
     const fetchProductos = async () => {
@@ -59,8 +66,19 @@ const Productos = () => {
   });
 
   const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
+  const totalPaginasExportacion = Math.ceil(productosFiltrados.length / FILAS_EXPORTACION);
   const inicio = (paginaActual - 1) * productosPorPagina;
   const pagina = productosFiltrados.slice(inicio, inicio + productosPorPagina);
+  // Con la página llena, las filas se reparten el alto sobrante para llegar hasta abajo
+  const paginaLlena = medido && pagina.length === productosPorPagina;
+
+  // Si al cambiar el tamaño de pantalla la página actual deja de existir, vuelve a la última
+  useEffect(() => {
+    if (totalPaginas > 0 && paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+      localStorage.setItem("prodCurrentPage", totalPaginas);
+    }
+  }, [totalPaginas, paginaActual]);
 
   return (
     <div className="productos-main">
@@ -85,13 +103,13 @@ const Productos = () => {
             value={paginasAExportar}
             onChange={(e) => setPaginasAExportar(Number(e.target.value))}
           >
-            {Array.from({ length: totalPaginas || 1 }, (_, i) => (
+            {Array.from({ length: totalPaginasExportacion || 1 }, (_, i) => (
               <option key={i + 1} value={i + 1}>{i + 1} pág.</option>
             ))}
           </select>
           <button
             className="productos-btn-exportar"
-            onClick={() => exportarProductosPorPaginas(productosFiltrados.slice(0, paginasAExportar * productosPorPagina))}
+            onClick={() => exportarProductosPorPaginas(productosFiltrados.slice(0, paginasAExportar * FILAS_EXPORTACION))}
           >
             <FileSpreadsheet size={14} />
             <span>Exportar Excel</span>
@@ -110,8 +128,8 @@ const Productos = () => {
         />
       </div>
 
-      <div className="productos-table-wrap">
-        <table className="productos-table">
+      <div className="productos-table-wrap" ref={tablaWrapRef}>
+        <table className={`productos-table${paginaLlena ? ' productos-table-llena' : ''}`}>
           <thead>
             <tr>
               <th>Fecha</th>
@@ -127,10 +145,10 @@ const Productos = () => {
           </thead>
           <tbody>
             {pagina.length > 0 ? pagina.map((p) => (
-              <tr key={p.productoid}>
+              <tr key={p.productoid} data-fila>
                 <td data-label="Fecha">{formatFecha(p.createdat)}</td>
                 <td className="productos-td-nombre" data-label="Nombre">{p.nombre}</td>
-                <td data-label="Descripción">{p.descripcion}</td>
+                <td className="productos-td-descripcion" data-label="Descripción" title={p.descripcion}>{p.descripcion}</td>
                 <td data-label="Categoría">{p.categoriaNombre}</td>
                 <td className="productos-td-barcode" data-label="Cód. Barras">{p.codigoBarras || <span className="productos-td-empty">—</span>}</td>
                 <td data-label="IVA">{p.tasaIva ?? 0}%</td>
