@@ -272,7 +272,7 @@ const deleteVenta = async (req, res) => {
       return res.status(404).json({ mensaje: 'Venta no encontrada' });
     }
 
-    const pedido = await Pedido.findOne({
+    const pedido = venta.pedidoid ? true : await Pedido.findOne({
       where: { ventaid: venta.ventaid, negocioid },
       transaction: t,
     });

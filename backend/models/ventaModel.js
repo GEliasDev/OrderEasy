@@ -55,7 +55,12 @@ const Venta = sequelize.define('Venta', {
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
-  }
+  },
+  // Pedido del que viene la venta (entrega total o parcial). Sin FK para no crear un ciclo con pedidos.ventaid
+  pedidoid: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
 }, {
   tableName: 'ventas',
   timestamps: false

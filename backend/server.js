@@ -34,6 +34,7 @@ require('./models/clientModel');
 require('./models/ventaPagoModel');
 require('./models/proveedorModel');
 require('./models/pedidoModel');
+require('./models/pedidoPagoModel');
 require('./models/ordenCompraModel');
 
 // Rutas

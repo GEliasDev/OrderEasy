@@ -303,7 +303,7 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
           transaction: t
         });
         if (!venta) throw new Error('Venta no encontrada');
-        const pedido = await Pedido.findOne({
+        const pedido = venta.pedidoid || await Pedido.findOne({
           where: { ventaid: venta.ventaid, negocioid },
           transaction: t
         });

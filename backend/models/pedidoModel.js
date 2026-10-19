@@ -75,6 +75,8 @@ Pedido.belongsTo(Usuario, { foreignKey: 'usuarioid', as: 'usuario' });
 Pedido.belongsTo(Cliente, { foreignKey: 'clienteid', as: 'cliente' });
 Pedido.belongsTo(Venta, { foreignKey: 'ventaid', as: 'venta' });
 Pedido.hasMany(PedidoDetalle, { foreignKey: 'pedidoid', as: 'detalles' });
+Pedido.hasMany(Venta, { foreignKey: 'pedidoid', as: 'ventas', constraints: false });
+Pedido.hasMany(require('./pedidoPagoModel'), { foreignKey: 'pedidoid', as: 'pagos' });
 PedidoDetalle.belongsTo(Pedido, { foreignKey: 'pedidoid', as: 'pedido' });
 Pedido.hasMany(OrdenCompra, { foreignKey: 'pedidoid', as: 'ordenes' });
 OrdenCompra.belongsTo(Pedido, { foreignKey: 'pedidoid', as: 'pedido' });

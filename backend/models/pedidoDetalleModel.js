@@ -32,6 +32,12 @@ const PedidoDetalle = sequelize.define('PedidoDetalle', {
     type: DataTypes.DOUBLE,
     allowNull: false
   },
+  // Cuánto de la línea ya se entregó al cliente (entregas parciales)
+  cantidadEntregada: {
+    type: DataTypes.DOUBLE,
+    allowNull: false,
+    defaultValue: 0
+  },
   talla: {
     type: DataTypes.STRING(20),
     allowNull: true
