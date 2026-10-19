@@ -53,8 +53,8 @@
 
 .inventario-products .producto-imagen-container {
   width: 100%;
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 110px;
+  height: 110px; min-height: 110px;
   margin-bottom: 0.5rem;
   display: flex;
   justify-content: center;
