@@ -334,3 +334,32 @@
 @media (max-width: 480px) {
   .detail-stats-minimal { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Stock por talla */
+.detail-tallas { margin: 1rem 0; }
+
+.detail-tallas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.detail-talla {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.4rem;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface);
+  text-align: center;
+}
+
+.detail-talla strong { font-size: 1.05rem; color: var(--neutral-900, #0F172A); }
+.detail-talla span { font-size: 0.78rem; color: var(--neutral-700, #334155); }
+.detail-talla small { font-size: 0.66rem; color: var(--neutral-500, #64748B); }
+
+.detail-talla.agotada { opacity: 0.55; }
+.detail-talla.agotada span { color: var(--color-danger, #DC2626); }

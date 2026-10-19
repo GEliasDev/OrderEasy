@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Edit3, Trash2, Package, Info, TrendingUp, Barcode } from 'lucide-react';
+import { ArrowLeft, Edit3, Trash2, Package, Info, TrendingUp, Barcode, Layers } from 'lucide-react';
 import { deleteProduct, getProductById } from '../../../../../services/productServices';
+import { formatearCantidad, tallasOrdenadas, unidadInfo } from '../../../../../utils/unidades';
 import './styles/DetalleProducto.css';
 
 function DetalleProducto() {
@@ -116,7 +117,7 @@ function DetalleProducto() {
               <div className="detail-stats-minimal">
                 <div className="stat-card-minimal">
                   <span className="stat-label">Stock Actual</span>
-                  <span className="stat-val">{producto.cantidadDisponible} <small>unds.</small></span>
+                  <span className="stat-val">{Number(producto.cantidadDisponible).toLocaleString('es-CO', { maximumFractionDigits: 3 })} <small>{unidadInfo(producto.unidadMedida).abrev}</small></span>
                 </div>
                 <div className="stat-card-minimal">
                   <span className="stat-label">Precio Compra</span>
@@ -127,6 +128,24 @@ function DetalleProducto() {
                   <span className="stat-val">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(producto.precioVenta)}</span>
                 </div>
               </div>
+
+              {producto.usaTallas && (
+                <div className="detail-tallas">
+                  <span className="info-label"><Layers size={14} /> Stock por talla</span>
+                  <div className="detail-tallas-grid">
+                    {tallasOrdenadas(producto).map((v) => {
+                      const reservada = Number(v.cantidadReservada) || 0;
+                      return (
+                        <div key={v.varianteid} className={`detail-talla ${Number(v.cantidadDisponible) <= 0 ? 'agotada' : ''}`}>
+                          <strong>{v.talla}</strong>
+                          <span>{formatearCantidad(v.cantidadDisponible, producto.unidadMedida)}</span>
+                          {reservada > 0 && <small>{formatearCantidad(reservada, producto.unidadMedida)} reservadas</small>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="barcode-row">
                 <span className="barcode-label">IVA</span>

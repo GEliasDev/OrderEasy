@@ -7,7 +7,11 @@ export const exportarProductosPorPaginas = (productos) => {
     Nombre: producto.nombre,
     Descripción: producto.descripcion,
     Categoría: producto.categoriaNombre,
+    Unidad: producto.unidadMedida || 'und',
     Stock: producto.cantidadDisponible,
+    'Stock por talla': producto.usaTallas
+      ? (producto.variantes || []).map((v) => `${v.talla}: ${v.cantidadDisponible}`).join(' | ')
+      : '',
     'Precio Compra': producto.precioCompra,
     'Precio Venta': producto.precioVenta,
   }));

@@ -4,6 +4,8 @@ import { ArrowLeft, Package, ImageIcon, Save, X, DollarSign, Layers, Info, Barco
 import { toast } from "sonner";
 import { createProduct } from "../../../../../services/productServices";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
+import StockSection from './StockSection';
+import { UNIDADES } from '../../../../../utils/unidades';
 import './styles/NuevoProducto.css';
 
 const formatCOP = (val) =>
@@ -16,6 +18,9 @@ function NuevoProducto() {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [cantidadDisponible, setCantidadDisponible] = useState("");
+  const [unidadMedida, setUnidadMedida] = useState("und");
+  const [usaTallas, setUsaTallas] = useState(false);
+  const [tallas, setTallas] = useState([]);
   const [precioCompra, setPrecioCompra] = useState("");
   const [precioVenta, setPrecioVenta] = useState("");
   const [imagenes, setImagenes] = useState([]);
@@ -48,11 +53,22 @@ function NuevoProducto() {
     event.preventDefault();
     setCargando(true);
     try {
+      if (usaTallas && tallas.length === 0) {
+        toast.error("Agrega al menos una talla.");
+        return;
+      }
       const cat = categorias.find(c => String(c.categoriaid) === String(categoriaId));
       const formData = new FormData();
       formData.append("nombre", nombre);
       formData.append("descripcion", descripcion);
-      formData.append("cantidadDisponible", cantidadDisponible);
+      formData.append("unidadMedida", unidadMedida);
+      formData.append("usaTallas", usaTallas);
+      if (usaTallas) {
+        const variantes = tallas.map((t) => ({ talla: t.talla, cantidadDisponible: Number(t.cantidadDisponible) || 0 }));
+        formData.append("variantes", JSON.stringify(variantes));
+      } else {
+        formData.append("cantidadDisponible", cantidadDisponible);
+      }
       formData.append("precioCompra", precioCompra);
       formData.append("precioVenta", precioVenta);
       formData.append("categoriaid", categoriaId);
@@ -64,8 +80,8 @@ function NuevoProducto() {
       await createProduct(formData);
       toast.success("Producto creado correctamente.");
       navigate('/dashboard/inventario');
-    } catch {
-      toast.error("No se pudo crear el producto.");
+    } catch (error) {
+      toast.error(error.response?.data?.mensaje || "No se pudo crear el producto.");
     } finally {
       setCargando(false);
     }
@@ -123,11 +139,26 @@ function NuevoProducto() {
                   </select>
                 </div>
                 <div className="form-group-minimal">
-                  <label>Stock Inicial</label>
-                  <input type="number" value={cantidadDisponible} onChange={(e) => setCantidadDisponible(e.target.value)} required min="0" />
+                  <label>Unidad de medida</label>
+                  <select value={unidadMedida} onChange={(e) => setUnidadMedida(e.target.value)}>
+                    {UNIDADES.map((u) => (
+                      <option key={u.value} value={u.value}>{u.label} ({u.abrev})</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
+
+            <StockSection
+              etiqueta="Stock Inicial"
+              unidad={unidadMedida}
+              usaTallas={usaTallas}
+              setUsaTallas={setUsaTallas}
+              tallas={tallas}
+              setTallas={setTallas}
+              cantidadDisponible={cantidadDisponible}
+              setCantidadDisponible={setCantidadDisponible}
+            />
           </div>
 
           <div className="form-column">

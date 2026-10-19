@@ -1,6 +1,7 @@
 import React from 'react';
 import { Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { formatearCantidad } from '../../../../../utils/unidades';
 import './styles/VisualizarProductos.css';
 
 function VisualizarProductos({ productos }) {
@@ -45,7 +46,10 @@ function VisualizarProductos({ productos }) {
             )}
           </div>
           <h3 className="producto-nombre">{producto.nombre}</h3>
-          <p className="producto-cantidad">Stock: {producto.cantidadDisponible}</p>
+          <p className="producto-cantidad">
+            Stock: {formatearCantidad(producto.cantidadDisponible, producto.unidadMedida)}
+            {producto.usaTallas && <span className="producto-tallas"> · {producto.variantes?.length || 0} tallas</span>}
+          </p>
         </div>
       ))}
     </div>

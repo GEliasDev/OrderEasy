@@ -1,0 +1,199 @@
+.tallas-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tallas-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tallas-presets-label {
+  font-size: 0.75rem;
+  color: var(--neutral-500, #64748B);
+}
+
+.tallas-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--color-primary, #1565C0);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.tallas-chip:hover:not(:disabled) {
+  background: var(--color-primary-soft, #EEF4FF);
+  border-color: var(--color-primary, #1565C0);
+}
+
+.tallas-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tallas-lista {
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+}
+
+.tallas-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 2rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--neutral-200, #E2E8F0);
+}
+
+.tallas-fila:last-child { border-bottom: none; }
+
+.tallas-fila-head {
+  background: var(--neutral-50, #F8FAFC);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--neutral-500, #64748B);
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.tallas-nombre {
+  font-weight: 700;
+  color: var(--neutral-900, #0F172A);
+}
+
+.tallas-input {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--neutral-900, #0F172A);
+  font-size: 0.85rem;
+}
+
+.tallas-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #1565C0);
+}
+
+.tallas-quitar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--neutral-400, #94A3B8);
+  cursor: pointer;
+}
+
+.tallas-quitar:hover:not(:disabled) {
+  background: var(--color-danger-soft, #FEF2F2);
+  color: var(--color-danger, #DC2626);
+}
+
+.tallas-quitar:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tallas-nueva {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tallas-nueva input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--neutral-900, #0F172A);
+  font-size: 0.8rem;
+}
+
+.tallas-chip-add {
+  border-radius: var(--radius-sm, 6px);
+}
+
+.tallas-total {
+  font-size: 0.8rem;
+  color: var(--neutral-500, #64748B);
+}
+
+.tallas-total strong {
+  color: var(--neutral-900, #0F172A);
+}
+
+/* Interruptor "se maneja por tallas" */
+.tallas-switch {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+}
+
+.tallas-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tallas-switch-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 1.25rem;
+  margin-top: 0.1rem;
+  border-radius: 999px;
+  background: var(--neutral-300, #CBD5E1);
+  transition: background 0.15s ease;
+}
+
+.tallas-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+
+.tallas-switch input:checked + .tallas-switch-track { background: var(--color-primary, #1565C0); }
+.tallas-switch input:checked + .tallas-switch-track::after { transform: translateX(1rem); }
+.tallas-switch input:focus-visible + .tallas-switch-track { outline: 2px solid var(--color-primary, #1565C0); outline-offset: 2px; }
+
+.tallas-switch-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--neutral-900, #0F172A);
+}
+
+.tallas-switch-text small {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--neutral-500, #64748B);
+}

@@ -118,3 +118,5 @@
   color: var(--neutral-400, #94A3B8);
   margin: 0;
 }
+
+.inventario-products .producto-tallas { color: var(--color-primary, #1565C0); font-weight: 600; }

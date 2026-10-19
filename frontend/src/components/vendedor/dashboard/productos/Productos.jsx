@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Search, FileSpreadsheet } from 'lucide-react';
 import { getAllProducts } from '../../../../services/productServices';
 import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
+import { formatearCantidad } from '../../../../utils/unidades';
 import { exportarProductosPorPaginas } from './exportarExcel';
 import './Productos.css';
 
@@ -152,7 +153,10 @@ const Productos = () => {
                 <td data-label="Categoría">{p.categoriaNombre}</td>
                 <td className="productos-td-barcode" data-label="Cód. Barras">{p.codigoBarras || <span className="productos-td-empty">—</span>}</td>
                 <td data-label="IVA">{p.tasaIva ?? 0}%</td>
-                <td data-label="Stock">{p.cantidadDisponible}</td>
+                <td data-label="Stock" title={p.usaTallas ? (p.variantes || []).map((v) => `${v.talla}: ${v.cantidadDisponible}`).join(' · ') : undefined}>
+                  {formatearCantidad(p.cantidadDisponible, p.unidadMedida)}
+                  {p.usaTallas && <span className="productos-tallas"> · {p.variantes?.length || 0} tallas</span>}
+                </td>
                 <td data-label="Compra">${Number(p.precioCompra).toLocaleString('es-CO')}</td>
                 <td data-label="Venta">${Number(p.precioVenta).toLocaleString('es-CO')}</td>
               </tr>

@@ -286,3 +286,5 @@
   .productos-table td.productos-empty { display: block; text-align: center; }
   .productos-table td.productos-empty::before { display: none; }
 }
+
+.productos-tallas { color: var(--color-primary, #1565C0); font-weight: 600; font-size: 0.72rem; }
