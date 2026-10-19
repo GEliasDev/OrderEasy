@@ -52,11 +52,6 @@ const Venta = sequelize.define('Venta', {
     allowNull: false,
     defaultValue: 'fijo',
   },
-  turnoid: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: { model: 'turnos_caja', key: 'turnoid' },
-  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

@@ -32,8 +32,6 @@ const Usuarios = lazy(() => import('./components/vendedor/dashboard/usuarios/Usu
 const Roles = lazy(() => import('./components/vendedor/dashboard/roles/Roles'));
 const Configuracion = lazy(() => import('./components/vendedor/dashboard/configuracion/Configuracion'));
 const ChatPage = lazy(() => import('./components/chat/ChatPage'));
-const Caja = lazy(() => import('./components/vendedor/dashboard/caja/Caja'));
-const HistorialTurnos = lazy(() => import('./components/vendedor/dashboard/caja/HistorialTurnos'));
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
@@ -44,7 +42,11 @@ const PageLoader = () => (
 
 const IndexRedirect = () => {
   const { user } = useAuth();
-  return <Navigate to={user?.rol === 'administrador' ? 'inicio' : 'caja'} replace />;
+  if (user?.rol === 'administrador') return <Navigate to="inicio" replace />;
+  const secciones = user?.secciones || [];
+  const destino = ['inicio', 'inventario', 'productos', 'balance', 'clientes', 'proveedores', 'estadisticas', 'categorias', 'asistente']
+    .find((s) => secciones.includes(s));
+  return <Navigate to={destino || 'inicio'} replace />;
 };
 
 function App() {
@@ -89,11 +91,9 @@ function App() {
                 <Route path="configuracion" element={<AdminRoute><Configuracion /></AdminRoute>} />
                 <Route path="usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
                 <Route path="roles" element={<AdminRoute><Roles /></AdminRoute>} />
-                <Route path="turnos" element={<AdminRoute><HistorialTurnos /></AdminRoute>} />
 
                 {/* Accesibles por todos los roles autenticados */}
                 <Route path="producto/:id" element={<DetalleProducto />} />
-                <Route path="caja" element={<Caja />} />
                 <Route path="clientes" element={<Clientes />} />
                 <Route path="asistente" element={<ChatPage />} />
               </Route>

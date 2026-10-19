@@ -11,7 +11,6 @@ import {
   Tag,
   Settings,
   Bot,
-  CreditCard,
   X,
 } from 'lucide-react';
 
@@ -28,12 +27,6 @@ const MENU = [
       { to: 'inventario', label: 'Inventario', icon: Package, seccion: 'inventario' },
       { to: 'productos', label: 'Productos', icon: ShoppingCart, seccion: 'productos' },
       { to: 'categorias', label: 'Categorías', icon: Tag, seccion: 'categorias' },
-    ],
-  },
-  {
-    section: 'Ventas',
-    items: [
-      { to: 'caja', label: 'Caja', icon: CreditCard, seccion: 'caja' },
     ],
   },
   {

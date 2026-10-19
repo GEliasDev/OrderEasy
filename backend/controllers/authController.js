@@ -12,7 +12,7 @@ const sequelize = require('../config/database');
 
 const TODAS_LAS_SECCIONES = [
   'inicio', 'inventario', 'productos', 'categorias',
-  'caja', 'balance', 'estadisticas', 'clientes', 'proveedores', 'asistente',
+  'balance', 'estadisticas', 'clientes', 'proveedores', 'asistente',
 ];
 
 // ===============================================
@@ -121,7 +121,7 @@ const loginUser = async (req, res) => {
       const permisos = await RolSeccion.findAll({ where: { rolid: usuario.rolid } });
       secciones = permisos.map((p) => p.seccion);
     } else if (usuario.rol === 'vendedor') {
-      secciones = ['caja'];
+      secciones = ['inicio', 'inventario', 'productos', 'balance', 'clientes'];
     }
 
     const token = generarToken({

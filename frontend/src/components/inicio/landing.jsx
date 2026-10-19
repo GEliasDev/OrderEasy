@@ -4,7 +4,6 @@ import {
   Sparkles,
   Bot,
   Package,
-  BarChart3,
   DollarSign,
   ArrowUpRight,
   TrendingUp,
@@ -141,7 +140,7 @@ function Landing() {
               La gestión de tu negocio, <span className="gradient-text">simplificada e impulsada</span> por IA
             </h1>
             <p className="subtitle text-left">
-              Controla tu inventario, procesa ventas en segundos, supervisa turnos de caja y toma decisiones financieras respaldadas por un asistente inteligente en lenguaje natural. **OrderEasy** une potencia y sencillez en una sola interfaz diseñada para crecer contigo.
+              Controla tu inventario, registra ventas y egresos, y toma decisiones financieras respaldadas por un asistente inteligente en lenguaje natural. **OrderEasy** une potencia y sencillez en una sola interfaz diseñada para crecer contigo.
             </p>
             <div className="button-group">
               <Link
@@ -165,7 +164,7 @@ function Landing() {
               </div>
               <div className="stat-item">
                 <Clock className="stat-icon" />
-                <span>Monitoreo de Caja 24/7</span>
+                <span>Control Financiero 24/7</span>
               </div>
             </div>
           </div>
@@ -282,15 +281,6 @@ function Landing() {
               </p>
             </div>
             <div className="feature-card glass-panel card-hover-lift anim-fade-up">
-              <div className="feature-icon-wrapper cyan-glow">
-                <BarChart3 className="feature-icon" />
-              </div>
-              <h3>Terminal POS y Caja Registradora</h3>
-              <p>
-                Registra ventas al instante y lleva un control riguroso de turnos de caja. Supervisa la apertura, balance y cierre de cada turno de tus vendedores con registro de descuadres.
-              </p>
-            </div>
-            <div className="feature-card glass-panel card-hover-lift anim-fade-up">
               <div className="feature-icon-wrapper blue-glow">
                 <Package className="feature-icon" />
               </div>
@@ -305,7 +295,7 @@ function Landing() {
               </div>
               <h3>Balance, Ingresos y Egresos</h3>
               <p>
-                Lleva un control financiero de tu caja con el registro de egresos (compras, gastos operativos). Compara ingresos vs egresos para ver tu margen y rentabilidad neta real.
+                Lleva un control financiero de tu negocio con el registro de egresos (compras, gastos operativos). Compara ingresos vs egresos para ver tu margen y rentabilidad neta real.
               </p>
             </div>
             <div className="feature-card glass-panel card-hover-lift anim-fade-up">
@@ -342,7 +332,7 @@ function Landing() {
               <div className="benefit-badge"><Check className="benefit-check-icon" /></div>
               <h3>Extremadamente Intuitivo</h3>
               <p>
-                Cero curvas complejas de aprendizaje. Tus cajeros y vendedores pueden aprender a operar el POS y la caja registradora en menos de 10 minutos.
+                Cero curvas complejas de aprendizaje. Tus vendedores pueden aprender a operar el sistema en menos de 10 minutos.
               </p>
             </div>
             <div className="benefit-item glass-panel card-hover-lift anim-fade-up">
@@ -384,7 +374,7 @@ function Landing() {
             </div>
             <div className="stat-box anim-fade-up">
               <div className="stat-number gradient-text">100%</div>
-              <div className="stat-label">Control Financiero de Caja</div>
+              <div className="stat-label">Control Financiero del Negocio</div>
             </div>
             <div className="stat-box anim-fade-up">
               <div className="stat-number gradient-text">0%</div>
@@ -419,7 +409,7 @@ function Landing() {
             </div>
             <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
               <p>
-                \"Controlar los turnos de caja era un dolor de cabeza diario. Con OrderEasy, mis cajeros abren y cierran turnos fácilmente, y puedo ver si hay descuadres de efectivo inmediatamente desde el panel administrador.\"
+                \"Antes llevaba el control de ventas y egresos en hojas de cálculo. Con OrderEasy tengo el balance del día al instante y sé exactamente cuánto gané.\"
               </p>
               <div className="testimonial-author">
                 <img
@@ -503,7 +493,7 @@ function Landing() {
                   <a href="#">Asistente Chatbot</a>
                 </li>
                 <li>
-                  <a href="#">Control de Caja POS</a>
+                  <a href="#">Gestión de Clientes</a>
                 </li>
                 <li>
                   <a href="#">Gestión de Stock</a>

@@ -15,7 +15,7 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 
 ## Estructura
 
-- `controllers/` — lógica de negocio por dominio (productos, ventas, egresos, clientes, proveedores, categorías, roles, usuarios, negocio, turnos de caja, chat, balance, stats).
+- `controllers/` — lógica de negocio por dominio (productos, ventas, egresos, clientes, proveedores, categorías, roles, usuarios, negocio, chat, balance, stats).
 - `models/` — modelos Sequelize, todos con `negocioid` para aislamiento multi-tenant.
 - `routes/` — un router por dominio, montado en `server.js`.
 - `middleware/authMiddleware.js` — `verificarToken` (JWT) y `verificarAdmin` (rol exacto `administrador`); no hay middleware de autorización por sección/rol dinámico pese a que el modelo `Rol`/`RolSeccion` existe.

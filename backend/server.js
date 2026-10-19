@@ -23,7 +23,6 @@ require('./models/negocioModel');
 require('./models/roleSeccionModel');
 require('./models/rolModel');
 require('./models/userModel');
-require('./models/turnoCajaModel');
 require('./models/categoryModel');
 require('./models/productModel');
 require('./models/ventaModel');
@@ -90,7 +89,6 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/negocio', negocioRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/roles', rolesRoutes);
-app.use('/api/turnos', require('./routes/turnoCajaRoutes'));
 
 const PORT = process.env.PORT || 3000;
 

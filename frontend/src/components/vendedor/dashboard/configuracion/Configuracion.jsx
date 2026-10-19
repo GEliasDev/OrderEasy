@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Users, ShieldCheck, ChevronRight, Building2, Edit2, History } from 'lucide-react';
+import { Settings, Users, ShieldCheck, ChevronRight, Building2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import axiosInstance from '../../../../api/axiosConfig';
 import './configuracion.css';
@@ -112,22 +112,6 @@ const Configuracion = () => {
           </div>
           <button className="config-card-btn" onClick={() => navigate('/dashboard/roles')}>
             <span>Gestionar</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-
-        <div className="config-card">
-          <div className="config-card-icon">
-            <History size={20} />
-          </div>
-          <div className="config-card-body">
-            <h3 className="config-card-title">Historial de Turnos</h3>
-            <p className="config-card-desc">
-              Consulta los turnos de caja registrados: apertura, cierre, ventas por método y diferencias de efectivo.
-            </p>
-          </div>
-          <button className="config-card-btn" onClick={() => navigate('/dashboard/turnos')}>
-            <span>Ver historial</span>
             <ChevronRight size={14} />
           </button>
         </div>

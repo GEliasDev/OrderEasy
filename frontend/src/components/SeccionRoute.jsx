@@ -6,7 +6,8 @@ const SeccionRoute = ({ seccion, children }) => {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.rol === 'administrador') return children;
   if (seccion && user?.secciones?.includes(seccion)) return children;
-  return <Navigate to="/dashboard/caja" replace />;
+  const fallback = user?.secciones?.[0];
+  return <Navigate to={fallback ? `/dashboard/${fallback}` : '/login'} replace />;
 };
 
 export default SeccionRoute;

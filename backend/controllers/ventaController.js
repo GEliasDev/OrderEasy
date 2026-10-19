@@ -2,7 +2,6 @@ const Venta = require('../models/ventaModel');
 const VentaDetalle = require('../models/ventaDetalleModel');
 const VentaPago = require('../models/ventaPagoModel');
 const Producto = require('../models/productModel');
-const TurnoCaja = require('../models/turnoCajaModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 
@@ -22,14 +21,6 @@ const createVenta = async (req, res) => {
     } = req.body;
     const { usuarioid, negocioid } = req.usuario;
 
-    const turnoActivo = await TurnoCaja.findOne({
-      where: { usuarioid, negocioid, estado: 'abierto' },
-    });
-    if (!turnoActivo) {
-      await t.rollback();
-      return res.status(400).json({ mensaje: 'Debes abrir un turno de caja antes de registrar ventas.' });
-    }
-
     let productosAProcesar = Array.isArray(items) ? items : [];
     if (productosAProcesar.length === 0) {
       await t.rollback();
@@ -44,7 +35,6 @@ const createVenta = async (req, res) => {
       total: 0,
       descuentoTotal: 0,
       descuentoTipoTotal: 'fijo',
-      turnoid: turnoActivo.turnoid,
     }, { transaction: t });
 
     let totalAntes = 0;
