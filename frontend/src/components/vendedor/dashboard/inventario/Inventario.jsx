@@ -9,7 +9,7 @@ import './inventario.css';
 
 const GRID_GAP = 14;
 const CARD_MIN_WIDTH = 160;
-const CARD_MAX_HEIGHT = 195;
+const CARD_MAX_HEIGHT = 230;
 
 const SkeletonCard = () => (
   <div style={{ background: 'white', borderRadius: 8, padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
