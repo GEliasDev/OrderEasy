@@ -46,7 +46,8 @@ const includeOrden = [
 // Orden en JSON con el reparto de cada línea en orden estable
 const aJson = (orden) => {
   const json = orden.toJSON();
-  for (const detalle of json.detalles || []) {
+  json.detalles = (json.detalles || []).sort((a, b) => a.detalleid - b.detalleid);
+  for (const detalle of json.detalles) {
     detalle.asignaciones = (detalle.asignaciones || []).sort((a, b) => a.asignacionid - b.asignacionid);
   }
   return json;
