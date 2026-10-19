@@ -521,7 +521,7 @@
 }
 
 .checkout-button.egreso-btn {
-  background: var(--color-danger, #DC2626);
+  background: var(--color-danger-solid, #DC2626);
 }
 
 .checkout-button.egreso-btn:hover:not(:disabled) {

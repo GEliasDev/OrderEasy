@@ -414,3 +414,5 @@
   .proveedores-table td.proveedores-empty { display: block; text-align: center; }
   .proveedores-table td.proveedores-empty::before { display: none; }
 }
+
+:root[data-theme="dark"] .proveedores-estado.activo { background: #10261E; color: #6EE7B7; }

@@ -92,3 +92,12 @@
   color: white;
   border-color: transparent;
 }
+
+/* ── Modo oscuro ── */
+:root[data-theme="dark"] .chat-msg-markdown code { background: rgba(255, 255, 255, 0.10); }
+:root[data-theme="dark"] .chat-msg-markdown pre,
+:root[data-theme="dark"] .chat-msg-markdown th { background: rgba(255, 255, 255, 0.08); }
+:root[data-theme="dark"] .chat-msg-markdown th,
+:root[data-theme="dark"] .chat-msg-markdown td { border-color: rgba(255, 255, 255, 0.14); }
+:root[data-theme="dark"] .chat-msg-markdown tr:nth-child(even) td { background: rgba(255, 255, 255, 0.04); }
+:root[data-theme="dark"] .chat-suggestion-btn { background: var(--surface-2); border-color: var(--neutral-200); color: var(--neutral-600); }

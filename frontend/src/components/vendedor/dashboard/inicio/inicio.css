@@ -58,7 +58,7 @@
 
 .inicio-kpi-card.kpi-warning {
   border-color: var(--color-warning, #D97706);
-  background: #FFFBEB;
+  background: var(--color-warning-soft, #FFFBEB);
 }
 
 .inicio-kpi-icon {

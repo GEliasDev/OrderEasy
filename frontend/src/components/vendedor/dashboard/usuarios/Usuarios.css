@@ -413,3 +413,5 @@
   .personal-form-row { grid-template-columns: 1fr; }
   .personal-btn-edit span { display: none; }
 }
+
+:root[data-theme="dark"] .personal-role-badge.admin { background: #322616; color: #FCD34D; border-color: #322616; }

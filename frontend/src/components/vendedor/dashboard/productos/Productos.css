@@ -168,7 +168,7 @@
   color: var(--neutral-700, #334155);
 }
 
-.productos-td-empty { color: var(--neutral-300, #CBD5E1); }
+.productos-td-empty { color: var(--neutral-400, #94A3B8); }
 
 /* Empty */
 .productos-empty {

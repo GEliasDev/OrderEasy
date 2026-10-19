@@ -950,3 +950,25 @@
     justify-content: flex-end;
   }
 }
+
+/* ── Modo oscuro: los chips y avisos pastel se reemplazan por versiones tenues ── */
+:root[data-theme="dark"] .pedidos-icon-ambar,
+:root[data-theme="dark"] .pedido-estado-pendiente { background: #3A2E12; color: #FCD34D; }
+:root[data-theme="dark"] .pedidos-icon-morado,
+:root[data-theme="dark"] .pedido-estado-en-compra { background: #2A2147; color: #C4B5FD; }
+:root[data-theme="dark"] .pedidos-icon-verde,
+:root[data-theme="dark"] .pedidos-accion-venta,
+:root[data-theme="dark"] .pedido-estado-entregado,
+:root[data-theme="dark"] .pedido-stock-ok { background: #10261E; color: #6EE7B7; }
+:root[data-theme="dark"] .pedidos-accion-anular,
+:root[data-theme="dark"] .pedido-stock-faltante { background: #331A1D; color: #FCA5A5; }
+:root[data-theme="dark"] .pedido-estado-confirmado { background: #1E2C44; color: #93C5FD; }
+:root[data-theme="dark"] .pedido-estado-recibido { background: #12302D; color: #5EEAD4; }
+:root[data-theme="dark"] .pedido-estado-anulado { background: #232E44; color: #A7B4C8; }
+:root[data-theme="dark"] .pedido-aviso,
+:root[data-theme="dark"] .pedido-modal-texto,
+:root[data-theme="dark"] .pedido-edit-total,
+:root[data-theme="dark"] .pedido-edit-resultado:hover { background: #1E2C44; border-color: #2F4A75; color: #93C5FD; }
+:root[data-theme="dark"] .pedido-alerta-stock { background: #322616; border-color: #5A4417; color: #FCD34D; }
+:root[data-theme="dark"] .pedidos-btn-peligro { border-color: #5B2A2F; }
+:root[data-theme="dark"] .pedidos-btn-peligro:hover:not(:disabled) { background: #331A1D; }

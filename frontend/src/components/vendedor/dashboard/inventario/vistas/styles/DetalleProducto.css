@@ -279,7 +279,7 @@
 }
 
 .profit-analysis-minimal {
-  background: #fafafa;
+  background: var(--surface-2, #fafafa);
   border: 1px solid var(--neutral-200);
   padding: 20px;
   border-radius: var(--radius-md);

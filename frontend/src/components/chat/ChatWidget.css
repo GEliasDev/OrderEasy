@@ -186,3 +186,12 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.45; }
 }
+
+/* ── Modo oscuro ── */
+:root[data-theme="dark"] .chat-panel,
+:root[data-theme="dark"] .chat-input-area,
+:root[data-theme="dark"] .chat-input-area textarea { border-color: var(--neutral-200); }
+:root[data-theme="dark"] .chat-typing { background: var(--surface-2); }
+:root[data-theme="dark"] .chat-input-area textarea { background: var(--surface-2); color: var(--neutral-900); }
+:root[data-theme="dark"] .chat-empty-state { color: var(--neutral-400); }
+:root[data-theme="dark"] .chat-tool-status { color: var(--neutral-500); }

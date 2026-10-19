@@ -243,3 +243,8 @@
   .menu-icon { width: 16px; height: 16px; }
   .menu-divider { display: none; }
 }
+
+/* Modo oscuro: el logo es azul oscuro y se pierde sobre el fondo; se aclara */
+:root[data-theme="dark"] .custom-logo {
+  filter: brightness(1.9) saturate(0.85);
+}

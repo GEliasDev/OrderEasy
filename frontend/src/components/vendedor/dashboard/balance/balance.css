@@ -35,9 +35,9 @@
   box-shadow: var(--shadow-xs, 0 1px 2px rgba(0,0,0,0.05));
 }
 
-.action-button-income { background-color: var(--color-success, #059669); }
+.action-button-income { background-color: var(--color-success-solid, #059669); }
 .action-button-income:hover { background-color: #047857; }
-.action-button-expense { background-color: var(--color-danger, #DC2626); }
+.action-button-expense { background-color: var(--color-danger-solid, #DC2626); }
 .action-button-expense:hover { background-color: #B91C1C; }
 
 .button-icon { width: 14px; height: 14px; }
@@ -67,7 +67,7 @@
 /* Featured card — Balance General */
 .metric-featured {
   border-left: 3px solid var(--color-primary, #1565C0);
-  background: linear-gradient(135deg, #fff 60%, #EEF4FF 100%);
+  background: linear-gradient(135deg, var(--surface, #fff) 60%, var(--color-primary-soft, #EEF4FF) 100%);
 }
 
 .metric-negative { color: var(--color-danger, #DC2626) !important; }

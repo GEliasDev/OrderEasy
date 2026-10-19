@@ -15,10 +15,18 @@
   --neutral-50:  #F8FAFC;
   --neutral-100: #F0F4FA;
   --neutral-200: #E2E8F0;
+  --neutral-300: #CBD5E1;
   --neutral-400: #94A3B8;
   --neutral-500: #64748B;
+  --neutral-600: #475569;
   --neutral-700: #334155;
+  --neutral-800: #1E293B;
   --neutral-900: #0F172A;
+
+  --color-success-dark: #047857;
+  /* Fondos sólidos para botones con texto blanco (no se aclaran en modo oscuro) */
+  --color-success-solid: #059669;
+  --color-danger-solid:  #DC2626;
 
   /* Tokens semánticos de superficie (cambian con el tema) */
   --bg:        #F4F8FD;
@@ -60,7 +68,10 @@
   --neutral-500: #A7B4C8;
   --neutral-600: #C0CBDC;
   --neutral-700: #D4DEEC;
+  --neutral-800: #E2E8F0;
   --neutral-900: #F1F5F9;
+
+  --color-success-dark: #6EE7B7;
 
   --bg:        #0F1729;
   --surface:   #1B2436;
