@@ -20,7 +20,7 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 - `routes/` — un router por dominio, montado en `server.js`.
 - `middleware/authMiddleware.js` — `verificarToken` (JWT) y `verificarAdmin` (rol exacto `administrador`); no hay middleware de autorización por sección/rol dinámico pese a que el modelo `Rol`/`RolSeccion` existe.
 - `config/chatTools.js` + `services/chatService.js` + `controllers/chatController.js` — asistente de IA con function calling sobre OpenRouter.
-- `utils/cloudinary.js` — procesamiento de imágenes con Sharp (WebP) antes de subir a Cloudinary.
+- `utils/cloudinary.js` — procesa imágenes con Sharp (WebP) y las sube a Cloudinary; si Cloudinary falla, las guarda en `backend/uploads/<carpeta>` y devuelve la ruta relativa para servirla desde `/uploads`.
 
 ## Pedidos y órdenes de compra
 
