@@ -3,6 +3,7 @@ const PedidoDetalle = require('../models/pedidoDetalleModel');
 const OrdenCompra = require('../models/ordenCompraModel');
 const OrdenCompraDetalle = require('../models/ordenCompraDetalleModel');
 const Producto = require('../models/productModel');
+const Variante = require('../models/varianteModel');
 const Venta = require('../models/ventaModel');
 const VentaDetalle = require('../models/ventaDetalleModel');
 const Cliente = require('../models/clientModel');
@@ -23,7 +24,12 @@ const includePedido = [
     model: PedidoDetalle,
     as: 'detalles',
     include: [
-      { model: Producto, as: 'producto', attributes: ['productoid', 'nombre', 'cantidadDisponible', 'cantidadReservada', 'unidadMedida', 'usaTallas'] },
+      {
+        model: Producto,
+        as: 'producto',
+        attributes: ['productoid', 'nombre', 'cantidadDisponible', 'cantidadReservada', 'unidadMedida', 'usaTallas'],
+        include: [{ model: Variante, as: 'variantes' }],
+      },
     ],
   },
   { model: Cliente, as: 'cliente', attributes: ['clienteid', 'nombreCliente'] },
