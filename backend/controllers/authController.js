@@ -11,7 +11,7 @@ const bcrypt = require('bcrypt');
 const sequelize = require('../config/database');
 
 const TODAS_LAS_SECCIONES = [
-  'inicio', 'inventario', 'productos', 'categorias',
+  'inicio', 'inventario', 'productos', 'categorias', 'pedidos',
   'balance', 'estadisticas', 'clientes', 'proveedores', 'asistente',
 ];
 
@@ -121,7 +121,7 @@ const loginUser = async (req, res) => {
       const permisos = await RolSeccion.findAll({ where: { rolid: usuario.rolid } });
       secciones = permisos.map((p) => p.seccion);
     } else if (usuario.rol === 'vendedor') {
-      secciones = ['inicio', 'inventario', 'productos', 'balance', 'clientes'];
+      secciones = ['inicio', 'inventario', 'productos', 'pedidos', 'balance', 'clientes'];
     }
 
     const token = generarToken({

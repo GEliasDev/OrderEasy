@@ -6,6 +6,7 @@ import {
   DollarSign,
   LogOut,
   ShoppingCart,
+  ClipboardList,
   Users,
   Truck,
   Tag,
@@ -27,6 +28,12 @@ const MENU = [
       { to: 'inventario', label: 'Inventario', icon: Package, seccion: 'inventario' },
       { to: 'productos', label: 'Productos', icon: ShoppingCart, seccion: 'productos' },
       { to: 'categorias', label: 'Categorías', icon: Tag, seccion: 'categorias' },
+    ],
+  },
+  {
+    section: 'Ventas',
+    items: [
+      { to: 'pedidos', label: 'Pedidos', icon: ClipboardList, seccion: 'pedidos' },
     ],
   },
   {
@@ -87,7 +94,12 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
     });
   };
 
-  const isActive = (path) => location.pathname.includes(path);
+  const isActive = (path) => {
+    if (path === 'pedidos') {
+      return location.pathname.includes('/pedidos') || location.pathname.includes('/pedido/');
+    }
+    return location.pathname.includes(path);
+  };
 
   return (
     <>

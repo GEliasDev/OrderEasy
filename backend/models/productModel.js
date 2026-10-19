@@ -21,6 +21,11 @@ const Producto = sequelize.define('Producto', {
     allowNull: false,
     defaultValue: 0,
   },
+  cantidadReservada: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
   precioCompra: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,

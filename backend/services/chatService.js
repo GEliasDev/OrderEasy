@@ -6,6 +6,8 @@ const Producto = require('../models/productModel');
 const Categoria = require('../models/categoryModel');
 const Cliente = require('../models/clientModel');
 const Proveedor = require('../models/proveedorModel');
+const Pedido = require('../models/pedidoModel');
+const OrdenCompra = require('../models/ordenCompraModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 
@@ -149,8 +151,9 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
             transaction: t, lock: true
           });
           if (!producto) throw new Error(`Producto no encontrado: ${item.productoNombre}`);
-          if (producto.cantidadDisponible < item.cantidad) {
-            throw new Error(`Stock insuficiente para ${item.productoNombre} (disponible: ${producto.cantidadDisponible})`);
+          const disponible = Number(producto.cantidadDisponible) - Number(producto.cantidadReservada || 0);
+          if (disponible < item.cantidad) {
+            throw new Error(`Stock insuficiente para ${item.productoNombre} (disponible: ${disponible})`);
           }
           const subtotal = item.cantidad * producto.precioVenta;
           total += subtotal;
@@ -291,6 +294,11 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
           transaction: t
         });
         if (!venta) throw new Error('Venta no encontrada');
+        const pedido = await Pedido.findOne({
+          where: { ventaid: venta.ventaid, negocioid },
+          transaction: t
+        });
+        if (pedido) throw new Error('Esta venta proviene de un pedido y no se puede eliminar desde el asistente');
         for (const detalle of venta.detalles) {
           const producto = await Producto.findOne({
             where: { nombre: detalle.productoNombre, negocioid }, transaction: t
@@ -320,6 +328,11 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
           transaction: t
         });
         if (!egreso) throw new Error('Egreso no encontrado');
+        const orden = await OrdenCompra.findOne({
+          where: { egresoid: egreso.egresoid, negocioid },
+          transaction: t
+        });
+        if (orden) throw new Error('Este egreso proviene de una orden de compra y no se puede eliminar desde el asistente');
         for (const detalle of egreso.detalles) {
           const producto = await Producto.findOne({
             where: { nombre: detalle.productoNombre, negocioid }, transaction: t

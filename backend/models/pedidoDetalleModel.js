@@ -1,0 +1,55 @@
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const PedidoDetalle = sequelize.define('PedidoDetalle', {
+  detalleid: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  pedidoid: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'pedidos',
+      key: 'pedidoid'
+    },
+    onDelete: 'CASCADE'
+  },
+  productoid: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'productos',
+      key: 'productoid'
+    }
+  },
+  productoNombre: {
+    type: DataTypes.STRING(100),
+    allowNull: false
+  },
+  cantidad: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  precioUnitario: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false
+  },
+  subtotal: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false
+  },
+  categoriaid: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  }
+}, {
+  tableName: 'pedido_detalles',
+  timestamps: false
+});
+
+PedidoDetalle.belongsTo(require('./productModel'), { foreignKey: 'productoid', as: 'producto' });
+PedidoDetalle.belongsTo(require('./categoryModel'), { foreignKey: 'categoriaid', as: 'categoria' });
+
+module.exports = PedidoDetalle;

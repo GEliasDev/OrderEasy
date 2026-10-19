@@ -1,6 +1,7 @@
 const Egreso = require('../models/egresoModel');
 const EgresoDetalle = require('../models/egresoDetalleModel');
 const Producto = require('../models/productModel');
+const OrdenCompra = require('../models/ordenCompraModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 
@@ -172,6 +173,15 @@ const deleteEgreso = async (req, res) => {
     if (!egreso) {
       await t.rollback();
       return res.status(404).json({ mensaje: 'Egreso no encontrado' });
+    }
+
+    const orden = await OrdenCompra.findOne({
+      where: { egresoid: egreso.egresoid, negocioid },
+      transaction: t,
+    });
+    if (orden) {
+      await t.rollback();
+      return res.status(400).json({ mensaje: 'Este egreso proviene de una orden de compra y no se puede eliminar directamente.' });
     }
 
     for (const detalle of egreso.detalles) {

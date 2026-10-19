@@ -2,6 +2,7 @@ const Venta = require('../models/ventaModel');
 const VentaDetalle = require('../models/ventaDetalleModel');
 const VentaPago = require('../models/ventaPagoModel');
 const Producto = require('../models/productModel');
+const Pedido = require('../models/pedidoModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 
@@ -52,7 +53,8 @@ const createVenta = async (req, res) => {
         throw new Error(`Producto no encontrado: ${productoNombre}`);
       }
 
-      if (producto.cantidadDisponible < cantidad) {
+      const disponible = Number(producto.cantidadDisponible) - Number(producto.cantidadReservada || 0);
+      if (disponible < cantidad) {
         throw new Error(`Stock insuficiente para ${productoNombre}.`);
       }
 
@@ -264,6 +266,15 @@ const deleteVenta = async (req, res) => {
     if (!venta) {
       await t.rollback();
       return res.status(404).json({ mensaje: 'Venta no encontrada' });
+    }
+
+    const pedido = await Pedido.findOne({
+      where: { ventaid: venta.ventaid, negocioid },
+      transaction: t,
+    });
+    if (pedido) {
+      await t.rollback();
+      return res.status(400).json({ mensaje: 'Esta venta proviene de un pedido y no se puede anular directamente.' });
     }
 
     for (const detalle of venta.detalles) {

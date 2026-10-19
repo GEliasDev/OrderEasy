@@ -8,6 +8,7 @@ const SECCIONES_CONFIG = [
   { key: 'inicio', label: 'Inicio' },
   { key: 'inventario', label: 'Inventario' },
   { key: 'productos', label: 'Productos' },
+  { key: 'pedidos', label: 'Pedidos' },
   { key: 'categorias', label: 'Categorías' },
   { key: 'balance', label: 'Balance' },
   { key: 'estadisticas', label: 'Estadísticas' },

@@ -45,20 +45,25 @@ const RegistrarIngresoForm = () => {
   }, []);
 
   const productosFiltrados = useMemo(() => {
-    return productos.filter(p => {
-      const coincideBusqueda = p.nombre.toLowerCase().includes(busqueda.toLowerCase());
-      const coincideCategoria = categoriaSeleccionada ? String(p.categoriaid) === String(categoriaSeleccionada) : true;
-      return coincideBusqueda && coincideCategoria;
-    });
+    return productos
+      .filter(p => {
+        const coincideBusqueda = p.nombre.toLowerCase().includes(busqueda.toLowerCase());
+        const coincideCategoria = categoriaSeleccionada ? String(p.categoriaid) === String(categoriaSeleccionada) : true;
+        return coincideBusqueda && coincideCategoria;
+      })
+      .map(p => ({
+        ...p,
+        stockDisponible: Math.max(0, Number(p.cantidadDisponible) - Number(p.cantidadReservada || 0)),
+      }));
   }, [productos, busqueda, categoriaSeleccionada]);
 
   const agregarAlCarrito = (producto) => {
-    if (producto.cantidadDisponible <= 0) return;
+    if (producto.stockDisponible <= 0) return;
 
     setCarrito(prev => {
       const itemExistente = prev.find(item => item.productoid === producto.productoid);
       if (itemExistente) {
-        if (itemExistente.cantidad < producto.cantidadDisponible) {
+        if (itemExistente.cantidad < producto.stockDisponible) {
           return prev.map(item =>
             item.productoid === producto.productoid
               ? { ...item, cantidad: item.cantidad + 1 }
@@ -75,7 +80,7 @@ const RegistrarIngresoForm = () => {
     setCarrito(prev => prev.map(item => {
       if (item.productoid === id) {
         const nuevaCantidad = item.cantidad + delta;
-        if (nuevaCantidad > 0 && nuevaCantidad <= item.cantidadDisponible) {
+        if (nuevaCantidad > 0 && nuevaCantidad <= item.stockDisponible) {
           return { ...item, cantidad: nuevaCantidad };
         }
       }
@@ -88,7 +93,7 @@ const RegistrarIngresoForm = () => {
     if (isNaN(num)) return;
     setCarrito(prev => prev.map(item => {
       if (item.productoid === id) {
-        const clamped = Math.min(Math.max(1, num), item.cantidadDisponible);
+        const clamped = Math.min(Math.max(1, num), item.stockDisponible);
         return { ...item, cantidad: clamped };
       }
       return item;
@@ -170,7 +175,7 @@ const RegistrarIngresoForm = () => {
             ) : productosFiltrados.length > 0 ? (
               <div className="productos-container-cart">
                 {productosFiltrados.map(p => {
-                  const agotado = p.cantidadDisponible <= 0;
+                  const agotado = p.stockDisponible <= 0;
                   return (
                     <div
                       key={p.productoid}
@@ -189,8 +194,8 @@ const RegistrarIngresoForm = () => {
                         {agotado ? (
                           <div className="stock-badge-cart stock-out-cart">Agotado</div>
                         ) : (
-                          <div className={`stock-badge-cart ${p.cantidadDisponible < 5 ? 'stock-low-cart' : ''}`}>
-                            Stock: {p.cantidadDisponible}
+                          <div className={`stock-badge-cart ${p.stockDisponible < 5 ? 'stock-low-cart' : ''}`}>
+                            Stock: {p.stockDisponible}
                           </div>
                         )}
                       </div>
@@ -281,14 +286,14 @@ const RegistrarIngresoForm = () => {
                           className="qty-input"
                           type="number"
                           min={1}
-                          max={item.cantidadDisponible}
+                          max={item.stockDisponible}
                           value={item.cantidad}
                           onChange={e => setCantidadDirecta(item.productoid, e.target.value)}
                         />
                         <button
                           className="qty-btn"
                           onClick={() => actualizarCantidad(item.productoid, 1)}
-                          disabled={item.cantidad >= item.cantidadDisponible}
+                          disabled={item.cantidad >= item.stockDisponible}
                         >
                           <Plus size={12} />
                         </button>

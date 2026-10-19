@@ -32,6 +32,8 @@ require('./models/egresoDetalleModel');
 require('./models/clientModel');
 require('./models/ventaPagoModel');
 require('./models/proveedorModel');
+require('./models/pedidoModel');
+require('./models/ordenCompraModel');
 
 // Rutas
 const authRoutes = require('./routes/authRoutes');
@@ -47,6 +49,8 @@ const statsRoutes = require('./routes/statsRoutes');
 const balanceRoutes = require('./routes/balanceRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const rolesRoutes = require('./routes/rolesRoutes');
+const pedidoRoutes = require('./routes/pedidoRoutes');
+const ordenCompraRoutes = require('./routes/ordenCompraRoutes');
 
 const app = express();
 
@@ -89,6 +93,8 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/negocio', negocioRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/pedidos', pedidoRoutes);
+app.use('/api/ordenes-compra', ordenCompraRoutes);
 
 const PORT = process.env.PORT || 3000;
 

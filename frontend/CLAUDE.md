@@ -16,7 +16,7 @@ npm run preview             # sirve el build de dist/ localmente
 ## Estructura
 
 - `src/components/inicio/landing.jsx` — landing page pública.
-- `src/components/vendedor/dashboard/` — dashboard autenticado: inventario, productos, categorías, balance, estadísticas, clientes, proveedores, usuarios, roles, configuración.
+- `src/components/vendedor/dashboard/` — dashboard autenticado: inicio, inventario, productos, categorías, pedidos, balance, estadísticas, clientes, proveedores, usuarios, roles, configuración.
 - `src/components/chat/` — UI del asistente de IA conversacional (streaming SSE, flujo de confirmación para acciones críticas).
 - `src/components/AdminRoute.jsx` / `SeccionRoute.jsx` / `ProtectedRoute.jsx` — guards de rutas: administrador exacto, sección asignada por rol, o solo autenticado. Nota: estas restricciones son solo de UI, el backend no las revalida.
 - `src/context/AuthContext.jsx` — sesión (JWT en `localStorage`), `src/context/ChatContext.jsx` — estado del asistente de IA.
