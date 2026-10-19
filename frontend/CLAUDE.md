@@ -22,4 +22,9 @@ npm run preview             # sirve el build de dist/ localmente
 - `src/context/AuthContext.jsx` — sesión (JWT en `localStorage`), `src/context/ChatContext.jsx` — estado del asistente de IA.
 - `src/services/` — clientes Axios por dominio, apuntando a `VITE_API_URL`.
 
+## Pedidos
+
+- `components/vendedor/dashboard/pedidos/DetallePedido.jsx`: el modal **Editar** permite agregar, quitar y cambiar cantidades de productos solo cuando el pedido está `pendiente`; muestra el total recalculado y conserva el precio de los productos que ya estaban en el pedido. En estados posteriores solo permite editar cliente, fecha de entrega y notas.
+- `NuevoPedido.jsx` acumula en una sola línea las unidades repetidas del mismo producto.
+
 ⚠️ `.env.example` todavía declara `VITE_PREDICCION_URL`, residuo de un módulo de predicción ML eliminado — no lo reintroduzcas sin revisar primero si el módulo se va a reconstruir.

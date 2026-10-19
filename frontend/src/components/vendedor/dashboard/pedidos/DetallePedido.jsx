@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, Package, ShoppingBag, Truck, User, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, Minus, Package, Plus, Search, ShoppingBag, Trash2, Truck, User, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   anularOrdenCompra,
@@ -14,6 +14,7 @@ import {
 } from '../../../../services/pedidoService';
 import { getClientes } from '../../../../services/clienteService';
 import { getProveedores } from '../../../../services/proveedorService';
+import { getAllProducts } from '../../../../services/productServices';
 import '../balance/vistas/styles/DetalleTransaccion.css';
 import './Pedidos.css';
 
@@ -55,6 +56,10 @@ function DetallePedido() {
   const [clientes, setClientes] = useState([]);
   const [guardando, setGuardando] = useState(false);
   const [editForm, setEditForm] = useState({ clienteid: '', fechaEntrega: '', descripcion: '' });
+  const [editItems, setEditItems] = useState([]);
+  const [productos, setProductos] = useState([]);
+  const [busquedaProducto, setBusquedaProducto] = useState('');
+  const [cargandoProductos, setCargandoProductos] = useState(false);
   const [ocForm, setOcForm] = useState({ proveedorid: '', descripcion: '' });
 
   const cargarPedido = useCallback(async (silencioso = false) => {
@@ -83,14 +88,99 @@ function DetallePedido() {
       .catch(() => {});
   }, []);
 
+  const productosFiltrados = useMemo(() => {
+    const termino = busquedaProducto.trim().toLowerCase();
+    if (!termino) return [];
+    return productos
+      .filter((producto) => producto.nombre.toLowerCase().includes(termino))
+      .slice(0, 8);
+  }, [productos, busquedaProducto]);
+
+  const cargarProductos = async () => {
+    try {
+      setCargandoProductos(true);
+      const data = await getAllProducts();
+      if (Array.isArray(data)) setProductos(data);
+    } catch {
+      toast.error('No se pudieron cargar los productos.');
+    } finally {
+      setCargandoProductos(false);
+    }
+  };
+
   const abrirEditar = () => {
     setEditForm({
       clienteid: pedido.clienteid || '',
       fechaEntrega: pedido.fechaEntrega || '',
       descripcion: pedido.descripcion || '',
     });
+    setEditItems(
+      (pedido.detalles || [])
+        .filter((detalle) => detalle.productoid)
+        .map((detalle) => ({
+          productoid: detalle.productoid,
+          nombre: detalle.productoNombre,
+          cantidad: Number(detalle.cantidad),
+          precioUnitario: Number(detalle.precioUnitario),
+        }))
+    );
+    setBusquedaProducto('');
     setModal('editar');
+    if (pedido.estado === 'pendiente' && productos.length === 0) {
+      cargarProductos();
+    }
   };
+
+  const agregarProductoEdicion = (producto) => {
+    setEditItems((prev) => {
+      const existente = prev.find((item) => Number(item.productoid) === Number(producto.productoid));
+      if (existente) {
+        return prev.map((item) => (
+          Number(item.productoid) === Number(producto.productoid)
+            ? { ...item, cantidad: item.cantidad + 1 }
+            : item
+        ));
+      }
+
+      const original = (pedido.detalles || []).find(
+        (detalle) => Number(detalle.productoid) === Number(producto.productoid)
+      );
+      return [...prev, {
+        productoid: producto.productoid,
+        nombre: producto.nombre,
+        cantidad: 1,
+        precioUnitario: original ? Number(original.precioUnitario) : Number(producto.precioVenta),
+      }];
+    });
+    setBusquedaProducto('');
+  };
+
+  const actualizarCantidadEdicion = (productoid, delta) => {
+    setEditItems((prev) => prev.map((item) => {
+      if (Number(item.productoid) !== Number(productoid)) return item;
+      const nuevaCantidad = item.cantidad + delta;
+      return nuevaCantidad > 0 ? { ...item, cantidad: nuevaCantidad } : item;
+    }));
+  };
+
+  const setCantidadEdicion = (productoid, valor) => {
+    const numero = parseInt(valor, 10);
+    if (isNaN(numero)) return;
+    setEditItems((prev) => prev.map((item) => (
+      Number(item.productoid) === Number(productoid)
+        ? { ...item, cantidad: Math.max(1, numero) }
+        : item
+    )));
+  };
+
+  const eliminarProductoEdicion = (productoid) => {
+    setEditItems((prev) => prev.filter((item) => Number(item.productoid) !== Number(productoid)));
+  };
+
+  const totalEdicion = editItems.reduce(
+    (sum, item) => sum + Number(item.precioUnitario) * item.cantidad,
+    0
+  );
 
   const abrirOrdenCompra = () => {
     setOcForm({ proveedorid: '', descripcion: `Compra para pedido #${pedido.pedidoid}` });
@@ -147,13 +237,25 @@ function DetallePedido() {
 
   const handleGuardarEdicion = async (e) => {
     e.preventDefault();
+    if (pedido.estado === 'pendiente' && editItems.length === 0) {
+      toast.error('El pedido debe tener al menos un producto.');
+      return;
+    }
+
     try {
       setGuardando(true);
-      await updatePedido(pedido.pedidoid, {
+      const payload = {
         clienteid: editForm.clienteid || null,
         fechaEntrega: editForm.fechaEntrega || null,
         descripcion: editForm.descripcion,
-      });
+      };
+      if (pedido.estado === 'pendiente') {
+        payload.items = editItems.map((item) => ({
+          productoid: item.productoid,
+          cantidad: item.cantidad,
+        }));
+      }
+      await updatePedido(pedido.pedidoid, payload);
       setModal(null);
       toast.success('Pedido actualizado.');
       cargarPedido(true);
@@ -482,6 +584,106 @@ function DetallePedido() {
                   onChange={(e) => setEditForm({ ...editForm, fechaEntrega: e.target.value })}
                 />
               </div>
+
+              {pedido.estado === 'pendiente' ? (
+                <div className="pedido-form-group">
+                  <label>Productos del pedido</label>
+                  <div className="pedido-edit-items">
+                    {editItems.length === 0 ? (
+                      <p className="pedido-edit-hint">El pedido no tiene productos. Agrega al menos uno.</p>
+                    ) : editItems.map((item) => (
+                      <div key={item.productoid} className="pedido-edit-item">
+                        <div className="pedido-edit-item-info">
+                          <span className="pedido-edit-item-name">{item.nombre}</span>
+                          <span className="pedido-edit-item-price">
+                            {formatoMoneda(item.precioUnitario)} c/u
+                          </span>
+                        </div>
+                        <div className="pedido-edit-item-actions">
+                          <button
+                            type="button"
+                            className="pedido-edit-qty-btn"
+                            onClick={() => actualizarCantidadEdicion(item.productoid, -1)}
+                            disabled={item.cantidad <= 1}
+                            aria-label={`Quitar una unidad de ${item.nombre}`}
+                          >
+                            <Minus size={12} />
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            className="pedido-edit-qty-input"
+                            value={item.cantidad}
+                            onChange={(e) => setCantidadEdicion(item.productoid, e.target.value)}
+                            aria-label={`Cantidad de ${item.nombre}`}
+                          />
+                          <button
+                            type="button"
+                            className="pedido-edit-qty-btn"
+                            onClick={() => actualizarCantidadEdicion(item.productoid, 1)}
+                            aria-label={`Agregar una unidad de ${item.nombre}`}
+                          >
+                            <Plus size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            className="pedido-edit-remove"
+                            onClick={() => eliminarProductoEdicion(item.productoid)}
+                            aria-label={`Eliminar ${item.nombre}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pedido-edit-search">
+                    <Search size={14} className="pedido-edit-search-icon" />
+                    <input
+                      type="text"
+                      placeholder="Buscar producto para agregar..."
+                      value={busquedaProducto}
+                      onChange={(e) => setBusquedaProducto(e.target.value)}
+                    />
+                  </div>
+
+                  {cargandoProductos ? (
+                    <p className="pedido-edit-hint">Cargando productos...</p>
+                  ) : busquedaProducto.trim() !== '' && (
+                    productosFiltrados.length === 0 ? (
+                      <p className="pedido-edit-hint">No se encontraron productos.</p>
+                    ) : (
+                      <div className="pedido-edit-resultados">
+                        {productosFiltrados.map((producto) => (
+                          <button
+                            type="button"
+                            key={producto.productoid}
+                            className="pedido-edit-resultado"
+                            onClick={() => agregarProductoEdicion(producto)}
+                          >
+                            <span>{producto.nombre}</span>
+                            <span className="pedido-edit-resultado-precio">
+                              {formatoMoneda(producto.precioVenta)}
+                            </span>
+                            <Plus size={13} />
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  )}
+
+                  <div className="pedido-edit-total">
+                    <span>Total actualizado</span>
+                    <strong>{formatoMoneda(totalEdicion)}</strong>
+                  </div>
+                </div>
+              ) : (
+                <p className="pedido-edit-hint">
+                  Los productos solo se pueden modificar mientras el pedido está pendiente.
+                </p>
+              )}
+
               <div className="pedido-form-group">
                 <label>Notas</label>
                 <textarea

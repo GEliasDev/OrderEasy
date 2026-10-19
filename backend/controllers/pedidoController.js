@@ -151,25 +151,96 @@ const getPedidoById = async (req, res) => {
 };
 
 const updatePedido = async (req, res) => {
+  const t = await sequelize.transaction();
+  let transaccionFinalizada = false;
   try {
     const { id } = req.params;
     const { negocioid } = req.usuario;
-    const { descripcion, fechaEntrega, clienteid } = req.body;
+    const { descripcion, fechaEntrega, clienteid, items } = req.body;
 
-    const pedido = await Pedido.findOne({ where: { pedidoid: id, negocioid } });
+    const pedido = await Pedido.findOne({
+      where: { pedidoid: id, negocioid },
+      transaction: t,
+      lock: true,
+    });
     if (!pedido) throw new ErrorPedido('Pedido no encontrado', 404);
     if (['entregado', 'anulado'].includes(pedido.estado)) {
       throw new ErrorPedido('No se puede editar un pedido entregado o anulado');
+    }
+
+    let total;
+    if (items !== undefined) {
+      if (pedido.estado !== 'pendiente') {
+        throw new ErrorPedido('Solo se pueden modificar los productos de un pedido pendiente');
+      }
+      if (!Array.isArray(items) || items.length === 0) {
+        throw new ErrorPedido('Debe incluir al menos un producto');
+      }
+
+      const ordenes = await OrdenCompra.count({ where: { pedidoid: id }, transaction: t });
+      if (ordenes > 0) {
+        throw new ErrorPedido('El pedido tiene órdenes de compra asociadas; no se pueden modificar los productos');
+      }
+
+      const detallesActuales = await PedidoDetalle.findAll({
+        where: { pedidoid: id },
+        transaction: t,
+      });
+      const preciosActuales = new Map(
+        detallesActuales
+          .filter((detalle) => detalle.productoid)
+          .map((detalle) => [Number(detalle.productoid), Number(detalle.precioUnitario)])
+      );
+
+      const itemsPorProducto = new Map();
+      for (const item of items) {
+        const cantidad = Number(item.cantidad);
+        if (!Number.isInteger(cantidad) || cantidad <= 0) {
+          throw new ErrorPedido('La cantidad debe ser un entero mayor a 0');
+        }
+
+        const producto = await buscarProducto(item, negocioid, t);
+        const previo = itemsPorProducto.get(producto.productoid);
+        if (previo) {
+          previo.cantidad += cantidad;
+        } else {
+          itemsPorProducto.set(producto.productoid, { producto, cantidad });
+        }
+      }
+
+      await PedidoDetalle.destroy({ where: { pedidoid: id }, transaction: t });
+
+      total = 0;
+      for (const { producto, cantidad } of itemsPorProducto.values()) {
+        const precioUnitario = preciosActuales.get(Number(producto.productoid))
+          ?? Number(producto.precioVenta);
+        const subtotal = cantidad * precioUnitario;
+        total += subtotal;
+
+        await PedidoDetalle.create({
+          pedidoid: pedido.pedidoid,
+          productoid: producto.productoid,
+          productoNombre: producto.nombre,
+          cantidad,
+          precioUnitario,
+          subtotal,
+          categoriaid: producto.categoriaid,
+        }, { transaction: t });
+      }
     }
 
     await pedido.update({
       descripcion: descripcion !== undefined ? descripcion : pedido.descripcion,
       fechaEntrega: fechaEntrega !== undefined ? (fechaEntrega || null) : pedido.fechaEntrega,
       clienteid: clienteid !== undefined ? (clienteid || null) : pedido.clienteid,
-    });
+      ...(items !== undefined ? { total } : {}),
+    }, { transaction: t });
 
+    await t.commit();
+    transaccionFinalizada = true;
     res.json(await cargarPedido(id, negocioid));
   } catch (error) {
+    if (!transaccionFinalizada) await t.rollback();
     responderError(res, error, 'Error al actualizar el pedido');
   }
 };

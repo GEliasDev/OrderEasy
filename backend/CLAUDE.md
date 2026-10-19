@@ -21,3 +21,9 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 - `middleware/authMiddleware.js` — `verificarToken` (JWT) y `verificarAdmin` (rol exacto `administrador`); no hay middleware de autorización por sección/rol dinámico pese a que el modelo `Rol`/`RolSeccion` existe.
 - `config/chatTools.js` + `services/chatService.js` + `controllers/chatController.js` — asistente de IA con function calling sobre OpenRouter.
 - `utils/cloudinary.js` — procesamiento de imágenes con Sharp (WebP) antes de subir a Cloudinary.
+
+## Pedidos y órdenes de compra
+
+- `PATCH /api/pedidos/:id` edita cliente, fecha de entrega y notas en cualquier estado distinto de `entregado`/`anulado`.
+- Si el payload incluye `items`, el pedido debe estar `pendiente`: se reemplazan/combinan las líneas, se conserva el precio unitario original de los productos ya existentes, se recalcula el total y se exige al menos un producto.
+- Confirmar un pedido reserva `cantidadReservada`; las órdenes de compra cubren únicamente los faltantes. La edición de productos no está permitida después de confirmar.
