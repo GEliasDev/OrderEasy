@@ -125,7 +125,7 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
                   {visibles.map(({ to, label, icon: Icon }) => (
                     <Link
                       key={to}
-                      to={to}
+                      to={`/dashboard/${to}`}
                       className={`menu-item ${isActive(to) ? 'active' : ''}`}
                       onClick={onClose}
                     >
