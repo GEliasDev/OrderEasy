@@ -1,7 +1,9 @@
 .pedidos-container {
+  display: flex;
+  flex-direction: column;
   padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  min-height: 100%;
 }
 
 .pedidos-header {
@@ -194,6 +196,7 @@
 }
 
 .pedidos-tabla-wrapper {
+  flex: 1 1 auto;
   background: var(--surface, #fff);
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: 12px;

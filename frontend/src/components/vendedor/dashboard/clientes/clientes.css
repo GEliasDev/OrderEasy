@@ -8,6 +8,7 @@
   max-width: none;
   margin: 0;
   width: 100%;
+  min-height: 100%; /* la tabla ocupa todo el alto disponible */
 }
 
 /* Header */
@@ -97,6 +98,7 @@
 
 /* Table */
 .clientes-table-wrap {
+  flex: 1 1 auto;
   background: var(--surface);
   border-radius: var(--radius-md, 8px);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
