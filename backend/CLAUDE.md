@@ -27,3 +27,11 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 - `PATCH /api/pedidos/:id` edita cliente, fecha de entrega y notas en cualquier estado distinto de `entregado`/`anulado`.
 - Si el payload incluye `items`, el pedido debe estar `pendiente`: se reemplazan/combinan las líneas, se conserva el precio unitario original de los productos ya existentes, se recalcula el total y se exige al menos un producto.
 - Confirmar un pedido reserva `cantidadReservada`; las órdenes de compra cubren únicamente los faltantes. La edición de productos no está permitida después de confirmar.
+
+## Tallas y unidades de medida
+
+- `productos.usaTallas = true` → el stock vive en `producto_variantes` (una fila por talla, con `cantidadDisponible`/`cantidadReservada`) y `productos.cantidadDisponible/cantidadReservada` guardan el **total** (suma de tallas), así listados y estadísticas no cambian. Sin tallas, el stock sigue en el propio producto.
+- Todo movimiento de stock (ventas, egresos, pedidos, órdenes de compra, asistente) pasa por `services/stockService.js`: `resolverStock` / `resolverStockDeDetalle` devuelven el registro que tiene el stock (producto o variante) y `guardarStock` lo actualiza y re-sincroniza el total. No actualizar `cantidadDisponible` directamente en controladores.
+- Las líneas de venta, pedido, orden de compra y egreso guardan `talla` y `varianteid`; los items de la API reciben `talla` (obligatoria solo si el producto usa tallas).
+- `productos.unidadMedida` (und, par, caja, kg, g, m, l; ver `utils/unidades.js`). Las cantidades son `DOUBLE` y solo kg, g, m y l admiten decimales (se validan en `validarCantidad`).
+- Producción no altera el esquema automáticamente: aplicar `scripts/migrations/001-tallas-y-unidades.sql` (idempotente).

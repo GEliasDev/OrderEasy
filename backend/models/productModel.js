@@ -17,12 +17,12 @@ const Producto = sequelize.define('Producto', {
     type: DataTypes.TEXT,
   },
   cantidadDisponible: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DOUBLE,
     allowNull: false,
     defaultValue: 0,
   },
   cantidadReservada: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DOUBLE,
     allowNull: false,
     defaultValue: 0,
   },
@@ -78,6 +78,18 @@ const Producto = sequelize.define('Producto', {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0,
+  },
+  // Unidad en que se mide el stock (und, par, caja, kg, g, m, l). Ver utils/unidades.js
+  unidadMedida: {
+    type: DataTypes.STRING(10),
+    allowNull: false,
+    defaultValue: 'und',
+  },
+  // true = el stock se maneja por talla en producto_variantes; cantidadDisponible/Reservada son los totales
+  usaTallas: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
   },
 }, {
   timestamps: false,

@@ -10,6 +10,8 @@ const Pedido = require('../models/pedidoModel');
 const OrdenCompra = require('../models/ordenCompraModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
+const Variante = require('../models/varianteModel');
+const { validarCantidad, resolverStock, resolverStockDeDetalle, guardarStock, disponibleReal, datosTalla, etiquetaDetalle } = require('../services/stockService');
 
 const executeTool = async (toolName, args, negocioid, usuarioid) => {
   switch (toolName) {
@@ -39,7 +41,7 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
         total: Number(v.total),
         cliente: v.cliente?.nombreCliente || 'General',
         descripcion: v.descripcion || '',
-        productos: v.detalles?.map(d => `${d.productoNombre} x${d.cantidad}`) || []
+        productos: v.detalles?.map(d => `${etiquetaDetalle(d)} x${d.cantidad}`) || []
       }));
     }
 
@@ -68,7 +70,7 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
         total: Number(e.total),
         proveedor: e.proveedor?.nombreProveedor || 'General',
         descripcion: e.descripcion || '',
-        productos: e.detalles?.map(d => `${d.productoNombre} x${d.cantidad}`) || []
+        productos: e.detalles?.map(d => `${etiquetaDetalle(d)} x${d.cantidad}`) || []
       }));
     }
 
@@ -79,11 +81,13 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
       if (args.stockBajoUmbral !== undefined) {
         where.cantidadDisponible = { [Op.lte]: args.stockBajoUmbral };
       }
-      const productos = await Producto.findAll({ where, order: [['nombre', 'ASC']] });
+      const productos = await Producto.findAll({ where, include: [{ model: Variante, as: 'variantes' }], order: [['nombre', 'ASC']] });
       return productos.map(p => ({
         id: p.productoid,
         nombre: p.nombre,
         stock: p.cantidadDisponible,
+        unidad: p.unidadMedida,
+        ...(p.usaTallas ? { stockPorTalla: Object.fromEntries((p.variantes || []).map(v => [v.talla, v.cantidadDisponible])) } : {}),
         precioCompra: Number(p.precioCompra),
         precioVenta: Number(p.precioVenta),
         categoria: p.categoriaNombre || ''
@@ -151,24 +155,24 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
             transaction: t, lock: true
           });
           if (!producto) throw new Error(`Producto no encontrado: ${item.productoNombre}`);
-          const disponible = Number(producto.cantidadDisponible) - Number(producto.cantidadReservada || 0);
-          if (disponible < item.cantidad) {
-            throw new Error(`Stock insuficiente para ${item.productoNombre} (disponible: ${disponible})`);
+          const cantidad = validarCantidad(item.cantidad, producto);
+          const stock = await resolverStock(producto, item.talla, t);
+          const disponible = disponibleReal(stock);
+          if (disponible < cantidad) {
+            throw new Error(`Stock insuficiente para ${item.productoNombre}${stock === producto ? '' : ` (talla ${stock.talla})`} (disponible: ${disponible})`);
           }
-          const subtotal = item.cantidad * producto.precioVenta;
+          const subtotal = cantidad * producto.precioVenta;
           total += subtotal;
           await VentaDetalle.create({
             ventaid: nuevaVenta.ventaid,
             productoNombre: item.productoNombre,
-            cantidad: item.cantidad,
+            cantidad,
             precioUnitario: producto.precioVenta,
             subtotal,
-            categoriaid: producto.categoriaid
+            categoriaid: producto.categoriaid,
+            ...datosTalla(producto, stock)
           }, { transaction: t });
-          await producto.update(
-            { cantidadDisponible: producto.cantidadDisponible - item.cantidad },
-            { transaction: t }
-          );
+          await guardarStock(producto, stock, { cantidadDisponible: Number(stock.cantidadDisponible) - cantidad }, t);
         }
 
         await nuevaVenta.update({ total }, { transaction: t });
@@ -197,20 +201,20 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
             transaction: t, lock: true
           });
           if (!producto) throw new Error(`Producto no encontrado: ${item.productoNombre}`);
-          const subtotal = item.cantidad * producto.precioCompra;
+          const cantidad = validarCantidad(item.cantidad, producto);
+          const stock = await resolverStock(producto, item.talla, t);
+          const subtotal = cantidad * producto.precioCompra;
           total += subtotal;
           await EgresoDetalle.create({
             egresoid: nuevoEgreso.egresoid,
             productoNombre: item.productoNombre,
-            cantidad: item.cantidad,
+            cantidad,
             precioUnitario: producto.precioCompra,
             subtotal,
-            categoriaid: producto.categoriaid
+            categoriaid: producto.categoriaid,
+            ...datosTalla(producto, stock)
           }, { transaction: t });
-          await producto.update(
-            { cantidadDisponible: producto.cantidadDisponible + item.cantidad },
-            { transaction: t }
-          );
+          await guardarStock(producto, stock, { cantidadDisponible: Number(stock.cantidadDisponible) + cantidad }, t);
         }
 
         await nuevoEgreso.update({ total }, { transaction: t });
@@ -274,7 +278,12 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
       const updates = {};
       if (args.precioCompra !== undefined) updates.precioCompra = args.precioCompra;
       if (args.precioVenta !== undefined) updates.precioVenta = args.precioVenta;
-      if (args.cantidadDisponible !== undefined) updates.cantidadDisponible = args.cantidadDisponible;
+      if (args.cantidadDisponible !== undefined) {
+        if (producto.usaTallas) {
+          throw new Error(`"${producto.nombre}" maneja el stock por talla: edítalo desde Inventario o registra una compra/venta indicando la talla`);
+        }
+        updates.cantidadDisponible = validarCantidad(args.cantidadDisponible, producto);
+      }
       await producto.update(updates);
       return { mensaje: `Producto "${producto.nombre}" actualizado correctamente` };
     }
@@ -304,10 +313,8 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
             where: { nombre: detalle.productoNombre, negocioid }, transaction: t
           });
           if (producto) {
-            await producto.update(
-              { cantidadDisponible: producto.cantidadDisponible + detalle.cantidad },
-              { transaction: t }
-            );
+            const stock = await resolverStockDeDetalle(producto, detalle, t);
+            await guardarStock(producto, stock, { cantidadDisponible: Number(stock.cantidadDisponible) + Number(detalle.cantidad) }, t);
           }
         }
         await venta.destroy({ transaction: t });
@@ -338,10 +345,8 @@ const executeTool = async (toolName, args, negocioid, usuarioid) => {
             where: { nombre: detalle.productoNombre, negocioid }, transaction: t
           });
           if (producto) {
-            await producto.update(
-              { cantidadDisponible: producto.cantidadDisponible - detalle.cantidad },
-              { transaction: t }
-            );
+            const stock = await resolverStockDeDetalle(producto, detalle, t);
+            await guardarStock(producto, stock, { cantidadDisponible: Number(stock.cantidadDisponible) - Number(detalle.cantidad) }, t);
           }
         }
         await egreso.destroy({ transaction: t });

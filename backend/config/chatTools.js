@@ -108,7 +108,8 @@ const TOOLS = [
               required: ['productoNombre', 'cantidad'],
               properties: {
                 productoNombre: { type: 'string', description: 'Nombre exacto del producto' },
-                cantidad: { type: 'number', description: 'Cantidad vendida' }
+                talla: { type: 'string', description: 'Talla (obligatoria solo si el producto maneja tallas, p. ej. "38")' },
+                cantidad: { type: 'number', description: 'Cantidad vendida (decimales solo si la unidad es kg, g, m o l)' }
               }
             }
           },
@@ -135,7 +136,8 @@ const TOOLS = [
               required: ['productoNombre', 'cantidad'],
               properties: {
                 productoNombre: { type: 'string', description: 'Nombre exacto del producto' },
-                cantidad: { type: 'number', description: 'Cantidad comprada' }
+                talla: { type: 'string', description: 'Talla (obligatoria solo si el producto maneja tallas, p. ej. "38")' },
+                cantidad: { type: 'number', description: 'Cantidad comprada (decimales solo si la unidad es kg, g, m o l)' }
               }
             }
           },

@@ -21,8 +21,16 @@ const EgresoDetalle = sequelize.define('EgresoDetalle', {
     allowNull: false
   },
   cantidad: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DOUBLE,
     allowNull: false
+  },
+  talla: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
+  varianteid: {
+    type: DataTypes.INTEGER,
+    allowNull: true
   },
   precioUnitario: {
     type: DataTypes.DECIMAL(10, 2),

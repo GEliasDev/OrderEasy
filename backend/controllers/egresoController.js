@@ -4,6 +4,7 @@ const Producto = require('../models/productModel');
 const OrdenCompra = require('../models/ordenCompraModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
+const { ErrorStock, validarCantidad, resolverStock, resolverStockDeDetalle, guardarStock, disponibleReal, datosTalla, etiquetaDetalle } = require('../services/stockService');
 
 // ========================================================
 // ➕ Crear Egreso (Soporta uno o muchos productos)
@@ -31,7 +32,7 @@ const createEgreso = async (req, res) => {
     let totalEgreso = 0;
 
     for (const item of productosAProcesar) {
-      const { productoNombre, cantidad } = item;
+      const { productoNombre, talla } = item;
 
       const producto = await Producto.findOne({
         where: { nombre: productoNombre, negocioid },
@@ -43,6 +44,8 @@ const createEgreso = async (req, res) => {
         throw new Error(`Producto no encontrado: ${productoNombre}`);
       }
 
+      const cantidad = validarCantidad(item.cantidad, producto);
+      const stock = await resolverStock(producto, talla, t);
       const subtotal = cantidad * producto.precioCompra;
       totalEgreso += subtotal;
 
@@ -52,12 +55,13 @@ const createEgreso = async (req, res) => {
         cantidad,
         precioUnitario: producto.precioCompra,
         subtotal,
-        categoriaid: producto.categoriaid
+        categoriaid: producto.categoriaid,
+        ...datosTalla(producto, stock),
       }, { transaction: t });
 
-      await producto.update({
-        cantidadDisponible: producto.cantidadDisponible + cantidad
-      }, { transaction: t });
+      await guardarStock(producto, stock, {
+        cantidadDisponible: Number(stock.cantidadDisponible) + cantidad
+      }, t);
     }
 
     await nuevoEgreso.update({ total: totalEgreso }, { transaction: t });
@@ -73,6 +77,9 @@ const createEgreso = async (req, res) => {
     res.status(201).json(egresoCompleto);
   } catch (error) {
     await t.rollback();
+    if (error instanceof ErrorStock || error.message.includes('no encontrado')) {
+      return res.status(400).json({ mensaje: error.message });
+    }
     res.status(500).json({ mensaje: 'Error al registrar el egreso' });
   }
 };
@@ -190,9 +197,10 @@ const deleteEgreso = async (req, res) => {
         transaction: t
       });
       if (producto) {
-        await producto.update({
-          cantidadDisponible: producto.cantidadDisponible - detalle.cantidad
-        }, { transaction: t });
+        const stock = await resolverStockDeDetalle(producto, detalle, t);
+        await guardarStock(producto, stock, {
+          cantidadDisponible: Number(stock.cantidadDisponible) - Number(detalle.cantidad)
+        }, t);
       }
     }
 

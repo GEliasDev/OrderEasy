@@ -25,6 +25,7 @@ require('./models/rolModel');
 require('./models/userModel');
 require('./models/categoryModel');
 require('./models/productModel');
+require('./models/varianteModel');
 require('./models/ventaModel');
 require('./models/ventaDetalleModel');
 require('./models/egresoModel');

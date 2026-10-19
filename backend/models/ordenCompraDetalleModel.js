@@ -29,11 +29,19 @@ const OrdenCompraDetalle = sequelize.define('OrdenCompraDetalle', {
     allowNull: false
   },
   cantidad: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DOUBLE,
     allowNull: false
   },
-  cantidadRecibida: {
+  talla: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
+  varianteid: {
     type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  cantidadRecibida: {
+    type: DataTypes.DOUBLE,
     allowNull: false,
     defaultValue: 0
   },

@@ -7,6 +7,7 @@ const Proveedor = require('../models/proveedorModel');
 const Pedido = require('../models/pedidoModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
+const { resolverStockDeDetalle, guardarStock } = require('../services/stockService');
 
 class ErrorOrden extends Error {
   constructor(mensaje, status = 400) {
@@ -124,9 +125,10 @@ const recibirOrden = async (req, res) => {
       });
       if (!producto) throw new ErrorOrden(`Producto no encontrado: ${detalle.productoNombre}`);
 
-      await producto.update({
-        cantidadDisponible: Number(producto.cantidadDisponible) + solicitado,
-      }, { transaction: t });
+      const stock = await resolverStockDeDetalle(producto, detalle, t);
+      await guardarStock(producto, stock, {
+        cantidadDisponible: Number(stock.cantidadDisponible) + solicitado,
+      }, t);
 
       const subtotal = solicitado * Number(detalle.precioUnitario);
       await EgresoDetalle.create({
@@ -136,6 +138,8 @@ const recibirOrden = async (req, res) => {
         precioUnitario: detalle.precioUnitario,
         subtotal,
         categoriaid: detalle.categoriaid,
+        talla: detalle.talla,
+        varianteid: detalle.varianteid,
       }, { transaction: t });
 
       await detalle.update({

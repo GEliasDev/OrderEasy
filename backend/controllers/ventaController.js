@@ -5,6 +5,7 @@ const Producto = require('../models/productModel');
 const Pedido = require('../models/pedidoModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
+const { ErrorStock, validarCantidad, resolverStock, resolverStockDeDetalle, guardarStock, disponibleReal, datosTalla, etiquetaDetalle } = require('../services/stockService');
 
 // ========================================================
 // ➕ Crear Venta (Soporta uno o muchos productos, pagos mixtos y descuentos)
@@ -41,7 +42,7 @@ const createVenta = async (req, res) => {
     let totalAntes = 0;
 
     for (const item of productosAProcesar) {
-      const { productoNombre, cantidad, descuento = 0, descuentoTipo = 'fijo' } = item;
+      const { productoNombre, talla, descuento = 0, descuentoTipo = 'fijo' } = item;
 
       const producto = await Producto.findOne({
         where: { nombre: productoNombre, negocioid },
@@ -53,9 +54,11 @@ const createVenta = async (req, res) => {
         throw new Error(`Producto no encontrado: ${productoNombre}`);
       }
 
-      const disponible = Number(producto.cantidadDisponible) - Number(producto.cantidadReservada || 0);
+      const cantidad = validarCantidad(item.cantidad, producto);
+      const stock = await resolverStock(producto, talla, t);
+      const disponible = disponibleReal(stock);
       if (disponible < cantidad) {
-        throw new Error(`Stock insuficiente para ${productoNombre}.`);
+        throw new Error(`Stock insuficiente para ${stock === producto ? productoNombre : `${productoNombre} (talla ${stock.talla})`}.`);
       }
 
       const subtotalItem = cantidad * Number(producto.precioVenta);
@@ -83,11 +86,12 @@ const createVenta = async (req, res) => {
         categoriaid: producto.categoriaid,
         tasaIva,
         montoIva: Number(montoIva.toFixed(2)),
+        ...datosTalla(producto, stock),
       }, { transaction: t });
 
-      await producto.update({
-        cantidadDisponible: producto.cantidadDisponible - cantidad,
-      }, { transaction: t });
+      await guardarStock(producto, stock, {
+        cantidadDisponible: Number(stock.cantidadDisponible) - cantidad,
+      }, t);
     }
 
     const descuentoVenta = descuentoTipoTotal === 'porcentaje'
@@ -139,7 +143,7 @@ const createVenta = async (req, res) => {
   } catch (error) {
     await t.rollback();
     const userFacing = ['Stock insuficiente', 'no encontrado', 'inválido'];
-    if (userFacing.some((m) => error.message.includes(m))) {
+    if (error instanceof ErrorStock || userFacing.some((m) => error.message.includes(m))) {
       return res.status(400).json({ mensaje: error.message });
     }
     res.status(500).json({ mensaje: 'Error al registrar la venta' });
@@ -283,9 +287,10 @@ const deleteVenta = async (req, res) => {
         transaction: t
       });
       if (producto) {
-        await producto.update({
-          cantidadDisponible: producto.cantidadDisponible + detalle.cantidad
-        }, { transaction: t });
+        const stock = await resolverStockDeDetalle(producto, detalle, t);
+        await guardarStock(producto, stock, {
+          cantidadDisponible: Number(stock.cantidadDisponible) + Number(detalle.cantidad)
+        }, t);
       }
     }
 

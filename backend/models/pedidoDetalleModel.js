@@ -29,8 +29,16 @@ const PedidoDetalle = sequelize.define('PedidoDetalle', {
     allowNull: false
   },
   cantidad: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DOUBLE,
     allowNull: false
+  },
+  talla: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
+  varianteid: {
+    type: DataTypes.INTEGER,
+    allowNull: true
   },
   precioUnitario: {
     type: DataTypes.DECIMAL(10, 2),

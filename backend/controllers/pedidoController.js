@@ -9,6 +9,7 @@ const Cliente = require('../models/clientModel');
 const Proveedor = require('../models/proveedorModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
+const { ErrorStock, validarCantidad, resolverStock, resolverStockDeDetalle, guardarStock, disponibleReal, datosTalla, etiquetaDetalle } = require('../services/stockService');
 
 class ErrorPedido extends Error {
   constructor(mensaje, status = 400) {
@@ -22,7 +23,7 @@ const includePedido = [
     model: PedidoDetalle,
     as: 'detalles',
     include: [
-      { model: Producto, as: 'producto', attributes: ['productoid', 'nombre', 'cantidadDisponible', 'cantidadReservada'] },
+      { model: Producto, as: 'producto', attributes: ['productoid', 'nombre', 'cantidadDisponible', 'cantidadReservada', 'unidadMedida', 'usaTallas'] },
     ],
   },
   { model: Cliente, as: 'cliente', attributes: ['clienteid', 'nombreCliente'] },
@@ -84,12 +85,9 @@ const createPedido = async (req, res) => {
 
     let total = 0;
     for (const item of items) {
-      const cantidad = Number(item.cantidad);
-      if (!Number.isInteger(cantidad) || cantidad <= 0) {
-        throw new ErrorPedido('La cantidad debe ser un entero mayor a 0');
-      }
-
       const producto = await buscarProducto(item, negocioid, t);
+      const cantidad = validarCantidad(item.cantidad, producto);
+      const stock = await resolverStock(producto, item.talla, t);
       const subtotal = cantidad * Number(producto.precioVenta);
       total += subtotal;
 
@@ -101,6 +99,7 @@ const createPedido = async (req, res) => {
         precioUnitario: producto.precioVenta,
         subtotal,
         categoriaid: producto.categoriaid,
+        ...datosTalla(producto, stock),
       }, { transaction: t });
     }
 
@@ -194,24 +193,22 @@ const updatePedido = async (req, res) => {
 
       const itemsPorProducto = new Map();
       for (const item of items) {
-        const cantidad = Number(item.cantidad);
-        if (!Number.isInteger(cantidad) || cantidad <= 0) {
-          throw new ErrorPedido('La cantidad debe ser un entero mayor a 0');
-        }
-
         const producto = await buscarProducto(item, negocioid, t);
-        const previo = itemsPorProducto.get(producto.productoid);
+        const cantidad = validarCantidad(item.cantidad, producto);
+        const stock = await resolverStock(producto, item.talla, t);
+        const clave = `${producto.productoid}:${stock.varianteid || ''}`;
+        const previo = itemsPorProducto.get(clave);
         if (previo) {
-          previo.cantidad += cantidad;
+          previo.cantidad = Math.round((previo.cantidad + cantidad) * 1000) / 1000;
         } else {
-          itemsPorProducto.set(producto.productoid, { producto, cantidad });
+          itemsPorProducto.set(clave, { producto, stock, cantidad });
         }
       }
 
       await PedidoDetalle.destroy({ where: { pedidoid: id }, transaction: t });
 
       total = 0;
-      for (const { producto, cantidad } of itemsPorProducto.values()) {
+      for (const { producto, stock, cantidad } of itemsPorProducto.values()) {
         const precioUnitario = preciosActuales.get(Number(producto.productoid))
           ?? Number(producto.precioVenta);
         const subtotal = cantidad * precioUnitario;
@@ -225,6 +222,7 @@ const updatePedido = async (req, res) => {
           precioUnitario,
           subtotal,
           categoriaid: producto.categoriaid,
+          ...datosTalla(producto, stock),
         }, { transaction: t });
       }
     }
@@ -271,9 +269,10 @@ const confirmarPedido = async (req, res) => {
       });
       if (!producto) throw new ErrorPedido(`Producto no encontrado: ${detalle.productoNombre}`);
 
-      await producto.update({
-        cantidadReservada: Number(producto.cantidadReservada) + Number(detalle.cantidad),
-      }, { transaction: t });
+      const stock = await resolverStockDeDetalle(producto, detalle, t);
+      await guardarStock(producto, stock, {
+        cantidadReservada: Number(stock.cantidadReservada) + Number(detalle.cantidad),
+      }, t);
     }
 
     await pedido.update({ estado: 'confirmado' }, { transaction: t });
@@ -315,9 +314,10 @@ const anularPedido = async (req, res) => {
           lock: true,
         });
         if (producto) {
-          await producto.update({
-            cantidadReservada: Math.max(0, Number(producto.cantidadReservada) - Number(detalle.cantidad)),
-          }, { transaction: t });
+          const stock = await resolverStockDeDetalle(producto, detalle, t);
+          await guardarStock(producto, stock, {
+            cantidadReservada: Math.max(0, Number(stock.cantidadReservada) - Number(detalle.cantidad)),
+          }, t);
         }
       }
     }
@@ -380,8 +380,9 @@ const convertirAVenta = async (req, res) => {
         lock: true,
       });
       if (!producto) throw new ErrorPedido(`Producto no encontrado: ${detalle.productoNombre}`);
-      if (Number(producto.cantidadDisponible) < Number(detalle.cantidad)) {
-        throw new ErrorPedido(`Stock insuficiente para ${detalle.productoNombre}. Recibe la compra antes de entregar.`);
+      const stock = await resolverStockDeDetalle(producto, detalle, t);
+      if (Number(stock.cantidadDisponible) < Number(detalle.cantidad)) {
+        throw new ErrorPedido(`Stock insuficiente para ${etiquetaDetalle(detalle)}. Recibe la compra antes de entregar.`);
       }
 
       const subtotal = Number(detalle.subtotal);
@@ -399,12 +400,14 @@ const convertirAVenta = async (req, res) => {
         categoriaid: detalle.categoriaid,
         tasaIva,
         montoIva: Number(montoIva.toFixed(2)),
+        talla: detalle.talla,
+        varianteid: detalle.varianteid,
       }, { transaction: t });
 
-      await producto.update({
-        cantidadDisponible: Number(producto.cantidadDisponible) - Number(detalle.cantidad),
-        cantidadReservada: Math.max(0, Number(producto.cantidadReservada) - Number(detalle.cantidad)),
-      }, { transaction: t });
+      await guardarStock(producto, stock, {
+        cantidadDisponible: Number(stock.cantidadDisponible) - Number(detalle.cantidad),
+        cantidadReservada: Math.max(0, Number(stock.cantidadReservada) - Number(detalle.cantidad)),
+      }, t);
 
       total += subtotal;
     }
@@ -452,10 +455,13 @@ const generarOrdenCompra = async (req, res) => {
       transaction: t,
     });
 
+    // Una línea es "producto + talla": el faltante se calcula por talla
+    const claveDetalle = (d) => `${d.productoid || d.productoNombre}:${d.varianteid || ''}`;
+
     const pendientesPorProducto = new Map();
     for (const orden of ordenesActivas) {
       for (const detalle of orden.detalles) {
-        const key = detalle.productoid || detalle.productoNombre;
+        const key = claveDetalle(detalle);
         const pendiente = Number(detalle.cantidad) - Number(detalle.cantidadRecibida);
         pendientesPorProducto.set(key, (pendientesPorProducto.get(key) || 0) + pendiente);
       }
@@ -481,15 +487,16 @@ const generarOrdenCompra = async (req, res) => {
       });
       if (!producto) throw new ErrorPedido(`Producto no encontrado: ${detalle.productoNombre}`);
 
-      const key = detalle.productoid || detalle.productoNombre;
+      const stock = await resolverStockDeDetalle(producto, detalle, t);
+      const key = claveDetalle(detalle);
       const yaPedido = pendientesPorProducto.get(key) || 0;
       const reservadoOtros = Math.max(
         0,
-        Number(producto.cantidadReservada) - Number(detalle.cantidad)
+        Number(stock.cantidadReservada) - Number(detalle.cantidad)
       );
       const disponibleParaPedido = Math.max(
         0,
-        Number(producto.cantidadDisponible) - reservadoOtros
+        Number(stock.cantidadDisponible) - reservadoOtros
       );
       const faltante = Math.max(
         0,
@@ -509,6 +516,7 @@ const generarOrdenCompra = async (req, res) => {
         precioUnitario,
         subtotal,
         categoriaid: producto.categoriaid,
+        ...datosTalla(producto, stock),
       }, { transaction: t });
 
       total += subtotal;
