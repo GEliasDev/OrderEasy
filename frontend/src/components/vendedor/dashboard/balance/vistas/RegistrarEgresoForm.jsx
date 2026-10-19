@@ -6,6 +6,9 @@ import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import { getAllProducts } from "../../../../../services/productServices";
 import { createEgresoBatch } from "../../../../../services/egresoService";
 import { getProveedores } from "../../../../../services/proveedorService";
+import { useCarrito, pasoDe, minimoDe } from "../../../../../hooks/useCarrito";
+import { stepCantidad, formatearCantidad } from "../../../../../utils/unidades";
+import SelectorTalla from "./SelectorTalla";
 import "./styles/CartStyles.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -17,7 +20,10 @@ const RegistrarEgresoForm = () => {
   const [proveedores, setProveedores] = useState([]);
   const [proveedorId, setProveedorId] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [carrito, setCarrito] = useState([]);
+  const {
+    carrito, productoParaTalla, elegirProducto, elegirTalla, cerrarSelectorTalla,
+    actualizarCantidad, setCantidadDirecta, eliminarDelCarrito,
+  } = useCarrito({ limitarPorStock: false });
   const [busqueda, setBusqueda] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -52,45 +58,6 @@ const RegistrarEgresoForm = () => {
     });
   }, [productos, busqueda, categoriaSeleccionada]);
 
-  const agregarAlCarrito = (producto) => {
-    setCarrito(prev => {
-      const itemExistente = prev.find(item => item.productoid === producto.productoid);
-      if (itemExistente) {
-        return prev.map(item =>
-          item.productoid === producto.productoid
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item
-        );
-      }
-      return [...prev, { ...producto, cantidad: 1 }];
-    });
-  };
-
-  const actualizarCantidad = (id, delta) => {
-    setCarrito(prev => prev.map(item => {
-      if (item.productoid === id) {
-        const nuevaCantidad = item.cantidad + delta;
-        if (nuevaCantidad > 0) return { ...item, cantidad: nuevaCantidad };
-      }
-      return item;
-    }));
-  };
-
-  const setCantidadDirecta = (id, valor) => {
-    const num = parseInt(valor, 10);
-    if (isNaN(num)) return;
-    setCarrito(prev => prev.map(item => {
-      if (item.productoid === id) {
-        return { ...item, cantidad: Math.max(1, num) };
-      }
-      return item;
-    }));
-  };
-
-  const eliminarDelCarrito = (id) => {
-    setCarrito(prev => prev.filter(item => item.productoid !== id));
-  };
-
   const totalCarrito = carrito.reduce((sum, item) => sum + (Number(item.precioCompra) * item.cantidad), 0);
 
   const finalizarEgreso = async () => {
@@ -99,6 +66,7 @@ const RegistrarEgresoForm = () => {
       setProcesando(true);
       const items = carrito.map(item => ({
         productoNombre: item.nombre,
+        talla: item.talla,
         cantidad: item.cantidad,
       }));
       await createEgresoBatch(items, proveedorId || null, descripcion);
@@ -162,7 +130,7 @@ const RegistrarEgresoForm = () => {
             ) : productosFiltrados.length > 0 ? (
               <div className="productos-container-cart">
                 {productosFiltrados.map(p => (
-                  <div key={p.productoid} className="producto-card" onClick={() => agregarAlCarrito(p)}>
+                  <div key={p.productoid} className="producto-card" onClick={() => elegirProducto(p)}>
                     <div className="producto-imagen-container">
                       <img
                         src={p.imagenes && p.imagenes.length > 0
@@ -173,7 +141,7 @@ const RegistrarEgresoForm = () => {
                         onError={(e) => e.target.src = "/images/default-product.png"}
                       />
                       <div className="stock-badge-cart">
-                        Stock: {p.cantidadDisponible}
+                        Stock: {formatearCantidad(p.cantidadDisponible, p.unidadMedida)}
                       </div>
                     </div>
                     <div className="product-info">
@@ -232,7 +200,7 @@ const RegistrarEgresoForm = () => {
                 </div>
               ) : (
                 carrito.map(item => (
-                  <div key={item.productoid} className="cart-item">
+                  <div key={item.clave} className="cart-item">
                     <img
                       src={item.imagenes && item.imagenes.length > 0
                         ? (item.imagenes[0].startsWith("http") ? item.imagenes[0] : `${API_URL}/uploads/${item.imagenes[0]}`)
@@ -241,33 +209,37 @@ const RegistrarEgresoForm = () => {
                       alt={item.nombre}
                     />
                     <div className="cart-item-details">
-                      <span className="cart-item-name">{item.nombre}</span>
+                      <span className="cart-item-name">
+                        {item.nombre}
+                        {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
+                      </span>
                       <span className="cart-item-price egreso-precio">{formatoMoneda(Number(item.precioCompra) * item.cantidad)}</span>
                     </div>
                     <div className="cart-item-actions">
                       <Trash2
                         size={16}
                         className="remove-item"
-                        onClick={() => eliminarDelCarrito(item.productoid)}
+                        onClick={() => eliminarDelCarrito(item.clave)}
                       />
                       <div className="quantity-controls">
                         <button
                           className="qty-btn"
-                          onClick={() => actualizarCantidad(item.productoid, -1)}
-                          disabled={item.cantidad <= 1}
+                          onClick={() => actualizarCantidad(item.clave, -1)}
+                          disabled={item.cantidad - pasoDe(item) < minimoDe(item)}
                         >
                           <Minus size={12} />
                         </button>
                         <input
                           className="qty-input"
                           type="number"
-                          min={1}
+                          min={minimoDe(item)}
+                          step={stepCantidad(item.unidadMedida)}
                           value={item.cantidad}
-                          onChange={e => setCantidadDirecta(item.productoid, e.target.value)}
+                          onChange={e => setCantidadDirecta(item.clave, e.target.value)}
                         />
                         <button
                           className="qty-btn"
-                          onClick={() => actualizarCantidad(item.productoid, 1)}
+                          onClick={() => actualizarCantidad(item.clave, 1)}
                         >
                           <Plus size={12} />
                         </button>
@@ -304,6 +276,15 @@ const RegistrarEgresoForm = () => {
           </div>
         </div>
       </div>
+
+      {productoParaTalla && (
+        <SelectorTalla
+          producto={productoParaTalla}
+          modo="compra"
+          onSelect={elegirTalla}
+          onClose={cerrarSelectorTalla}
+        />
+      )}
     </div>
   );
 };

@@ -6,6 +6,9 @@ import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import { getAllProducts } from "../../../../../services/productServices";
 import { createVentaBatch } from "../../../../../services/ventaService";
 import { getClientes } from "../../../../../services/clienteService";
+import { useCarrito, pasoDe, minimoDe } from "../../../../../hooks/useCarrito";
+import { stepCantidad, formatearCantidad } from "../../../../../utils/unidades";
+import SelectorTalla from "./SelectorTalla";
 import "./styles/CartStyles.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -17,7 +20,10 @@ const RegistrarIngresoForm = () => {
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [carrito, setCarrito] = useState([]);
+  const {
+    carrito, productoParaTalla, elegirProducto, elegirTalla, cerrarSelectorTalla,
+    actualizarCantidad, setCantidadDirecta, eliminarDelCarrito,
+  } = useCarrito({ limitarPorStock: true });
   const [busqueda, setBusqueda] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -57,53 +63,6 @@ const RegistrarIngresoForm = () => {
       }));
   }, [productos, busqueda, categoriaSeleccionada]);
 
-  const agregarAlCarrito = (producto) => {
-    if (producto.stockDisponible <= 0) return;
-
-    setCarrito(prev => {
-      const itemExistente = prev.find(item => item.productoid === producto.productoid);
-      if (itemExistente) {
-        if (itemExistente.cantidad < producto.stockDisponible) {
-          return prev.map(item =>
-            item.productoid === producto.productoid
-              ? { ...item, cantidad: item.cantidad + 1 }
-              : item
-          );
-        }
-        return prev;
-      }
-      return [...prev, { ...producto, cantidad: 1 }];
-    });
-  };
-
-  const actualizarCantidad = (id, delta) => {
-    setCarrito(prev => prev.map(item => {
-      if (item.productoid === id) {
-        const nuevaCantidad = item.cantidad + delta;
-        if (nuevaCantidad > 0 && nuevaCantidad <= item.stockDisponible) {
-          return { ...item, cantidad: nuevaCantidad };
-        }
-      }
-      return item;
-    }));
-  };
-
-  const setCantidadDirecta = (id, valor) => {
-    const num = parseInt(valor, 10);
-    if (isNaN(num)) return;
-    setCarrito(prev => prev.map(item => {
-      if (item.productoid === id) {
-        const clamped = Math.min(Math.max(1, num), item.stockDisponible);
-        return { ...item, cantidad: clamped };
-      }
-      return item;
-    }));
-  };
-
-  const eliminarDelCarrito = (id) => {
-    setCarrito(prev => prev.filter(item => item.productoid !== id));
-  };
-
   const totalCarrito = carrito.reduce((sum, item) => sum + (item.precioVenta * item.cantidad), 0);
 
   const finalizarVenta = async () => {
@@ -112,6 +71,7 @@ const RegistrarIngresoForm = () => {
       setProcesando(true);
       const items = carrito.map(item => ({
         productoNombre: item.nombre,
+        talla: item.talla,
         cantidad: item.cantidad,
       }));
       await createVentaBatch(items, clienteId || null, descripcion);
@@ -180,7 +140,7 @@ const RegistrarIngresoForm = () => {
                     <div
                       key={p.productoid}
                       className={`producto-card ${agotado ? 'producto-card-agotado' : ''}`}
-                      onClick={() => !agotado && agregarAlCarrito(p)}
+                      onClick={() => !agotado && elegirProducto(p)}
                     >
                       <div className="producto-imagen-container">
                         <img
@@ -195,7 +155,7 @@ const RegistrarIngresoForm = () => {
                           <div className="stock-badge-cart stock-out-cart">Agotado</div>
                         ) : (
                           <div className={`stock-badge-cart ${p.stockDisponible < 5 ? 'stock-low-cart' : ''}`}>
-                            Stock: {p.stockDisponible}
+                            Stock: {formatearCantidad(p.stockDisponible, p.unidadMedida)}
                           </div>
                         )}
                       </div>
@@ -256,7 +216,7 @@ const RegistrarIngresoForm = () => {
                 </div>
               ) : (
                 carrito.map(item => (
-                  <div key={item.productoid} className="cart-item">
+                  <div key={item.clave} className="cart-item">
                     <img
                       src={item.imagenes && item.imagenes.length > 0
                         ? (item.imagenes[0].startsWith("http") ? item.imagenes[0] : `${API_URL}/uploads/${item.imagenes[0]}`)
@@ -265,35 +225,39 @@ const RegistrarIngresoForm = () => {
                       alt={item.nombre}
                     />
                     <div className="cart-item-details">
-                      <span className="cart-item-name">{item.nombre}</span>
+                      <span className="cart-item-name">
+                        {item.nombre}
+                        {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
+                      </span>
                       <span className="cart-item-price">{formatoMoneda(item.precioVenta * item.cantidad)}</span>
                     </div>
                     <div className="cart-item-actions">
                       <Trash2
                         size={16}
                         className="remove-item"
-                        onClick={() => eliminarDelCarrito(item.productoid)}
+                        onClick={() => eliminarDelCarrito(item.clave)}
                       />
                       <div className="quantity-controls">
                         <button
                           className="qty-btn"
-                          onClick={() => actualizarCantidad(item.productoid, -1)}
-                          disabled={item.cantidad <= 1}
+                          onClick={() => actualizarCantidad(item.clave, -1)}
+                          disabled={item.cantidad - pasoDe(item) < minimoDe(item)}
                         >
                           <Minus size={12} />
                         </button>
                         <input
                           className="qty-input"
                           type="number"
-                          min={1}
+                          min={minimoDe(item)}
+                          step={stepCantidad(item.unidadMedida)}
                           max={item.stockDisponible}
                           value={item.cantidad}
-                          onChange={e => setCantidadDirecta(item.productoid, e.target.value)}
+                          onChange={e => setCantidadDirecta(item.clave, e.target.value)}
                         />
                         <button
                           className="qty-btn"
-                          onClick={() => actualizarCantidad(item.productoid, 1)}
-                          disabled={item.cantidad >= item.stockDisponible}
+                          onClick={() => actualizarCantidad(item.clave, 1)}
+                          disabled={item.cantidad + pasoDe(item) > item.stockDisponible}
                         >
                           <Plus size={12} />
                         </button>
@@ -330,6 +294,15 @@ const RegistrarIngresoForm = () => {
           </div>
         </div>
       </div>
+
+      {productoParaTalla && (
+        <SelectorTalla
+          producto={productoParaTalla}
+          modo="venta"
+          onSelect={elegirTalla}
+          onClose={cerrarSelectorTalla}
+        />
+      )}
     </div>
   );
 };

@@ -15,8 +15,27 @@ import {
 import { getClientes } from '../../../../services/clienteService';
 import { getProveedores } from '../../../../services/proveedorService';
 import { getAllProducts } from '../../../../services/productServices';
+import { pasoDe, minimoDe } from '../../../../hooks/useCarrito';
+import { stepCantidad, formatearCantidad, admiteDecimales } from '../../../../utils/unidades';
+import SelectorTalla from '../balance/vistas/SelectorTalla';
 import '../balance/vistas/styles/DetalleTransaccion.css';
 import './Pedidos.css';
+
+// Una línea del pedido es "producto + talla"
+const claveEdicion = (productoid, talla) => `${productoid}:${talla ?? ''}`;
+
+// Stock físico de una línea: el de su talla si el producto maneja tallas, o el total del producto
+const stockFisicoDe = (detalle) => {
+  const producto = detalle.producto;
+  if (!producto) return 0;
+  if (detalle.varianteid || detalle.talla) {
+    const variante = (producto.variantes || []).find(
+      (v) => (detalle.varianteid && v.varianteid === detalle.varianteid) || v.talla === detalle.talla
+    );
+    if (variante) return Number(variante.cantidadDisponible || 0);
+  }
+  return Number(producto.cantidadDisponible || 0);
+};
 
 const ESTADOS = {
   pendiente: { label: 'Pendiente', clase: 'pendiente' },
@@ -57,6 +76,7 @@ function DetallePedido() {
   const [guardando, setGuardando] = useState(false);
   const [editForm, setEditForm] = useState({ clienteid: '', fechaEntrega: '', descripcion: '' });
   const [editItems, setEditItems] = useState([]);
+  const [productoParaTalla, setProductoParaTalla] = useState(null);
   const [productos, setProductos] = useState([]);
   const [busquedaProducto, setBusquedaProducto] = useState('');
   const [cargandoProductos, setCargandoProductos] = useState(false);
@@ -118,7 +138,10 @@ function DetallePedido() {
       (pedido.detalles || [])
         .filter((detalle) => detalle.productoid)
         .map((detalle) => ({
+          clave: claveEdicion(detalle.productoid, detalle.talla),
           productoid: detalle.productoid,
+          talla: detalle.talla || null,
+          unidadMedida: detalle.producto?.unidadMedida,
           nombre: detalle.productoNombre,
           cantidad: Number(detalle.cantidad),
           precioUnitario: Number(detalle.precioUnitario),
@@ -131,13 +154,15 @@ function DetallePedido() {
     }
   };
 
-  const agregarProductoEdicion = (producto) => {
+  const agregarProductoEdicion = (producto, variante = null) => {
+    const talla = variante ? variante.talla : null;
+    const clave = claveEdicion(producto.productoid, talla);
     setEditItems((prev) => {
-      const existente = prev.find((item) => Number(item.productoid) === Number(producto.productoid));
+      const existente = prev.find((item) => item.clave === clave);
       if (existente) {
         return prev.map((item) => (
-          Number(item.productoid) === Number(producto.productoid)
-            ? { ...item, cantidad: item.cantidad + 1 }
+          item.clave === clave
+            ? { ...item, cantidad: Math.round((item.cantidad + pasoDe(item)) * 1000) / 1000 }
             : item
         ));
       }
@@ -146,7 +171,10 @@ function DetallePedido() {
         (detalle) => Number(detalle.productoid) === Number(producto.productoid)
       );
       return [...prev, {
+        clave,
         productoid: producto.productoid,
+        talla,
+        unidadMedida: producto.unidadMedida,
         nombre: producto.nombre,
         cantidad: 1,
         precioUnitario: original ? Number(original.precioUnitario) : Number(producto.precioVenta),
@@ -155,26 +183,36 @@ function DetallePedido() {
     setBusquedaProducto('');
   };
 
-  const actualizarCantidadEdicion = (productoid, delta) => {
+  // Click en un resultado de búsqueda: con tallas abre el selector de talla
+  const elegirProductoEdicion = (producto) => {
+    if (producto.usaTallas) setProductoParaTalla(producto);
+    else agregarProductoEdicion(producto);
+  };
+
+  const elegirTallaEdicion = (variante) => {
+    if (productoParaTalla) agregarProductoEdicion(productoParaTalla, variante);
+    setProductoParaTalla(null);
+  };
+
+  const actualizarCantidadEdicion = (clave, direccion) => {
     setEditItems((prev) => prev.map((item) => {
-      if (Number(item.productoid) !== Number(productoid)) return item;
-      const nuevaCantidad = item.cantidad + delta;
-      return nuevaCantidad > 0 ? { ...item, cantidad: nuevaCantidad } : item;
+      if (item.clave !== clave) return item;
+      const nueva = Math.round((item.cantidad + direccion * pasoDe(item)) * 1000) / 1000;
+      return nueva >= minimoDe(item) ? { ...item, cantidad: nueva } : item;
     }));
   };
 
-  const setCantidadEdicion = (productoid, valor) => {
-    const numero = parseInt(valor, 10);
-    if (isNaN(numero)) return;
-    setEditItems((prev) => prev.map((item) => (
-      Number(item.productoid) === Number(productoid)
-        ? { ...item, cantidad: Math.max(1, numero) }
-        : item
-    )));
+  const setCantidadEdicion = (clave, valor) => {
+    setEditItems((prev) => prev.map((item) => {
+      if (item.clave !== clave) return item;
+      const numero = admiteDecimales(item.unidadMedida) ? parseFloat(valor) : parseInt(valor, 10);
+      if (Number.isNaN(numero)) return item;
+      return { ...item, cantidad: Math.max(minimoDe(item), Math.round(numero * 1000) / 1000) };
+    }));
   };
 
-  const eliminarProductoEdicion = (productoid) => {
-    setEditItems((prev) => prev.filter((item) => Number(item.productoid) !== Number(productoid)));
+  const eliminarProductoEdicion = (clave) => {
+    setEditItems((prev) => prev.filter((item) => item.clave !== clave));
   };
 
   const totalEdicion = editItems.reduce(
@@ -252,6 +290,7 @@ function DetallePedido() {
       if (pedido.estado === 'pendiente') {
         payload.items = editItems.map((item) => ({
           productoid: item.productoid,
+          talla: item.talla,
           cantidad: item.cantidad,
         }));
       }
@@ -327,7 +366,7 @@ function DetallePedido() {
 
   const totalItems = (pedido.detalles || []).reduce((sum, detalle) => sum + Number(detalle.cantidad), 0);
   const itemsSinStock = (pedido.detalles || []).filter(
-    (detalle) => Number(detalle.cantidad) > Number(detalle.producto?.cantidadDisponible || 0)
+    (detalle) => Number(detalle.cantidad) > stockFisicoDe(detalle)
   );
   const puedeConvertir = ['confirmado', 'en_compra', 'recibido'].includes(pedido.estado) && itemsSinStock.length === 0;
   const puedeEditar = !['entregado', 'anulado'].includes(pedido.estado);
@@ -454,20 +493,21 @@ function DetallePedido() {
             </thead>
             <tbody>
               {(pedido.detalles || []).map((item) => {
-                const stockFisico = Number(item.producto?.cantidadDisponible || 0);
+                const stockFisico = stockFisicoDe(item);
                 const faltante = Math.max(0, Number(item.cantidad) - stockFisico);
                 return (
                   <tr key={item.detalleid}>
                     <td className="item-name">
                       <div className="item-icon"><Package size={13} /></div>
                       {item.productoNombre}
+                      {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
                     </td>
-                    <td className="item-qty">{item.cantidad}</td>
+                    <td className="item-qty">{formatearCantidad(item.cantidad, item.producto?.unidadMedida)}</td>
                     <td>
                       {faltante > 0 ? (
-                        <span className="pedido-stock-faltante">Faltan {faltante}</span>
+                        <span className="pedido-stock-faltante">Faltan {formatearCantidad(faltante, item.producto?.unidadMedida)}</span>
                       ) : (
-                        <span className="pedido-stock-ok">{stockFisico} disp.</span>
+                        <span className="pedido-stock-ok">{formatearCantidad(stockFisico, item.producto?.unidadMedida)} disp.</span>
                       )}
                     </td>
                     <td className="item-price">{formatoMoneda(item.precioUnitario)}</td>
@@ -527,7 +567,7 @@ function DetallePedido() {
                   <div className="pedido-orden-items">
                     {(orden.detalles || []).map((detalle) => (
                       <div key={detalle.detalleid} className="pedido-orden-item">
-                        <span>{detalle.productoNombre}</span>
+                        <span>{detalle.productoNombre}{detalle.talla ? ` · Talla ${detalle.talla}` : ''}</span>
                         <span>{detalle.cantidadRecibida}/{detalle.cantidad}</span>
                       </div>
                     ))}
@@ -592,9 +632,12 @@ function DetallePedido() {
                     {editItems.length === 0 ? (
                       <p className="pedido-edit-hint">El pedido no tiene productos. Agrega al menos uno.</p>
                     ) : editItems.map((item) => (
-                      <div key={item.productoid} className="pedido-edit-item">
+                      <div key={item.clave} className="pedido-edit-item">
                         <div className="pedido-edit-item-info">
-                          <span className="pedido-edit-item-name">{item.nombre}</span>
+                          <span className="pedido-edit-item-name">
+                            {item.nombre}
+                            {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
+                          </span>
                           <span className="pedido-edit-item-price">
                             {formatoMoneda(item.precioUnitario)} c/u
                           </span>
@@ -603,24 +646,25 @@ function DetallePedido() {
                           <button
                             type="button"
                             className="pedido-edit-qty-btn"
-                            onClick={() => actualizarCantidadEdicion(item.productoid, -1)}
-                            disabled={item.cantidad <= 1}
+                            onClick={() => actualizarCantidadEdicion(item.clave, -1)}
+                            disabled={item.cantidad - pasoDe(item) < minimoDe(item)}
                             aria-label={`Quitar una unidad de ${item.nombre}`}
                           >
                             <Minus size={12} />
                           </button>
                           <input
                             type="number"
-                            min="1"
+                            min={minimoDe(item)}
+                            step={stepCantidad(item.unidadMedida)}
                             className="pedido-edit-qty-input"
                             value={item.cantidad}
-                            onChange={(e) => setCantidadEdicion(item.productoid, e.target.value)}
+                            onChange={(e) => setCantidadEdicion(item.clave, e.target.value)}
                             aria-label={`Cantidad de ${item.nombre}`}
                           />
                           <button
                             type="button"
                             className="pedido-edit-qty-btn"
-                            onClick={() => actualizarCantidadEdicion(item.productoid, 1)}
+                            onClick={() => actualizarCantidadEdicion(item.clave, 1)}
                             aria-label={`Agregar una unidad de ${item.nombre}`}
                           >
                             <Plus size={12} />
@@ -628,7 +672,7 @@ function DetallePedido() {
                           <button
                             type="button"
                             className="pedido-edit-remove"
-                            onClick={() => eliminarProductoEdicion(item.productoid)}
+                            onClick={() => eliminarProductoEdicion(item.clave)}
                             aria-label={`Eliminar ${item.nombre}`}
                           >
                             <Trash2 size={14} />
@@ -660,7 +704,7 @@ function DetallePedido() {
                             type="button"
                             key={producto.productoid}
                             className="pedido-edit-resultado"
-                            onClick={() => agregarProductoEdicion(producto)}
+                            onClick={() => elegirProductoEdicion(producto)}
                           >
                             <span>{producto.nombre}</span>
                             <span className="pedido-edit-resultado-precio">
@@ -744,6 +788,15 @@ function DetallePedido() {
             </form>
           </div>
         </div>
+      )}
+
+      {productoParaTalla && (
+        <SelectorTalla
+          producto={productoParaTalla}
+          modo="pedido"
+          onSelect={elegirTallaEdicion}
+          onClose={() => setProductoParaTalla(null)}
+        />
       )}
     </div>
   );

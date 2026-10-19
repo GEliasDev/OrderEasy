@@ -6,6 +6,9 @@ import { getCategoriesByUser } from '../../../../services/categoryServices';
 import { getAllProducts } from '../../../../services/productServices';
 import { getClientes } from '../../../../services/clienteService';
 import { createPedido } from '../../../../services/pedidoService';
+import { useCarrito, pasoDe, minimoDe } from '../../../../hooks/useCarrito';
+import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
+import SelectorTalla from '../balance/vistas/SelectorTalla';
 import '../balance/vistas/styles/CartStyles.css';
 import './Pedidos.css';
 
@@ -22,7 +25,10 @@ function NuevoPedido() {
   const [clienteId, setClienteId] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [fechaEntrega, setFechaEntrega] = useState('');
-  const [carrito, setCarrito] = useState([]);
+  const {
+    carrito, productoParaTalla, elegirProducto, elegirTalla, cerrarSelectorTalla,
+    actualizarCantidad, setCantidadDirecta, eliminarDelCarrito,
+  } = useCarrito({ limitarPorStock: false });
   const [busqueda, setBusqueda] = useState('');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -64,44 +70,6 @@ function NuevoPedido() {
       }));
   }, [productos, busqueda, categoriaSeleccionada]);
 
-  const agregarAlCarrito = (producto) => {
-    setCarrito((prev) => {
-      const existente = prev.find((item) => item.productoid === producto.productoid);
-      if (existente) {
-        return prev.map((item) =>
-          item.productoid === producto.productoid
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item
-        );
-      }
-      return [...prev, { ...producto, cantidad: 1 }];
-    });
-  };
-
-  const actualizarCantidad = (id, delta) => {
-    setCarrito((prev) => prev.map((item) => {
-      if (item.productoid === id) {
-        const nuevaCantidad = item.cantidad + delta;
-        if (nuevaCantidad > 0) return { ...item, cantidad: nuevaCantidad };
-      }
-      return item;
-    }));
-  };
-
-  const setCantidadDirecta = (id, valor) => {
-    const numero = parseInt(valor, 10);
-    if (isNaN(numero)) return;
-    setCarrito((prev) => prev.map((item) => (
-      item.productoid === id
-        ? { ...item, cantidad: Math.max(1, numero) }
-        : item
-    )));
-  };
-
-  const eliminarDelCarrito = (id) => {
-    setCarrito((prev) => prev.filter((item) => item.productoid !== id));
-  };
-
   const totalCarrito = carrito.reduce((sum, item) => sum + Number(item.precioVenta) * item.cantidad, 0);
 
   const finalizarPedido = async () => {
@@ -114,6 +82,7 @@ function NuevoPedido() {
         fechaEntrega: fechaEntrega || null,
         items: carrito.map((item) => ({
           productoid: item.productoid,
+          talla: item.talla,
           cantidad: item.cantidad,
         })),
       });
@@ -180,7 +149,7 @@ function NuevoPedido() {
                   <div
                     key={producto.productoid}
                     className="producto-card"
-                    onClick={() => agregarAlCarrito(producto)}
+                    onClick={() => elegirProducto(producto)}
                   >
                     <div className="producto-imagen-container">
                       <img
@@ -192,7 +161,7 @@ function NuevoPedido() {
                         onError={(e) => { e.target.src = '/images/default-product.png'; }}
                       />
                       <div className={`stock-badge-cart ${producto.stockDisponible <= 0 ? 'stock-out-cart' : ''}`}>
-                        {producto.stockDisponible > 0 ? `Disponible: ${producto.stockDisponible}` : 'Bajo pedido'}
+                        {producto.stockDisponible > 0 ? `Disponible: ${formatearCantidad(producto.stockDisponible, producto.unidadMedida)}` : 'Bajo pedido'}
                       </div>
                     </div>
                     <div className="product-info">
@@ -260,7 +229,7 @@ function NuevoPedido() {
                 </div>
               ) : (
                 carrito.map((item) => (
-                  <div key={item.productoid} className="cart-item">
+                  <div key={item.clave} className="cart-item">
                     <img
                       src={item.imagenes && item.imagenes.length > 0
                         ? (item.imagenes[0].startsWith('http') ? item.imagenes[0] : `${API_URL}/uploads/${item.imagenes[0]}`)
@@ -269,33 +238,37 @@ function NuevoPedido() {
                       alt={item.nombre}
                     />
                     <div className="cart-item-details">
-                      <span className="cart-item-name">{item.nombre}</span>
+                      <span className="cart-item-name">
+                        {item.nombre}
+                        {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
+                      </span>
                       <span className="cart-item-price">{formatoMoneda(Number(item.precioVenta) * item.cantidad)}</span>
                     </div>
                     <div className="cart-item-actions">
                       <Trash2
                         size={16}
                         className="remove-item"
-                        onClick={() => eliminarDelCarrito(item.productoid)}
+                        onClick={() => eliminarDelCarrito(item.clave)}
                       />
                       <div className="quantity-controls">
                         <button
                           className="qty-btn"
-                          onClick={() => actualizarCantidad(item.productoid, -1)}
-                          disabled={item.cantidad <= 1}
+                          onClick={() => actualizarCantidad(item.clave, -1)}
+                          disabled={item.cantidad - pasoDe(item) < minimoDe(item)}
                         >
                           <Minus size={12} />
                         </button>
                         <input
                           className="qty-input"
                           type="number"
-                          min={1}
+                          min={minimoDe(item)}
+                          step={stepCantidad(item.unidadMedida)}
                           value={item.cantidad}
-                          onChange={(e) => setCantidadDirecta(item.productoid, e.target.value)}
+                          onChange={(e) => setCantidadDirecta(item.clave, e.target.value)}
                         />
                         <button
                           className="qty-btn"
-                          onClick={() => actualizarCantidad(item.productoid, 1)}
+                          onClick={() => actualizarCantidad(item.clave, 1)}
                         >
                           <Plus size={12} />
                         </button>
@@ -332,6 +305,15 @@ function NuevoPedido() {
           </div>
         </div>
       </div>
+
+      {productoParaTalla && (
+        <SelectorTalla
+          producto={productoParaTalla}
+          modo="pedido"
+          onSelect={elegirTalla}
+          onClose={cerrarSelectorTalla}
+        />
+      )}
     </div>
   );
 }

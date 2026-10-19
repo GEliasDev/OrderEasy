@@ -189,3 +189,16 @@ template { display: none; }
 *, *::before, *::after { box-sizing: border-box; }
 
 div { padding: 0; }
+
+/* Etiqueta de talla junto al nombre del producto (carritos, pedidos, ventas, egresos) */
+.cart-item-talla {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  vertical-align: middle;
+}

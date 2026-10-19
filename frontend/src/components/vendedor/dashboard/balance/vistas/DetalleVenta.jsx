@@ -161,6 +161,7 @@ function DetalleVenta() {
                   <td className="item-name">
                     <div className="item-icon"><Package size={13} /></div>
                     {item.productoNombre}
+                    {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
                   </td>
                   <td className="item-qty">{item.cantidad}</td>
                   <td className="item-price">{formatoMoneda(item.precioUnitario)}</td>
