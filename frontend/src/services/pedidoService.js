@@ -68,6 +68,24 @@ export const getOrdenesCompra = async (params = {}) => {
   return data;
 };
 
+export const getOrdenCompra = async (id) => {
+  const { data } = await axiosInstance.get(`/api/ordenes-compra/${id}`);
+  return data;
+};
+
+// Qué hay que comprar para un grupo de pedidos (por producto y talla, con el reparto por cliente)
+export const previewLoteCompra = async (pedidoids) => {
+  const { data } = await axiosInstance.get('/api/ordenes-compra/lote/preview', { params: { pedidoids: pedidoids.join(',') } });
+  return data;
+};
+
+// payload: { pedidoids, proveedorid?, descripcion? }
+export const crearLoteCompra = async (payload) => {
+  const { data } = await axiosInstance.post('/api/ordenes-compra/lote', payload);
+  return data;
+};
+
+// items opcionales: [{ detalleid, cantidad, reparto: [{ asignacionid, cantidad }] }]. Sin items recibe todo lo pendiente.
 export const recibirOrdenCompra = async (id, items) => {
   const { data } = await axiosInstance.post(`/api/ordenes-compra/${id}/recibir`, { items });
   return data;

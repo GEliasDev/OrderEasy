@@ -1,0 +1,167 @@
+/* Compras al proveedor: listado, nueva compra por lote y detalle con reparto por cliente */
+
+.compras-titulo-fila { display: flex; align-items: center; gap: 12px; }
+.pedidos-header-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.compras-clientes { color: var(--neutral-700, #334155); max-width: 16rem; }
+
+/* ── Nueva compra ── */
+.compras-nueva-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.compras-panel {
+  background: var(--surface, #fff);
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.compras-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.compras-panel-header h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--neutral-900, #0F172A);
+}
+
+.compras-check-todos { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--neutral-500, #64748B); cursor: pointer; }
+
+.compras-lista-pedidos { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; }
+
+.compras-pedido {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.compras-pedido:hover { border-color: var(--color-primary, #1565C0); }
+.compras-pedido.marcado { border-color: var(--color-primary, #1565C0); background: var(--color-primary-soft, #EEF4FF); }
+.compras-pedido input { margin-top: 3px; }
+.compras-pedido-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.compras-pedido-info strong { font-size: 0.85rem; color: var(--neutral-900, #0F172A); }
+.compras-pedido-info span { font-size: 0.78rem; color: var(--neutral-700, #334155); }
+.compras-pedido-info small { font-size: 0.7rem; color: var(--neutral-500, #64748B); }
+
+.compras-vacio { margin: 0; padding: 12px 4px; font-size: 0.8rem; color: var(--neutral-500, #64748B); }
+
+.compras-aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-warning-soft, #FFFBEB);
+  color: var(--neutral-700, #334155);
+  font-size: 0.8rem;
+}
+
+.compras-reparto-texto { font-size: 0.78rem; color: var(--neutral-700, #334155); }
+.compras-reparto-texto small { color: var(--neutral-500, #64748B); }
+
+.compras-form { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.compras-btn-crear { align-self: flex-end; }
+
+/* ── Detalle de la compra ── */
+.compras-nota { margin: 0 0 10px; font-size: 0.8rem; color: var(--neutral-500, #64748B); }
+
+.compras-seccion-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 18px 0 2px;
+  font-size: 0.95rem;
+  color: var(--neutral-900, #0F172A);
+}
+
+.compras-seccion-ayuda { margin: 0 0 10px; }
+
+.compras-linea {
+  background: var(--surface, #fff);
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.compras-linea-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.compras-linea-header strong { font-size: 0.9rem; color: var(--neutral-900, #0F172A); }
+.compras-linea-header span { font-size: 0.75rem; color: var(--neutral-500, #64748B); }
+
+.compras-barra { height: 6px; border-radius: 999px; background: var(--neutral-200, #E2E8F0); overflow: hidden; margin-bottom: 10px; }
+.compras-barra > div { height: 100%; background: var(--color-success, #059669); transition: width 0.3s ease; }
+
+.compras-fila-cancelada td { opacity: 0.55; }
+
+.compras-situacion { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
+.compras-situacion-espera { background: #F1F5F9; color: #64748B; }
+.compras-situacion-parcial { background: #FEF3C7; color: #B45309; }
+.compras-situacion-listo { background: #DCFCE7; color: #15803D; }
+.compras-situacion-entregado { background: #DBEAFE; color: #1D4ED8; }
+.compras-situacion-cancelado { background: #FEE2E2; color: #DC2626; }
+
+/* ── Recepción con reparto ── */
+.compras-recepcion { display: flex; flex-direction: column; gap: 14px; max-height: 52vh; overflow-y: auto; margin-bottom: 14px; }
+
+.compras-recepcion-linea { border: 1px solid var(--neutral-200, #E2E8F0); border-radius: 10px; padding: 10px 12px; }
+
+.compras-recepcion-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.compras-recepcion-cabecera strong { font-size: 0.85rem; color: var(--neutral-900, #0F172A); }
+.compras-recepcion-cabecera label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--neutral-500, #64748B); }
+
+.compras-recepcion-cabecera input,
+.compras-reparto-fila input {
+  width: 5.5rem;
+  padding: 5px 8px;
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--neutral-900, #0F172A);
+  font-size: 0.85rem;
+}
+
+.compras-reparto-grid { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--neutral-200, #E2E8F0); }
+
+.compras-reparto-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.82rem; color: var(--neutral-900, #0F172A); }
+.compras-reparto-fila small { color: var(--neutral-500, #64748B); }
+.compras-reparto-fila.completo { opacity: 0.5; }
+
+.compras-reparto-error { margin: 4px 0 0; font-size: 0.75rem; font-weight: 600; color: var(--color-danger, #DC2626); }
+
+.pedido-compra-estado { display: block; margin-top: 2px; font-size: 0.68rem; color: var(--neutral-500, #64748B); }
+
+@media (max-width: 900px) {
+  .compras-nueva-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Modo oscuro */
+:root[data-theme="dark"] .compras-situacion-espera { background: #232E44; color: #A7B4C8; }
+:root[data-theme="dark"] .compras-situacion-parcial { background: #3A2E12; color: #FCD34D; }
+:root[data-theme="dark"] .compras-situacion-listo { background: #10261E; color: #6EE7B7; }
+:root[data-theme="dark"] .compras-situacion-entregado { background: #1E2C44; color: #93C5FD; }
+:root[data-theme="dark"] .compras-situacion-cancelado { background: #331A1D; color: #FCA5A5; }

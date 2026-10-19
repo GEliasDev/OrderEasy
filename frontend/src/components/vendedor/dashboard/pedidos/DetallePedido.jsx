@@ -12,7 +12,6 @@ import {
   usarSaldoFavor,
   generarOrdenCompra,
   getPedidoById,
-  recibirOrdenCompra,
   updatePedido,
 } from '../../../../services/pedidoService';
 import { getClientes } from '../../../../services/clienteService';
@@ -431,24 +430,8 @@ function DetallePedido() {
     }
   };
 
-  const handleRecibirOrden = (orden) => {
-    toast('¿Registrar recepción completa?', {
-      description: 'Se sumará el stock físico de todos los productos pendientes de esta orden.',
-      action: {
-        label: 'Sí, recibir',
-        onClick: async () => {
-          try {
-            await recibirOrdenCompra(orden.ordenid);
-            toast.success('Recepción registrada y stock actualizado.');
-            cargarPedido(true);
-          } catch (error) {
-            toast.error(error?.response?.data?.mensaje || 'No se pudo registrar la recepción.');
-          }
-        },
-      },
-      cancel: { label: 'Cancelar', onClick: () => {} },
-    });
-  };
+  // La recepción se hace en la pantalla de la compra, donde se elige a qué cliente corresponde lo que llega
+  const handleRecibirOrden = (orden) => navigate(`/dashboard/compra/${orden.ordenid}?accion=recibir`);
 
   const handleAnularOrden = (orden) => {
     toast(`¿Anular la orden #${orden.ordenid}?`, {
@@ -692,6 +675,13 @@ function DetallePedido() {
                       <div className="item-icon"><Package size={13} /></div>
                       {item.productoNombre}
                       {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
+                      {(Number(item.enCompra) > 0 || Number(item.recibidoCompra) > 0) && (
+                        <span className="pedido-compra-estado">
+                          {Number(item.enCompra) > 0 && `En compra: ${item.enCompra}`}
+                          {Number(item.enCompra) > 0 && Number(item.recibidoCompra) > 0 && ' · '}
+                          {Number(item.recibidoCompra) > 0 && `Llegó: ${item.recibidoCompra}`}
+                        </span>
+                      )}
                     </td>
                     <td className="item-qty">{formatearCantidad(item.cantidad, item.producto?.unidadMedida)}</td>
                     <td>
@@ -771,7 +761,10 @@ function DetallePedido() {
                     ))}
                   </div>
                   <div className="pedido-orden-acciones">
-                    <span className="pedido-orden-fecha">Creada el {formatearFecha(orden.createdAt)}</span>
+                    <span className="pedido-orden-fecha">
+                      Creada el {formatearFecha(orden.createdAt)} ·{' '}
+                      <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/compra/${orden.ordenid}`)}>Ver compra #{orden.ordenid}</button>
+                    </span>
                     <div>
                       {pendiente && (
                         <button className="pedidos-btn pedidos-btn-verde pedidos-btn-sm" onClick={() => handleRecibirOrden(orden)}>

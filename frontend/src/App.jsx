@@ -19,6 +19,9 @@ const Proveedores = lazy(() => import('./components/vendedor/dashboard/proveedor
 const Pedidos = lazy(() => import('./components/vendedor/dashboard/pedidos/Pedidos'));
 const NuevoPedido = lazy(() => import('./components/vendedor/dashboard/pedidos/NuevoPedido'));
 const DetallePedido = lazy(() => import('./components/vendedor/dashboard/pedidos/DetallePedido'));
+const Compras = lazy(() => import('./components/vendedor/dashboard/compras/Compras'));
+const NuevaCompra = lazy(() => import('./components/vendedor/dashboard/compras/NuevaCompra'));
+const DetalleCompra = lazy(() => import('./components/vendedor/dashboard/compras/DetalleCompra'));
 const Login = lazy(() => import('./components/vendedor/login/Login'));
 const Home = lazy(() => import('./components/inicio/landing'));
 const Inicio = lazy(() => import('./components/vendedor/dashboard/inicio/Inicio'));
@@ -83,6 +86,9 @@ function App() {
                 <Route path="pedidos" element={<SeccionRoute seccion="pedidos"><Pedidos /></SeccionRoute>} />
                 <Route path="nuevo-pedido" element={<SeccionRoute seccion="pedidos"><NuevoPedido /></SeccionRoute>} />
                 <Route path="pedido/:id" element={<SeccionRoute seccion="pedidos"><DetallePedido /></SeccionRoute>} />
+                <Route path="compras" element={<SeccionRoute seccion="pedidos"><Compras /></SeccionRoute>} />
+                <Route path="nueva-compra" element={<SeccionRoute seccion="pedidos"><NuevaCompra /></SeccionRoute>} />
+                <Route path="compra/:id" element={<SeccionRoute seccion="pedidos"><DetalleCompra /></SeccionRoute>} />
                 <Route path="nuevo-producto" element={<SeccionRoute seccion="inventario"><NuevoProducto /></SeccionRoute>} />
                 <Route path="producto/:id/editar" element={<SeccionRoute seccion="inventario"><EditarProducto /></SeccionRoute>} />
                 <Route path="balance" element={<SeccionRoute seccion="balance"><Balance /></SeccionRoute>} />

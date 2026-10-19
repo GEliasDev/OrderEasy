@@ -96,10 +96,16 @@ function Pedidos() {
           <h1 className="pedidos-title">Pedidos</h1>
           <p className="pedidos-subtitle">Registra pedidos de clientes y compra al proveedor solo lo que falte.</p>
         </div>
-        <button className="pedidos-btn pedidos-btn-primary" onClick={() => navigate('/dashboard/nuevo-pedido')}>
-          <Plus size={16} />
-          <span>Nuevo pedido</span>
-        </button>
+        <div className="pedidos-header-acciones">
+          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate('/dashboard/compras')}>
+            <Truck size={16} />
+            <span>Compras al proveedor</span>
+          </button>
+          <button className="pedidos-btn pedidos-btn-primary" onClick={() => navigate('/dashboard/nuevo-pedido')}>
+            <Plus size={16} />
+            <span>Nuevo pedido</span>
+          </button>
+        </div>
       </div>
 
       <div className="pedidos-metricas">
