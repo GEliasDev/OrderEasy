@@ -16,11 +16,9 @@ const Balance = lazy(() => import('./components/vendedor/dashboard/balance/Balan
 const Estadisticas = lazy(() => import('./components/vendedor/dashboard/estadisticas/Estadisticas'));
 const Clientes = lazy(() => import('./components/vendedor/dashboard/clientes/Clientes'));
 const Proveedores = lazy(() => import('./components/vendedor/dashboard/proveedores/Proveedores'));
-const Pedidos = lazy(() => import('./components/vendedor/dashboard/pedidos/Pedidos'));
 const NuevoPedido = lazy(() => import('./components/vendedor/dashboard/pedidos/NuevoPedido'));
 const DetallePedido = lazy(() => import('./components/vendedor/dashboard/pedidos/DetallePedido'));
 const Compras = lazy(() => import('./components/vendedor/dashboard/compras/Compras'));
-const Seguimiento = lazy(() => import('./components/vendedor/dashboard/seguimiento/Seguimiento'));
 const DetalleCompra = lazy(() => import('./components/vendedor/dashboard/compras/DetalleCompra'));
 const Login = lazy(() => import('./components/vendedor/login/Login'));
 const Home = lazy(() => import('./components/inicio/landing'));
@@ -87,8 +85,6 @@ function App() {
                 <Route path="pedidos/:id" element={<SeccionRoute seccion="pedidos"><DetalleCompra /></SeccionRoute>} />
                 <Route path="nuevo-pedido" element={<SeccionRoute seccion="pedidos"><NuevoPedido /></SeccionRoute>} />
                 <Route path="pedido/:id" element={<SeccionRoute seccion="pedidos"><DetallePedido /></SeccionRoute>} />
-                <Route path="compras" element={<SeccionRoute seccion="pedidos"><Pedidos /></SeccionRoute>} />
-                <Route path="seguimiento" element={<SeccionRoute seccion="pedidos"><Seguimiento /></SeccionRoute>} />
                 <Route path="nuevo-producto" element={<SeccionRoute seccion="inventario"><NuevoProducto /></SeccionRoute>} />
                 <Route path="producto/:id/editar" element={<SeccionRoute seccion="inventario"><EditarProducto /></SeccionRoute>} />
                 <Route path="balance" element={<SeccionRoute seccion="balance"><Balance /></SeccionRoute>} />

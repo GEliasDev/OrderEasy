@@ -96,7 +96,7 @@ function Sidebar({ isOpen = false, onClose = () => {} }) {
 
   const isActive = (path) => {
     if (path === 'pedidos') {
-      return ['/pedidos', '/pedido/', '/compras', '/nuevo-pedido', '/seguimiento'].some((ruta) => location.pathname.includes(ruta));
+      return ['/pedidos', '/pedido/', '/nuevo-pedido'].some((ruta) => location.pathname.includes(ruta));
     }
     return location.pathname.includes(path);
   };

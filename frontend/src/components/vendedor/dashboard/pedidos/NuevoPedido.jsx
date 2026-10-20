@@ -21,7 +21,7 @@ function NuevoPedido() {
   // ?pedido=ID: la compra se crea dentro de ese pedido al proveedor y se vuelve a él al terminar
   const [searchParams] = useSearchParams();
   const ordenid = Number(searchParams.get('pedido')) || null;
-  const destino = ordenid ? `/dashboard/pedidos/${ordenid}` : '/dashboard/compras';
+  const destino = ordenid ? `/dashboard/pedidos/${ordenid}` : '/dashboard/pedidos';
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [clientes, setClientes] = useState([]);

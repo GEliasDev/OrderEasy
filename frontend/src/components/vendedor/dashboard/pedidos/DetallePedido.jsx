@@ -515,7 +515,7 @@ function DetallePedido() {
   return (
     <div className="detalle-tx-view">
       <div className="detalle-tx-header">
-        <button className="btn-circle-back" onClick={() => navigate(pedido.ordenid ? `/dashboard/pedidos/${pedido.ordenid}` : '/dashboard/compras')}>
+        <button className="btn-circle-back" onClick={() => navigate(pedido.ordenid ? `/dashboard/pedidos/${pedido.ordenid}` : '/dashboard/pedidos')}>
           <ArrowLeft size={18} />
         </button>
         <div className="detalle-tx-header-text">
@@ -531,7 +531,7 @@ function DetallePedido() {
                 <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedidos/${pedido.ordenid}`)}>Pedido #{pedido.ordenid}</button>
                 {' / '}
               </>
-            ) : 'Compras / '}
+            ) : 'Pedidos / '}
             <span className="active">Compra #{pedido.pedidoid}</span>
           </div>
         </div>

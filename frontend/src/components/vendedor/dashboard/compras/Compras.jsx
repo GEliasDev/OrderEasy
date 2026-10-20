@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Eye, PackageCheck, Plus, Truck, Users } from 'lucide-react';
+import { ClipboardList, Eye, PackageCheck, Plus, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { crearPedidoProveedor, getOrdenesCompra } from '../../../../services/pedidoService';
 import { ESTADOS_COMPRA, formatearFecha, formatoMoneda } from './comprasUtils';
@@ -88,14 +88,6 @@ function Compras() {
           <p className="pedidos-subtitle">Cada pedido es lo que le haces al proveedor. Dentro agregas las compras de tus clientes y llevas sus abonos y entregas.</p>
         </div>
         <div className="pedidos-header-acciones">
-          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate('/dashboard/seguimiento')}>
-            <Users size={16} />
-            <span>Seguimiento de clientes</span>
-          </button>
-          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate('/dashboard/compras')}>
-            <ClipboardList size={16} />
-            <span>Compras de clientes</span>
-          </button>
           <button className="pedidos-btn pedidos-btn-primary" onClick={crearPedido} disabled={creando}>
             <Plus size={16} />
             <span>{creando ? 'Creando...' : 'Crear pedido'}</span>
