@@ -11,7 +11,12 @@ const Asignacion = require('../models/ordenCompraAsignacionModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 const { resolverStockDeDetalle, guardarStock } = require('../services/stockService');
-const { calcularFaltantes, crearOrdenDesdePedidos, repartirRecepcion, sincronizarEstadoPedido, pedidoidsDeOrden } = require('../services/compraLoteService');
+const PedidoPago = require('../models/pedidoPagoModel');
+const { resumenPedido } = require('../services/pedidoPagoService');
+const {
+  calcularFaltantes, crearOrdenDesdePedidos, repartirRecepcion, sincronizarEstadoPedido, pedidoidsDeOrden,
+  resumenComprasPorDetalle, enviarOrden, previewOrden, agregarLineaStock, asignarCompras,
+} = require('../services/compraLoteService');
 
 class ErrorOrden extends Error {
   constructor(mensaje, status = 400) {
@@ -74,6 +79,167 @@ const responderError = (res, error, mensaje) => {
   return res.status(500).json({ mensaje });
 };
 
+// Compras de clientes de cada pedido (con su resumen de dinero). Se cargan aparte para no anidar tanto el include.
+const comprasDeOrdenes = async (ordenids) => {
+  const mapa = new Map(ordenids.map((id) => [id, []]));
+  if (!ordenids.length) return mapa;
+  const compras = await Pedido.findAll({
+    where: { ordenid: ordenids },
+    include: [
+      { model: PedidoDetalle, as: 'detalles' },
+      { model: PedidoPago, as: 'pagos' },
+      { model: Cliente, as: 'cliente', attributes: ['clienteid', 'nombreCliente', 'telefono'] },
+    ],
+    order: [['pedidoid', 'ASC']],
+  });
+  const jsons = compras.map((c) => {
+    const json = c.toJSON();
+    json.resumen = resumenPedido(json);
+    return json;
+  });
+  const enCompra = await resumenComprasPorDetalle(jsons.flatMap((j) => j.detalles.map((d) => d.detalleid)));
+  for (const json of jsons) {
+    for (const detalle of json.detalles) {
+      detalle.enCompra = enCompra.get(detalle.detalleid)?.enCompra || 0;
+      detalle.recibidoCompra = enCompra.get(detalle.detalleid)?.recibido || 0;
+    }
+    mapa.get(json.ordenid)?.push(json);
+  }
+  return mapa;
+};
+
+const conCompras = async (jsons) => {
+  const mapa = await comprasDeOrdenes(jsons.map((j) => j.ordenid));
+  for (const json of jsons) {
+    json.compras = mapa.get(json.ordenid) || [];
+    const vigentes = json.compras.filter((c) => c.estado !== 'anulado');
+    json.resumenCompras = {
+      cantidad: vigentes.length,
+      total: vigentes.reduce((s, c) => s + Number(c.total), 0),
+      abonado: vigentes.reduce((s, c) => s + c.resumen.abonado, 0),
+      saldo: vigentes.reduce((s, c) => s + c.resumen.saldo, 0),
+    };
+  }
+  return jsons;
+};
+
+const cargarPedidoCompleto = async (id) => {
+  const orden = await OrdenCompra.findByPk(id, { include: includeOrden });
+  const [json] = await conCompras(await ordenesJson([orden]));
+  return json;
+};
+
+// Crea un pedido al proveedor vacío (abierto) para ir agregándole las compras de los clientes
+const crearPedido = async (req, res) => {
+  try {
+    const { negocioid, usuarioid } = req.usuario;
+    const { proveedorid, descripcion } = req.body || {};
+    if (proveedorid) {
+      const proveedor = await Proveedor.findOne({ where: { proveedorid, negocioid } });
+      if (!proveedor) throw new ErrorOrden('Proveedor no encontrado', 404);
+    }
+    const orden = await OrdenCompra.create({
+      negocioid, usuarioid, proveedorid: proveedorid || null, estado: 'abierta', descripcion: descripcion || '', total: 0,
+    });
+    res.status(201).json(await cargarPedidoCompleto(orden.ordenid));
+  } catch (error) {
+    responderError(res, error, 'Error al crear el pedido');
+  }
+};
+
+const actualizarPedido = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { negocioid } = req.usuario;
+    const { proveedorid, descripcion } = req.body || {};
+    const orden = await OrdenCompra.findOne({ where: { ordenid: id, negocioid } });
+    if (!orden) throw new ErrorOrden('Pedido no encontrado', 404);
+    if (['recibida', 'anulada'].includes(orden.estado)) throw new ErrorOrden('El pedido ya no se puede modificar');
+    if (proveedorid) {
+      const proveedor = await Proveedor.findOne({ where: { proveedorid, negocioid } });
+      if (!proveedor) throw new ErrorOrden('Proveedor no encontrado', 404);
+    }
+    await orden.update({
+      proveedorid: proveedorid !== undefined ? (proveedorid || null) : orden.proveedorid,
+      descripcion: descripcion !== undefined ? descripcion : orden.descripcion,
+    });
+    res.json(await cargarPedidoCompleto(id));
+  } catch (error) {
+    responderError(res, error, 'Error al actualizar el pedido');
+  }
+};
+
+// Productos para stock (sin cliente). body: { items: [{ productoid, talla?, cantidad }] }
+const agregarStock = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { negocioid } = req.usuario;
+    const items = Array.isArray(req.body?.items) ? req.body.items : [req.body];
+    if (!items.length) throw new ErrorOrden('Indica al menos un producto');
+    for (const item of items) await agregarLineaStock({ ordenid: id, negocioid, item, transaction: t });
+    await t.commit();
+    res.status(201).json(await cargarPedidoCompleto(id));
+  } catch (error) {
+    await t.rollback();
+    responderError(res, error, 'Error al agregar productos para stock');
+  }
+};
+
+const quitarStock = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id, detalleid } = req.params;
+    const { negocioid } = req.usuario;
+    const orden = await OrdenCompra.findOne({ where: { ordenid: id, negocioid }, transaction: t, lock: true });
+    if (!orden) throw new ErrorOrden('Pedido no encontrado', 404);
+    if (orden.estado !== 'abierta') throw new ErrorOrden('El pedido ya fue enviado al proveedor');
+    const borrados = await OrdenCompraDetalle.destroy({ where: { detalleid, ordenid: id }, transaction: t });
+    if (!borrados) throw new ErrorOrden('Línea no encontrada', 404);
+    await t.commit();
+    res.json(await cargarPedidoCompleto(id));
+  } catch (error) {
+    await t.rollback();
+    responderError(res, error, 'Error al quitar la línea');
+  }
+};
+
+// Agrega al pedido compras de clientes que ya existen. body: { pedidoids: [] }
+const asignarComprasAPedido = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { negocioid } = req.usuario;
+    await asignarCompras({ ordenid: id, negocioid, pedidoids: req.body?.pedidoids, transaction: t });
+    await t.commit();
+    res.json(await cargarPedidoCompleto(id));
+  } catch (error) {
+    await t.rollback();
+    responderError(res, error, 'Error al agregar las compras al pedido');
+  }
+};
+
+const previewPedido = async (req, res) => {
+  try {
+    res.json(await previewOrden({ ordenid: req.params.id, negocioid: req.usuario.negocioid }));
+  } catch (error) {
+    responderError(res, error, 'Error al calcular el pedido');
+  }
+};
+
+const enviarPedido = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    await enviarOrden({ ordenid: id, negocioid: req.usuario.negocioid, transaction: t });
+    await t.commit();
+    res.json(await cargarPedidoCompleto(id));
+  } catch (error) {
+    await t.rollback();
+    responderError(res, error, 'Error al enviar el pedido');
+  }
+};
+
 const getOrdenes = async (req, res) => {
   try {
     const { negocioid } = req.usuario;
@@ -89,7 +255,7 @@ const getOrdenes = async (req, res) => {
       include: includeOrden,
       order: [['createdAt', 'DESC']],
     });
-    res.json(await ordenesJson(ordenes));
+    res.json(await conCompras(await ordenesJson(ordenes)));
   } catch {
     res.status(500).json({ mensaje: 'Error al obtener las órdenes de compra' });
   }
@@ -104,7 +270,7 @@ const getOrdenById = async (req, res) => {
       include: includeOrden,
     });
     if (!orden) throw new ErrorOrden('Orden de compra no encontrada', 404);
-    res.json(await ordenJson(orden));
+    res.json((await conCompras([await ordenJson(orden)]))[0]);
   } catch (error) {
     responderError(res, error, 'Error al obtener la orden de compra');
   }
@@ -123,8 +289,8 @@ const recibirOrden = async (req, res) => {
       lock: true,
     });
     if (!orden) throw new ErrorOrden('Orden de compra no encontrada', 404);
-    if (['recibida', 'anulada'].includes(orden.estado)) {
-      throw new ErrorOrden('La orden no está disponible para recepción');
+    if (!['enviada', 'recibida_parcial', 'borrador'].includes(orden.estado)) {
+      throw new ErrorOrden(orden.estado === 'abierta' ? 'Envía el pedido al proveedor antes de recibirlo' : 'La orden no está disponible para recepción');
     }
 
     const detalles = await OrdenCompraDetalle.findAll({
@@ -224,7 +390,7 @@ const recibirOrden = async (req, res) => {
     }
 
     await t.commit();
-    res.json(await ordenJson(await OrdenCompra.findByPk(id, { include: includeOrden })));
+    res.json(await cargarPedidoCompleto(id));
   } catch (error) {
     await t.rollback();
     responderError(res, error, 'Error al recibir la orden de compra');
@@ -252,9 +418,11 @@ const anularOrden = async (req, res) => {
     for (const pedidoid of await pedidoidsDeOrden(orden.ordenid, t)) {
       await sincronizarEstadoPedido(pedidoid, t);
     }
+    // Las compras de clientes siguen vigentes pero quedan sin pedido al proveedor
+    await Pedido.update({ ordenid: null }, { where: { ordenid: orden.ordenid }, transaction: t });
 
     await t.commit();
-    res.json(await ordenJson(await OrdenCompra.findByPk(id, { include: includeOrden })));
+    res.json(await cargarPedidoCompleto(id));
   } catch (error) {
     await t.rollback();
     responderError(res, error, 'Error al anular la orden de compra');
@@ -289,6 +457,13 @@ const crearLote = async (req, res) => {
 };
 
 module.exports = {
+  crearPedido,
+  actualizarPedido,
+  agregarStock,
+  quitarStock,
+  asignarComprasAPedido,
+  previewPedido,
+  enviarPedido,
   previewLote,
   crearLote,
   getOrdenes,

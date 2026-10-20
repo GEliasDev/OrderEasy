@@ -44,6 +44,11 @@ const Pedido = sequelize.define('Pedido', {
       key: 'ventaid'
     }
   },
+  // Pedido al proveedor al que pertenece esta compra (sin FK en el modelo para evitar la dependencia cíclica con ordenes_compra)
+  ordenid: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   estado: {
     type: DataTypes.ENUM('pendiente', 'confirmado', 'en_compra', 'recibido', 'entregado', 'anulado'),
     allowNull: false,
@@ -79,6 +84,8 @@ Pedido.hasMany(Venta, { foreignKey: 'pedidoid', as: 'ventas', constraints: false
 Pedido.hasMany(require('./pedidoPagoModel'), { foreignKey: 'pedidoid', as: 'pagos' });
 PedidoDetalle.belongsTo(Pedido, { foreignKey: 'pedidoid', as: 'pedido' });
 Pedido.hasMany(OrdenCompra, { foreignKey: 'pedidoid', as: 'ordenes' });
+Pedido.belongsTo(OrdenCompra, { foreignKey: 'ordenid', as: 'pedidoProveedor', constraints: false });
+OrdenCompra.hasMany(Pedido, { foreignKey: 'ordenid', as: 'compras', constraints: false });
 OrdenCompra.belongsTo(Pedido, { foreignKey: 'pedidoid', as: 'pedido' });
 
 module.exports = Pedido;

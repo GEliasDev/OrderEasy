@@ -52,7 +52,7 @@ const OrdenCompra = sequelize.define('OrdenCompra', {
     }
   },
   estado: {
-    type: DataTypes.ENUM('borrador', 'enviada', 'recibida_parcial', 'recibida', 'anulada'),
+    type: DataTypes.ENUM('abierta', 'borrador', 'enviada', 'recibida_parcial', 'recibida', 'anulada'),
     allowNull: false,
     defaultValue: 'borrador'
   },

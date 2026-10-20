@@ -102,8 +102,14 @@ const responderError = (res, error, mensaje) => {
 const createPedido = async (req, res) => {
   const t = await sequelize.transaction();
   try {
-    const { clienteid, descripcion, fechaEntrega, items, abono } = req.body;
+    const { clienteid, descripcion, fechaEntrega, items, abono, ordenid } = req.body;
     const { usuarioid, negocioid } = req.usuario;
+
+    if (ordenid) {
+      const orden = await OrdenCompra.findOne({ where: { ordenid, negocioid }, transaction: t });
+      if (!orden) throw new ErrorPedido('Pedido al proveedor no encontrado', 404);
+      if (orden.estado !== 'abierta') throw new ErrorPedido('Ese pedido ya fue enviado al proveedor; crea otro pedido para agregar más compras');
+    }
 
     if (!clienteid) {
       throw new ErrorPedido('Selecciona el cliente del pedido');
@@ -116,6 +122,7 @@ const createPedido = async (req, res) => {
       usuarioid,
       negocioid,
       clienteid: clienteid || null,
+      ordenid: ordenid || null,
       descripcion: descripcion || '',
       fechaEntrega: fechaEntrega || null,
       total: 0,

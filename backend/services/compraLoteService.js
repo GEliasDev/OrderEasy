@@ -13,7 +13,8 @@ const OrdenCompraDetalle = require('../models/ordenCompraDetalleModel');
 const Asignacion = require('../models/ordenCompraAsignacionModel');
 const Producto = require('../models/productModel');
 const Cliente = require('../models/clientModel');
-const { resolverStockDeDetalle } = require('./stockService');
+const sequelize = require('../config/database');
+const { resolverStock, resolverStockDeDetalle, guardarStock, validarCantidad, datosTalla } = require('./stockService');
 const { dos } = require('./pedidoPagoService');
 
 class ErrorCompra extends Error {
@@ -214,6 +215,7 @@ const crearOrdenDesdePedidos = async ({ pedidoids, proveedorid, descripcion, neg
   }
   await orden.update({ total: dos(total) }, { transaction });
 
+  await Pedido.update({ ordenid: orden.ordenid }, { where: { pedidoid: ids, ordenid: null }, transaction });
   for (const id of ids) await sincronizarEstadoPedido(id, transaction);
   return orden;
 };
@@ -270,6 +272,144 @@ const repartirRecepcion = async ({ detalle, cantidad, reparto, transaction }) =>
   }
 };
 
+// ───────────── Pedido al proveedor como contenedor de compras de clientes ─────────────
+// Flujo: abierta (se le agregan compras de clientes y líneas para stock) -> enviada (se congela lo pedido)
+// -> recibida_parcial / recibida (al recibir se reparte cada par entre los clientes; lo demás queda en stock).
+
+// Reserva el stock de una compra de cliente pendiente (pendiente -> confirmado)
+const confirmarCompra = async (pedido, negocioid, transaction) => {
+  const detalles = await PedidoDetalle.findAll({ where: { pedidoid: pedido.pedidoid }, transaction });
+  for (const detalle of detalles) {
+    if (!detalle.productoid) continue;
+    const producto = await Producto.findOne({ where: { productoid: detalle.productoid, negocioid }, transaction, lock: true });
+    if (!producto) throw new ErrorCompra(`Producto no encontrado: ${detalle.productoNombre}`);
+    const stock = await resolverStockDeDetalle(producto, detalle, transaction);
+    await guardarStock(producto, stock, { cantidadReservada: Number(stock.cantidadReservada) + Number(detalle.cantidad) }, transaction);
+  }
+  await pedido.update({ estado: 'confirmado' }, { transaction });
+};
+
+const cargarOrden = async (ordenid, negocioid, transaction) => {
+  const orden = await OrdenCompra.findOne({ where: { ordenid, negocioid }, transaction, lock: transaction ? true : undefined });
+  if (!orden) throw new ErrorCompra('Pedido no encontrado', 404);
+  return orden;
+};
+
+const exigirAbierta = (orden) => {
+  if (orden.estado !== 'abierta') {
+    throw new ErrorCompra('El pedido ya fue enviado al proveedor; crea otro pedido para agregar más compras');
+  }
+};
+
+const vigente = (compra) => !['anulado', 'entregado'].includes(compra.estado);
+
+// Envía el pedido al proveedor: confirma las compras pendientes (reservan stock), calcula lo que falta por producto y talla
+// (descontando el stock libre) y deja el reparto por cliente. Las líneas para stock quedan sumadas a la misma línea de producto.
+const enviarOrden = async ({ ordenid, negocioid, transaction }) => {
+  const orden = await cargarOrden(ordenid, negocioid, transaction);
+  exigirAbierta(orden);
+
+  const compras = await Pedido.findAll({ where: { ordenid, negocioid }, transaction, lock: true });
+  for (const compra of compras.filter((c) => c.estado === 'pendiente')) {
+    await confirmarCompra(compra, negocioid, transaction);
+  }
+  const ids = compras.filter(vigente).map((c) => c.pedidoid);
+
+  const lineasStock = await OrdenCompraDetalle.findAll({ where: { ordenid }, transaction });
+
+  let grupos = [];
+  if (ids.length > 0) ({ grupos } = await calcularFaltantes({ pedidoids: ids, negocioid, transaction }));
+  if (grupos.length === 0 && lineasStock.length === 0) {
+    throw new ErrorCompra('No hay nada que pedir: agrega compras de clientes o productos para stock (el stock actual ya cubre las compras)');
+  }
+
+  for (const grupo of grupos) {
+    let detalle = lineasStock.find((d) => Number(d.productoid) === Number(grupo.productoid) && Number(d.varianteid || 0) === Number(grupo.varianteid || 0));
+    if (detalle) {
+      await detalle.update({ cantidad: redondear(Number(detalle.cantidad) + grupo.totalFaltante) }, { transaction });
+    } else {
+      detalle = await OrdenCompraDetalle.create({
+        ordenid, productoid: grupo.productoid, productoNombre: grupo.productoNombre, cantidad: grupo.totalFaltante, cantidadRecibida: 0,
+        precioUnitario: grupo.precioCompra, subtotal: 0, categoriaid: grupo.categoriaid, talla: grupo.talla, varianteid: grupo.varianteid,
+      }, { transaction });
+    }
+    for (const linea of grupo.lineas.filter((l) => l.faltante > 0)) {
+      await Asignacion.create({ ordendetalleid: detalle.detalleid, pedidodetalleid: linea.detalleid, cantidad: linea.faltante }, { transaction });
+    }
+  }
+
+  let total = 0;
+  for (const detalle of await OrdenCompraDetalle.findAll({ where: { ordenid }, transaction })) {
+    const subtotal = dos(Number(detalle.cantidad) * Number(detalle.precioUnitario));
+    await detalle.update({ subtotal }, { transaction });
+    total += subtotal;
+  }
+  await orden.update({ estado: 'enviada', total: dos(total) }, { transaction });
+  for (const id of ids) await sincronizarEstadoPedido(id, transaction);
+  return orden;
+};
+
+// Vista previa de "Enviar": cuánto se pide por producto y talla, para quién y cuánto va a stock.
+// calcularFaltantes exige compras confirmadas: las pendientes se confirman dentro de una transacción que se revierte.
+const previewOrden = async ({ ordenid, negocioid }) => {
+  await cargarOrden(ordenid, negocioid);
+  const t = await sequelize.transaction();
+  try {
+    const compras = await Pedido.findAll({ where: { ordenid, negocioid }, transaction: t, lock: true });
+    for (const compra of compras.filter((c) => c.estado === 'pendiente')) {
+      await confirmarCompra(compra, negocioid, t);
+    }
+    const ids = compras.filter(vigente).map((c) => c.pedidoid);
+    const faltantes = ids.length ? await calcularFaltantes({ pedidoids: ids, negocioid, transaction: t }) : { grupos: [], total: 0 };
+    await t.rollback();
+    return faltantes;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+// Agrega al pedido abierto una línea sin cliente (va directo al stock al recibirla). Acumula si ya existe producto y talla.
+const agregarLineaStock = async ({ ordenid, negocioid, item, transaction }) => {
+  const orden = await cargarOrden(ordenid, negocioid, transaction);
+  exigirAbierta(orden);
+  const where = { negocioid };
+  if (item.productoid) where.productoid = item.productoid;
+  else if (item.productoNombre) where.nombre = item.productoNombre;
+  else throw new ErrorCompra('Indica el producto');
+  const producto = await Producto.findOne({ where, transaction, lock: true });
+  if (!producto) throw new ErrorCompra(`Producto no encontrado: ${item.productoNombre || item.productoid}`);
+  const cantidad = validarCantidad(item.cantidad, producto);
+  const stock = await resolverStock(producto, item.talla, transaction);
+  const { talla, varianteid } = datosTalla(producto, stock);
+
+  const existente = await OrdenCompraDetalle.findOne({
+    where: { ordenid, productoid: producto.productoid, varianteid: varianteid || null }, transaction,
+  });
+  const nueva = redondear(Number(existente?.cantidad || 0) + cantidad);
+  const valores = { cantidad: nueva, subtotal: dos(nueva * Number(producto.precioCompra)) };
+  if (existente) return existente.update(valores, { transaction });
+  return OrdenCompraDetalle.create({
+    ordenid, productoid: producto.productoid, productoNombre: producto.nombre, cantidadRecibida: 0,
+    precioUnitario: producto.precioCompra, categoriaid: producto.categoriaid, talla, varianteid, ...valores,
+  }, { transaction });
+};
+
+// Vincula compras de clientes que ya existían (sin pedido al proveedor) a un pedido abierto
+const asignarCompras = async ({ ordenid, negocioid, pedidoids, transaction }) => {
+  const orden = await cargarOrden(ordenid, negocioid, transaction);
+  exigirAbierta(orden);
+  const ids = [...new Set((pedidoids || []).map(Number).filter(Boolean))];
+  if (ids.length === 0) throw new ErrorCompra('Selecciona al menos una compra');
+  const compras = await Pedido.findAll({ where: { pedidoid: ids, negocioid }, transaction, lock: true });
+  if (compras.length !== ids.length) throw new ErrorCompra('Alguna de las compras no existe', 404);
+  for (const c of compras) {
+    if (['entregado', 'anulado'].includes(c.estado)) throw new ErrorCompra(`La compra #${c.pedidoid} está ${c.estado}`);
+    if (c.ordenid && Number(c.ordenid) !== Number(ordenid)) throw new ErrorCompra(`La compra #${c.pedidoid} ya pertenece a otro pedido`);
+  }
+  await Pedido.update({ ordenid }, { where: { pedidoid: ids }, transaction });
+};
+
 module.exports = {
   ErrorCompra,
   ESTADOS_COMPRABLES,
@@ -279,4 +419,9 @@ module.exports = {
   pedidoidsDeOrden,
   crearOrdenDesdePedidos,
   repartirRecepcion,
+  confirmarCompra,
+  enviarOrden,
+  previewOrden,
+  agregarLineaStock,
+  asignarCompras,
 };
