@@ -348,8 +348,11 @@ const enviarOrden = async ({ ordenid, negocioid, transaction }) => {
 
   let total = 0;
   for (const detalle of await OrdenCompraDetalle.findAll({ where: { ordenid }, transaction })) {
-    const subtotal = dos(Number(detalle.cantidad) * Number(detalle.precioUnitario));
-    await detalle.update({ subtotal }, { transaction });
+    // El costo usa el precio de compra vigente del producto
+    const producto = detalle.productoid ? await Producto.findByPk(detalle.productoid, { transaction }) : null;
+    const precio = producto ? Number(producto.precioCompra) : Number(detalle.precioUnitario);
+    const subtotal = dos(Number(detalle.cantidad) * precio);
+    await detalle.update({ precioUnitario: precio, subtotal }, { transaction });
     total += subtotal;
   }
   await orden.update({ estado: 'enviada', total: dos(total) }, { transaction });

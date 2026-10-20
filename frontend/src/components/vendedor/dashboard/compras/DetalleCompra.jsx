@@ -355,7 +355,7 @@ function DetalleCompra() {
       <div className="detalle-tx-summary">
         <div className="detalle-tx-stat">
           <div className="detalle-tx-stat-label"><Truck size={11} /> Costo al proveedor</div>
-          <div className="detalle-tx-stat-value amount expense">{abierto ? 'Se calcula al enviar' : formatoMoneda(orden.total)}</div>
+          <div className="detalle-tx-stat-value amount expense">{formatoMoneda(abierto ? orden.costoEstimado : orden.total)}</div>
         </div>
         <div className="detalle-tx-stat">
           <div className="detalle-tx-stat-label"><User size={11} /> Proveedor</div>

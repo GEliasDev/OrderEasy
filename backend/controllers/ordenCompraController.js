@@ -108,6 +108,28 @@ const comprasDeOrdenes = async (ordenids) => {
   return mapa;
 };
 
+// Mientras el pedido está abierto, el costo al proveedor se calcula solo con el precio de compra vigente de cada producto:
+// lo que piden los clientes (sin descontar inventario) + los productos para stock.
+const conCostoEstimado = async (json) => {
+  if (json.estado !== 'abierta') return;
+  const productoids = [...new Set((json.detalles || []).map((d) => d.productoid).filter(Boolean))];
+  const productos = productoids.length
+    ? await Producto.findAll({ where: { productoid: productoids }, attributes: ['productoid', 'precioCompra'] })
+    : [];
+  const precios = new Map(productos.map((p) => [p.productoid, Number(p.precioCompra)]));
+  let costoStock = 0;
+  for (const detalle of json.detalles || []) {
+    const precio = precios.get(detalle.productoid) ?? Number(detalle.precioUnitario);
+    detalle.precioUnitario = precio;
+    detalle.subtotal = Math.round(Number(detalle.cantidad) * precio * 100) / 100;
+    costoStock += detalle.subtotal;
+  }
+  const clientes = (json.compras || []).some((c) => c.estado !== 'anulado' && c.estado !== 'entregado')
+    ? await previewOrden({ ordenid: json.ordenid, negocioid: json.negocioid })
+    : { total: 0 };
+  json.costoEstimado = Math.round((costoStock + Number(clientes.total || 0)) * 100) / 100;
+};
+
 const conCompras = async (jsons) => {
   const mapa = await comprasDeOrdenes(jsons.map((j) => j.ordenid));
   for (const json of jsons) {
@@ -119,6 +141,7 @@ const conCompras = async (jsons) => {
       abonado: vigentes.reduce((s, c) => s + c.resumen.abonado, 0),
       saldo: vigentes.reduce((s, c) => s + c.resumen.saldo, 0),
     };
+    await conCostoEstimado(json);
   }
   return jsons;
 };

@@ -172,7 +172,7 @@ function Compras() {
                     <td>{formatearFecha(orden.createdAt)}</td>
                     <td><span className={`pedido-estado pedido-estado-${estado.clase}`}>{estado.label}</span></td>
                     <td>{abierto ? '—' : `${cantidad(recibidos)} / ${cantidad(pedidos)}`}</td>
-                    <td className="pedido-total">{abierto ? '—' : formatoMoneda(orden.total)}</td>
+                    <td className="pedido-total">{formatoMoneda(abierto ? orden.costoEstimado : orden.total)}</td>
                     <td>
                       <div className="pedidos-acciones" onClick={(e) => e.stopPropagation()}>
                         <button className="pedidos-accion pedidos-accion-ver" title="Abrir pedido" onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
