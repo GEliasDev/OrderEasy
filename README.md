@@ -24,3 +24,8 @@ npm install
 cp .env.example .env
 npm run dev
 ```
+
+## Despliegue
+
+Backend y frontend se despliegan por separado (Render + Supabase, o Docker). Guía paso a paso, variables de entorno
+y verificación en [DEPLOY.md](DEPLOY.md).

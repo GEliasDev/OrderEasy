@@ -1,0 +1,75 @@
+# Blueprint de Render para OrderEasy: dos servicios independientes (API y web) desde el mismo repositorio.
+# Render > New > Blueprint > elige este repositorio. Los valores con "sync: false" se piden en el panel
+# (copiarlos de backend/.env.production y frontend/.env.production). Guía completa: DEPLOY.md
+#
+# Cada servicio tiene su propio rootDir: se pueden desplegar, escalar y reiniciar por separado.
+
+services:
+  # ── API (Node + Express + Sequelize) ──────────────────────────
+  - type: web
+    name: ordereasy-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    region: oregon
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SCHEMA
+        value: ordereasy
+      - key: DB_SSL
+        value: true
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+  # ── Web (React + Vite, sitio estático) ────────────────────────
+  - type: web
+    name: ordereasy-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+    routes:
+      # Todas las rutas del navegador las resuelve React Router
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # URL pública de la API (sin barra final), ej: https://ordereasy-api.onrender.com
+      - key: VITE_API_URL
+        sync: false
