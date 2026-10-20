@@ -123,6 +123,7 @@ const createPedido = async (req, res) => {
       negocioid,
       clienteid: clienteid || null,
       ordenid: ordenid || null,
+      estado: ordenid ? 'confirmado' : 'pendiente',
       descripcion: descripcion || '',
       fechaEntrega: fechaEntrega || null,
       total: 0,
@@ -225,7 +226,12 @@ const updatePedido = async (req, res) => {
 
     let total;
     if (items !== undefined) {
-      if (pedido.estado !== 'pendiente') {
+      if (pedido.ordenid) {
+        const orden = await OrdenCompra.findOne({ where: { ordenid: pedido.ordenid, negocioid }, transaction: t });
+        if (orden?.estado !== 'abierta') {
+          throw new ErrorPedido('El pedido ya fue enviado al proveedor; no se pueden modificar los productos de la compra');
+        }
+      } else if (pedido.estado !== 'pendiente') {
         throw new ErrorPedido('Solo se pueden modificar los productos de un pedido pendiente');
       }
       if (!Array.isArray(items) || items.length === 0) {
@@ -320,6 +326,9 @@ const confirmarPedido = async (req, res) => {
     if (pedido.estado !== 'pendiente') {
       throw new ErrorPedido('Solo se pueden confirmar pedidos pendientes');
     }
+    if (pedido.ordenid) {
+      throw new ErrorPedido('Las compras de un pedido al proveedor no se confirman: no usan tu inventario');
+    }
 
     const detalles = await PedidoDetalle.findAll({ where: { pedidoid: id }, transaction: t });
     for (const detalle of detalles) {
@@ -377,7 +386,12 @@ const anularPedido = async (req, res) => {
         });
         if (producto) {
           const stock = await resolverStockDeDetalle(producto, detalle, t);
-          const pendiente = Number(detalle.cantidad) - Number(detalle.cantidadEntregada || 0);
+          let pendiente = Number(detalle.cantidad) - Number(detalle.cantidadEntregada || 0);
+          // En un pedido al proveedor solo está reservado lo que ya llegó y aún no se entregó
+          if (pedido.ordenid) {
+            const llegado = (await resumenComprasPorDetalle([detalle.detalleid], t)).get(detalle.detalleid)?.recibido || 0;
+            pendiente = Math.max(0, llegado - Number(detalle.cantidadEntregada || 0));
+          }
           if (pendiente > 0) {
             await guardarStock(producto, stock, {
               cantidadReservada: Math.max(0, Number(stock.cantidadReservada) - pendiente),
@@ -454,6 +468,11 @@ const entregarPedido = async (req, res) => {
     const detalles = await PedidoDetalle.findAll({ where: { pedidoid: id }, order: [['detalleid', 'ASC']], transaction: t, lock: true });
     if (detalles.length === 0) throw new ErrorPedido('El pedido no tiene productos');
     const pendienteDe = (d) => Math.round((Number(d.cantidad) - Number(d.cantidadEntregada || 0)) * 1000) / 1000;
+    // En un pedido al proveedor solo se entrega lo que ya llegó
+    const llegado = pedido.ordenid ? await resumenComprasPorDetalle(detalles.map((d) => d.detalleid), t) : null;
+    const entregable = (d) => (llegado
+      ? Math.max(0, Math.round(((llegado.get(d.detalleid)?.recibido || 0) - Number(d.cantidadEntregada || 0)) * 1000) / 1000)
+      : pendienteDe(d));
 
     // Qué líneas (y cuánto de cada una) se entregan ahora
     let aEntregar;
@@ -467,15 +486,15 @@ const entregarPedido = async (req, res) => {
         vistos.add(detalle.detalleid);
         const cantidad = Number(item.cantidad);
         if (!Number.isFinite(cantidad) || cantidad <= 0) continue; // 0 = esa línea no se entrega ahora
-        if (cantidad > pendienteDe(detalle) + 0.0001) {
-          throw new ErrorPedido(`${etiquetaDetalle(detalle)}: solo quedan ${pendienteDe(detalle)} por entregar`);
+        if (cantidad > entregable(detalle) + 0.0001) {
+          throw new ErrorPedido(`${etiquetaDetalle(detalle)}: ${llegado ? 'solo han llegado' : 'solo quedan'} ${entregable(detalle)} por entregar`);
         }
         aEntregar.push({ detalle, cantidad });
       }
     } else {
-      aEntregar = detalles.filter((d) => pendienteDe(d) > 0).map((d) => ({ detalle: d, cantidad: pendienteDe(d) }));
+      aEntregar = detalles.filter((d) => entregable(d) > 0).map((d) => ({ detalle: d, cantidad: entregable(d) }));
     }
-    if (aEntregar.length === 0) throw new ErrorPedido('No hay productos por entregar');
+    if (aEntregar.length === 0) throw new ErrorPedido(llegado ? 'Todavía no ha llegado mercancía para entregar' : 'No hay productos por entregar');
 
     const venta = await Venta.create({
       usuarioid,

@@ -133,13 +133,13 @@ const cargarPedidoCompleto = async (id) => {
 const crearPedido = async (req, res) => {
   try {
     const { negocioid, usuarioid } = req.usuario;
-    const { proveedorid, descripcion } = req.body || {};
+    const { proveedorid, descripcion, nombre } = req.body || {};
     if (proveedorid) {
       const proveedor = await Proveedor.findOne({ where: { proveedorid, negocioid } });
       if (!proveedor) throw new ErrorOrden('Proveedor no encontrado', 404);
     }
     const orden = await OrdenCompra.create({
-      negocioid, usuarioid, proveedorid: proveedorid || null, estado: 'abierta', descripcion: descripcion || '', total: 0,
+      negocioid, usuarioid, proveedorid: proveedorid || null, estado: 'abierta', nombre: String(nombre || '').trim().slice(0, 120) || null, descripcion: descripcion || '', total: 0,
     });
     res.status(201).json(await cargarPedidoCompleto(orden.ordenid));
   } catch (error) {
@@ -151,7 +151,7 @@ const actualizarPedido = async (req, res) => {
   try {
     const { id } = req.params;
     const { negocioid } = req.usuario;
-    const { proveedorid, descripcion } = req.body || {};
+    const { proveedorid, descripcion, nombre } = req.body || {};
     const orden = await OrdenCompra.findOne({ where: { ordenid: id, negocioid } });
     if (!orden) throw new ErrorOrden('Pedido no encontrado', 404);
     if (['recibida', 'anulada'].includes(orden.estado)) throw new ErrorOrden('El pedido ya no se puede modificar');
@@ -162,6 +162,7 @@ const actualizarPedido = async (req, res) => {
     await orden.update({
       proveedorid: proveedorid !== undefined ? (proveedorid || null) : orden.proveedorid,
       descripcion: descripcion !== undefined ? descripcion : orden.descripcion,
+      nombre: nombre !== undefined ? (String(nombre || '').trim().slice(0, 120) || null) : orden.nombre,
     });
     res.json(await cargarPedidoCompleto(id));
   } catch (error) {
@@ -337,13 +338,15 @@ const recibirOrden = async (req, res) => {
       });
       if (!producto) throw new ErrorOrden(`Producto no encontrado: ${detalle.productoNombre}`);
 
+      // A qué clientes corresponde lo que llegó (lo elige el usuario o, sin indicar, por orden de pedido)
+      const paraClientes = await repartirRecepcion({ detalle, cantidad: solicitado, reparto: solicitud?.reparto, transaction: t });
+
+      // Entra al inventario y lo asignado a clientes queda reservado para ellos
       const stock = await resolverStockDeDetalle(producto, detalle, t);
       await guardarStock(producto, stock, {
         cantidadDisponible: Number(stock.cantidadDisponible) + solicitado,
+        cantidadReservada: Number(stock.cantidadReservada) + paraClientes,
       }, t);
-
-      // A qué clientes corresponde lo que llegó (lo elige el usuario o, sin indicar, por orden de pedido)
-      await repartirRecepcion({ detalle, cantidad: solicitado, reparto: solicitud?.reparto, transaction: t });
 
       const subtotal = solicitado * Number(detalle.precioUnitario);
       await EgresoDetalle.create({
@@ -411,6 +414,9 @@ const anularOrden = async (req, res) => {
     if (!orden) throw new ErrorOrden('Orden de compra no encontrada', 404);
     if (['recibida', 'anulada'].includes(orden.estado)) {
       throw new ErrorOrden('No se puede anular una orden recibida o anulada');
+    }
+    if (orden.estado === 'recibida_parcial') {
+      throw new ErrorOrden('Ya llegó parte de la mercancía; no se puede anular el pedido');
     }
 
     await orden.update({ estado: 'anulada' }, { transaction: t });

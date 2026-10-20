@@ -49,7 +49,8 @@ const resumenComprasPorDetalle = async (detalleIds, transaction) => {
 };
 
 // Calcula qué hay que comprar para cubrir los pedidos indicados.
-const calcularFaltantes = async ({ pedidoids, negocioid, transaction }) => {
+// Con `ignorarStock` se pide todo al proveedor (las compras de un pedido al proveedor no salen del inventario).
+const calcularFaltantes = async ({ pedidoids, negocioid, transaction, ignorarStock = false, aceptarPendientes = false }) => {
   const ids = [...new Set((pedidoids || []).map(Number).filter(Boolean))];
   if (ids.length === 0) throw new ErrorCompra('Selecciona al menos un pedido');
 
@@ -64,7 +65,7 @@ const calcularFaltantes = async ({ pedidoids, negocioid, transaction }) => {
   });
   if (pedidos.length !== ids.length) throw new ErrorCompra('Alguno de los pedidos no existe', 404);
   for (const pedido of pedidos) {
-    if (!ESTADOS_COMPRABLES.includes(pedido.estado)) {
+    if (!ESTADOS_COMPRABLES.includes(pedido.estado) && !(aceptarPendientes && pedido.estado === 'pendiente')) {
       throw new ErrorCompra(`El pedido #${pedido.pedidoid} no está confirmado (${pedido.estado}); confírmalo antes de comprar`);
     }
   }
@@ -96,7 +97,7 @@ const calcularFaltantes = async ({ pedidoids, negocioid, transaction }) => {
     // Stock libre = disponible menos lo reservado por pedidos que NO están en esta compra
     const sumaPendiente = lineasGrupo.reduce((s, l) => s + pendienteDe(l.detalle), 0);
     const reservadoOtros = Math.max(0, Number(stock.cantidadReservada) - sumaPendiente);
-    let libre = Math.max(0, Number(stock.cantidadDisponible) - reservadoOtros);
+    let libre = ignorarStock ? 0 : Math.max(0, Number(stock.cantidadDisponible) - reservadoOtros);
 
     const detalleLineas = lineasGrupo.map(({ pedido, detalle }) => {
       const pendiente = pendienteDe(detalle);
@@ -215,7 +216,6 @@ const crearOrdenDesdePedidos = async ({ pedidoids, proveedorid, descripcion, neg
   }
   await orden.update({ total: dos(total) }, { transaction });
 
-  await Pedido.update({ ordenid: orden.ordenid }, { where: { pedidoid: ids, ordenid: null }, transaction });
   for (const id of ids) await sincronizarEstadoPedido(id, transaction);
   return orden;
 };
@@ -225,13 +225,13 @@ const crearOrdenDesdePedidos = async ({ pedidoids, proveedorid, descripcion, neg
 const repartirRecepcion = async ({ detalle, cantidad, reparto, transaction }) => {
   const todas = await Asignacion.findAll({
     where: { ordendetalleid: detalle.detalleid },
-    include: [{ model: PedidoDetalle, as: 'pedidoDetalle', attributes: ['pedidoid'], include: [{ model: Pedido, as: 'pedido', attributes: ['estado'] }] }],
+    include: [{ model: PedidoDetalle, as: 'pedidoDetalle', attributes: ['pedidoid'], include: [{ model: Pedido, as: 'pedido', attributes: ['estado', 'ordenid'] }] }],
     order: [['asignacionid', 'ASC']],
     transaction,
   });
   // Si un cliente canceló, su par ya no es de nadie: lo que llegue de más queda como stock libre
   const asignaciones = todas.filter((a) => a.pedidoDetalle?.pedido?.estado !== 'anulado');
-  if (asignaciones.length === 0) return;
+  if (asignaciones.length === 0) return 0;
 
   const pendiente = (a) => redondear(Number(a.cantidad) - Number(a.cantidadRecibida));
   let cambios;
@@ -267,26 +267,34 @@ const repartirRecepcion = async ({ detalle, cantidad, reparto, transaction }) =>
     }
   }
 
+  let reservable = 0;
   for (const { asignacion, cant } of cambios) {
     await asignacion.update({ cantidadRecibida: redondear(Number(asignacion.cantidadRecibida) + cant) }, { transaction });
+    if (asignacion.pedidoDetalle?.pedido?.ordenid) reservable = redondear(reservable + cant);
   }
+  return reservable;
 };
 
 // ───────────── Pedido al proveedor como contenedor de compras de clientes ─────────────
 // Flujo: abierta (se le agregan compras de clientes y líneas para stock) -> enviada (se congela lo pedido)
 // -> recibida_parcial / recibida (al recibir se reparte cada par entre los clientes; lo demás queda en stock).
 
-// Reserva el stock de una compra de cliente pendiente (pendiente -> confirmado)
-const confirmarCompra = async (pedido, negocioid, transaction) => {
+// Las compras de clientes dentro de un pedido al proveedor NO usan el inventario: no reservan stock mientras se piden.
+// El stock se reserva para el cliente cuando llega la mercancía (al registrar la recepción).
+
+// Si una compra ya reservaba stock del inventario (compra suelta confirmada), se libera al meterla en un pedido.
+const liberarReserva = async (pedido, negocioid, transaction) => {
+  if (!['confirmado', 'en_compra', 'recibido'].includes(pedido.estado)) return;
   const detalles = await PedidoDetalle.findAll({ where: { pedidoid: pedido.pedidoid }, transaction });
   for (const detalle of detalles) {
     if (!detalle.productoid) continue;
+    const pendiente = Math.max(0, redondear(Number(detalle.cantidad) - Number(detalle.cantidadEntregada || 0)));
+    if (pendiente <= 0) continue;
     const producto = await Producto.findOne({ where: { productoid: detalle.productoid, negocioid }, transaction, lock: true });
-    if (!producto) throw new ErrorCompra(`Producto no encontrado: ${detalle.productoNombre}`);
+    if (!producto) continue;
     const stock = await resolverStockDeDetalle(producto, detalle, transaction);
-    await guardarStock(producto, stock, { cantidadReservada: Number(stock.cantidadReservada) + Number(detalle.cantidad) }, transaction);
+    await guardarStock(producto, stock, { cantidadReservada: Math.max(0, Number(stock.cantidadReservada) - pendiente) }, transaction);
   }
-  await pedido.update({ estado: 'confirmado' }, { transaction });
 };
 
 const cargarOrden = async (ordenid, negocioid, transaction) => {
@@ -303,24 +311,24 @@ const exigirAbierta = (orden) => {
 
 const vigente = (compra) => !['anulado', 'entregado'].includes(compra.estado);
 
-// Envía el pedido al proveedor: confirma las compras pendientes (reservan stock), calcula lo que falta por producto y talla
-// (descontando el stock libre) y deja el reparto por cliente. Las líneas para stock quedan sumadas a la misma línea de producto.
+// Envía el pedido al proveedor: calcula lo que se pide por producto y talla (todo lo de los clientes, sin tocar el inventario)
+// y deja el reparto por cliente. Las líneas para stock quedan sumadas a la misma línea de producto.
 const enviarOrden = async ({ ordenid, negocioid, transaction }) => {
   const orden = await cargarOrden(ordenid, negocioid, transaction);
   exigirAbierta(orden);
 
   const compras = await Pedido.findAll({ where: { ordenid, negocioid }, transaction, lock: true });
   for (const compra of compras.filter((c) => c.estado === 'pendiente')) {
-    await confirmarCompra(compra, negocioid, transaction);
+    await compra.update({ estado: 'confirmado' }, { transaction });
   }
   const ids = compras.filter(vigente).map((c) => c.pedidoid);
 
   const lineasStock = await OrdenCompraDetalle.findAll({ where: { ordenid }, transaction });
 
   let grupos = [];
-  if (ids.length > 0) ({ grupos } = await calcularFaltantes({ pedidoids: ids, negocioid, transaction }));
+  if (ids.length > 0) ({ grupos } = await calcularFaltantes({ pedidoids: ids, negocioid, transaction, ignorarStock: true }));
   if (grupos.length === 0 && lineasStock.length === 0) {
-    throw new ErrorCompra('No hay nada que pedir: agrega compras de clientes o productos para stock (el stock actual ya cubre las compras)');
+    throw new ErrorCompra('No hay nada que pedir: agrega compras de clientes o productos para stock');
   }
 
   for (const grupo of grupos) {
@@ -349,24 +357,12 @@ const enviarOrden = async ({ ordenid, negocioid, transaction }) => {
   return orden;
 };
 
-// Vista previa de "Enviar": cuánto se pide por producto y talla, para quién y cuánto va a stock.
-// calcularFaltantes exige compras confirmadas: las pendientes se confirman dentro de una transacción que se revierte.
+// Vista previa de "Enviar": cuánto se pide por producto y talla y para quién (el inventario no se descuenta)
 const previewOrden = async ({ ordenid, negocioid }) => {
   await cargarOrden(ordenid, negocioid);
-  const t = await sequelize.transaction();
-  try {
-    const compras = await Pedido.findAll({ where: { ordenid, negocioid }, transaction: t, lock: true });
-    for (const compra of compras.filter((c) => c.estado === 'pendiente')) {
-      await confirmarCompra(compra, negocioid, t);
-    }
-    const ids = compras.filter(vigente).map((c) => c.pedidoid);
-    const faltantes = ids.length ? await calcularFaltantes({ pedidoids: ids, negocioid, transaction: t }) : { grupos: [], total: 0 };
-    await t.rollback();
-    return faltantes;
-  } catch (error) {
-    await t.rollback();
-    throw error;
-  }
+  const compras = await Pedido.findAll({ where: { ordenid, negocioid }, attributes: ['pedidoid', 'estado'] });
+  const ids = compras.filter(vigente).map((c) => c.pedidoid);
+  return ids.length ? calcularFaltantes({ pedidoids: ids, negocioid, ignorarStock: true, aceptarPendientes: true }) : { grupos: [], total: 0 };
 };
 
 // Agrega al pedido abierto una línea sin cliente (va directo al stock al recibirla). Acumula si ya existe producto y talla.
@@ -407,7 +403,12 @@ const asignarCompras = async ({ ordenid, negocioid, pedidoids, transaction }) =>
     if (['entregado', 'anulado'].includes(c.estado)) throw new ErrorCompra(`La compra #${c.pedidoid} está ${c.estado}`);
     if (c.ordenid && Number(c.ordenid) !== Number(ordenid)) throw new ErrorCompra(`La compra #${c.pedidoid} ya pertenece a otro pedido`);
   }
-  await Pedido.update({ ordenid }, { where: { pedidoid: ids }, transaction });
+  for (const c of compras) {
+    const yaPedida = await Asignacion.count({ include: [{ model: PedidoDetalle, as: 'pedidoDetalle', where: { pedidoid: c.pedidoid }, attributes: [] }], transaction });
+    if (yaPedida > 0) throw new ErrorCompra(`La compra #${c.pedidoid} ya tiene una orden de compra; no se puede mover`);
+    await liberarReserva(c, negocioid, transaction);
+    await c.update({ ordenid, estado: 'confirmado' }, { transaction });
+  }
 };
 
 module.exports = {
@@ -419,7 +420,7 @@ module.exports = {
   pedidoidsDeOrden,
   crearOrdenDesdePedidos,
   repartirRecepcion,
-  confirmarCompra,
+  liberarReserva,
   enviarOrden,
   previewOrden,
   agregarLineaStock,

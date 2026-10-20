@@ -56,6 +56,11 @@ const OrdenCompra = sequelize.define('OrdenCompra', {
     allowNull: false,
     defaultValue: 'borrador'
   },
+  // Nombre que le pone el usuario al pedido (ej. "Pedido de octubre")
+  nombre: {
+    type: DataTypes.STRING(120),
+    allowNull: true
+  },
   descripcion: {
     type: DataTypes.TEXT,
     defaultValue: ''
