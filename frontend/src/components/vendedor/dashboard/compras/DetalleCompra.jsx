@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Hash, PackageCheck, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Hash, PackageCheck, Pencil, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   actualizarPedidoProveedor,
@@ -20,6 +20,7 @@ import {
   etiquetaTalla,
   formatearFecha,
   formatoMoneda,
+  nombrePedido,
   pendienteAsignacion,
   repartoSugerido,
   restanteDetalle,
@@ -34,7 +35,7 @@ const cantidad = (n) => num(n).toLocaleString('es-CO', { maximumFractionDigits: 
 
 const ESTADOS_COMPRA_CLIENTE = {
   pendiente: 'Pendiente',
-  confirmado: 'Confirmada',
+  confirmado: 'En el pedido',
   en_compra: 'En compra',
   recibido: 'Recibida',
   entregado: 'Entregada',
@@ -53,7 +54,8 @@ function DetalleCompra() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [orden, setOrden] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'recibir' | 'enviar' | 'existentes'
+  const [modal, setModal] = useState(null); // 'recibir' | 'enviar' | 'existentes' | 'nombre'
+  const [nombreEdicion, setNombreEdicion] = useState('');
   const [recepcion, setRecepcion] = useState({}); // detalleid -> { llegaron, reparto: { asignacionid: cantidad } }
   const [guardando, setGuardando] = useState(false);
   const [proveedores, setProveedores] = useState([]);
@@ -169,7 +171,7 @@ function DetalleCompra() {
 
   const handleAnular = () => {
     toast(`¿Anular el pedido #${orden.ordenid}?`, {
-      description: 'No se modifica el stock ya recibido. Las compras de los clientes siguen vigentes pero quedan sin pedido.',
+      description: 'Las compras de los clientes siguen vigentes pero quedan sin pedido.',
       action: {
         label: 'Sí, anular',
         onClick: async () => {
@@ -184,6 +186,20 @@ function DetalleCompra() {
       },
       cancel: { label: 'Cancelar', onClick: () => {} },
     });
+  };
+
+  const guardarNombre = async (e) => {
+    e.preventDefault();
+    try {
+      setGuardando(true);
+      setOrden(await actualizarPedidoProveedor(orden.ordenid, { nombre: nombreEdicion }));
+      setModal(null);
+      toast.success('Nombre actualizado.');
+    } catch (error) {
+      toast.error(error?.response?.data?.mensaje || 'No se pudo cambiar el nombre.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const cambiarProveedor = async (valor) => {
@@ -296,10 +312,15 @@ function DetalleCompra() {
         </button>
         <div className="detalle-tx-header-text">
           <div className="pedido-titulo-linea">
-            <h1>Pedido #{orden.ordenid}</h1>
+            <h1>{nombrePedido(orden)}</h1>
+            {!['recibida', 'anulada'].includes(orden.estado) && (
+              <button className="pedido-modal-close" title="Cambiar nombre" onClick={() => { setNombreEdicion(orden.nombre || ''); setModal('nombre'); }}>
+                <Pencil size={14} />
+              </button>
+            )}
             <span className={`pedido-estado pedido-estado-${estado.clase}`}>{estado.label}</span>
           </div>
-          <div className="detalle-tx-breadcrumb">Pedidos / <span className="active">Pedido #{orden.ordenid}</span></div>
+          <div className="detalle-tx-breadcrumb">Pedidos / <span className="active">{orden.nombre ? `${orden.nombre} · #${orden.ordenid}` : `Pedido #${orden.ordenid}`}</span></div>
         </div>
         <div className="pedido-detalle-acciones">
           {abierto && (
@@ -526,6 +547,27 @@ function DetalleCompra() {
         </>
       )}
 
+      {modal === 'nombre' && (
+        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
+          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pedido-modal-header">
+              <h3>Nombre del pedido</h3>
+              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
+            </div>
+            <form className="pedido-modal-form" onSubmit={guardarNombre}>
+              <label>
+                Nombre
+                <input type="text" maxLength={120} autoFocus placeholder={`Pedido #${orden.ordenid}`} value={nombreEdicion} onChange={(e) => setNombreEdicion(e.target.value)} />
+              </label>
+              <div className="pedido-modal-footer">
+                <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
+                <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={guardando}>{guardando ? 'Guardando...' : 'Guardar'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {modal === 'existentes' && (
         <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
           <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
@@ -573,7 +615,7 @@ function DetalleCompra() {
         <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
           <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
             <div className="pedido-modal-header">
-              <h3>Enviar pedido #{orden.ordenid} al proveedor</h3>
+              <h3>Enviar {nombrePedido(orden)} al proveedor</h3>
               <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
             </div>
             <div className="pedido-modal-form">
@@ -584,7 +626,7 @@ function DetalleCompra() {
               ) : (
                 <>
                   <p className="pedido-modal-texto">
-                    Esto es lo que le pedirás al proveedor. Se descuenta el stock libre que ya tienes. Al enviar, las compras pendientes se confirman y reservan su stock.
+                    Esto es lo que le pedirás al proveedor: todo lo que compraron tus clientes más lo que quieras para stock. Tu inventario no se toca; el stock sube cuando recibas la mercancía.
                   </p>
                   <div className="compras-recepcion">
                     {lineasEnvio.map((l) => (

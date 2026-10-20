@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Eye, PackageCheck, Plus, Truck } from 'lucide-react';
+import { ClipboardList, Eye, PackageCheck, Plus, Truck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { crearPedidoProveedor, getOrdenesCompra } from '../../../../services/pedidoService';
-import { ESTADOS_COMPRA, formatearFecha, formatoMoneda } from './comprasUtils';
+import { ESTADOS_COMPRA, formatearFecha, formatoMoneda, nombrePedido } from './comprasUtils';
 import '../pedidos/Pedidos.css';
 import './Compras.css';
 
@@ -15,6 +15,8 @@ function Compras() {
   const [ordenes, setOrdenes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creando, setCreando] = useState(false);
+  const [modalNuevo, setModalNuevo] = useState(false);
+  const [nombreNuevo, setNombreNuevo] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('activas');
   const [busqueda, setBusqueda] = useState('');
 
@@ -32,11 +34,12 @@ function Compras() {
     cargar();
   }, []);
 
-  const crearPedido = async () => {
+  const crearPedido = async (e) => {
+    e?.preventDefault();
     try {
       setCreando(true);
-      const orden = await crearPedidoProveedor();
-      toast.success(`Pedido #${orden.ordenid} creado. Agrégale las compras de tus clientes.`);
+      const orden = await crearPedidoProveedor({ nombre: nombreNuevo.trim() || undefined });
+      toast.success(`${nombrePedido(orden)} creado. Agrégale las compras de tus clientes.`);
       navigate(`/dashboard/pedidos/${orden.ordenid}`);
     } catch (error) {
       toast.error(error?.response?.data?.mensaje || 'No se pudo crear el pedido.');
@@ -59,6 +62,7 @@ function Compras() {
       const proveedor = orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial || '';
       const coincideTexto = !texto
         || String(orden.ordenid).includes(texto)
+        || (orden.nombre || '').toLowerCase().includes(texto)
         || proveedor.toLowerCase().includes(texto)
         || (orden.descripcion || '').toLowerCase().includes(texto)
         || clientes.some((c) => c.toLowerCase().includes(texto));
@@ -88,9 +92,9 @@ function Compras() {
           <p className="pedidos-subtitle">Cada pedido es lo que le haces al proveedor. Dentro agregas las compras de tus clientes y llevas sus abonos y entregas.</p>
         </div>
         <div className="pedidos-header-acciones">
-          <button className="pedidos-btn pedidos-btn-primary" onClick={crearPedido} disabled={creando}>
+          <button className="pedidos-btn pedidos-btn-primary" onClick={() => { setNombreNuevo(''); setModalNuevo(true); }}>
             <Plus size={16} />
-            <span>{creando ? 'Creando...' : 'Crear pedido'}</span>
+            <span>Crear pedido</span>
           </button>
         </div>
       </div>
@@ -114,7 +118,7 @@ function Compras() {
         <input
           type="text"
           className="pedidos-buscador"
-          placeholder="Buscar por número, proveedor, cliente o nota..."
+          placeholder="Buscar por nombre, número, proveedor o cliente..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
         />
@@ -132,7 +136,7 @@ function Compras() {
           <div className="pedidos-vacio">
             <Truck size={44} />
             <p>No hay pedidos que coincidan con el filtro.</p>
-            <button className="pedidos-btn pedidos-btn-primary" onClick={crearPedido} disabled={creando}>
+            <button className="pedidos-btn pedidos-btn-primary" onClick={() => { setNombreNuevo(''); setModalNuevo(true); }}>
               <Plus size={16} /><span>Crear pedido</span>
             </button>
           </div>
@@ -157,8 +161,8 @@ function Compras() {
                 return (
                   <tr key={orden.ordenid} onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
                     <td className="pedido-id">
-                      #{orden.ordenid}
-                      {orden.descripcion && <small className="compras-nota-corta">{orden.descripcion}</small>}
+                      {nombrePedido(orden)}
+                      <small className="compras-nota-corta">{orden.nombre ? `#${orden.ordenid}` : ''}{orden.nombre && orden.descripcion ? ' · ' : ''}{orden.descripcion}</small>
                     </td>
                     <td>{orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial || 'Sin proveedor'}</td>
                     <td className="compras-clientes">
@@ -183,6 +187,28 @@ function Compras() {
           </table>
         )}
       </div>
+
+      {modalNuevo && (
+        <div className="pedido-modal-overlay" onClick={() => setModalNuevo(false)}>
+          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pedido-modal-header">
+              <h3>Crear pedido</h3>
+              <button className="pedido-modal-close" onClick={() => setModalNuevo(false)}><X size={16} /></button>
+            </div>
+            <form className="pedido-modal-form" onSubmit={crearPedido}>
+              <label>
+                Nombre del pedido (opcional)
+                <input type="text" maxLength={120} autoFocus placeholder="Ej. Pedido de octubre, Colección Aura..." value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} />
+              </label>
+              <p className="pedido-ayuda">Si lo dejas vacío se llamará «Pedido #número». Puedes cambiarlo cuando quieras.</p>
+              <div className="pedido-modal-footer">
+                <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModalNuevo(false)}>Cancelar</button>
+                <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={creando}>{creando ? 'Creando...' : 'Crear pedido'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

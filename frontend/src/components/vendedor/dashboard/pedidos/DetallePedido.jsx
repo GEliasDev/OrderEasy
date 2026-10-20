@@ -29,8 +29,22 @@ import './Pedidos.css';
 // Una línea del pedido es "producto + talla"
 const claveEdicion = (productoid, talla) => `${productoid}:${talla ?? ''}`;
 
+// Compras dentro de un pedido al proveedor: no se entrega del inventario sino lo que ya llegó para el cliente
+const conLlegado = (pedido) => {
+  if (!pedido?.ordenid) return pedido;
+  return {
+    ...pedido,
+    detalles: (pedido.detalles || []).map((d) => ({
+      ...d,
+      llegadoPorEntregar: Math.max(0, Math.round((Number(d.recibidoCompra || 0) - Number(d.cantidadEntregada || 0)) * 1000) / 1000),
+    })),
+  };
+};
+
 // Stock físico de una línea: el de su talla si el producto maneja tallas, o el total del producto
+// (en una compra dentro de un pedido al proveedor, lo que ya llegó y falta entregar)
 const stockFisicoDe = (detalle) => {
+  if (detalle.llegadoPorEntregar !== undefined) return detalle.llegadoPorEntregar;
   const producto = detalle.producto;
   if (!producto) return 0;
   if (detalle.varianteid || detalle.talla) {
@@ -121,7 +135,7 @@ function DetallePedido() {
     try {
       if (!silencioso) setLoading(true);
       const data = await getPedidoById(id);
-      setPedido(data);
+      setPedido(conLlegado(data));
       if (data.clienteid && data.estado !== 'anulado') {
         getSaldoFavor(data.clienteid).then(setSaldoFavor).catch(() => setSaldoFavor({ total: 0, pedidos: [] }));
       } else {
@@ -307,7 +321,7 @@ function DetallePedido() {
     try {
       const actualizado = await usarSaldoFavor(pedido.pedidoid);
       toast.success('Saldo a favor aplicado como abono.');
-      setPedido(actualizado);
+      setPedido(conLlegado(actualizado));
       cargarPedido(true);
     } catch (error) {
       toast.error(error?.response?.data?.mensaje || 'No se pudo usar el saldo a favor.');
@@ -510,7 +524,10 @@ function DetallePedido() {
   const entregaPorCobrar = Math.max(0, Math.round((entregaValor - entregaCubierto) * 100) / 100);
   const puedeEditar = !['entregado', 'anulado'].includes(pedido.estado);
   const puedeGenerarCompra = ['confirmado', 'en_compra'].includes(pedido.estado) && !pedido.ordenid;
-  const estadoConfig = ESTADOS[pedido.estado] || { label: pedido.estado, clase: 'anulado' };
+  // Dentro de un pedido al proveedor no hay paso de confirmar: la compra simplemente está en el pedido
+  const estadoConfig = pedido.ordenid && pedido.estado === 'confirmado'
+    ? { label: 'En el pedido', clase: 'pendiente' }
+    : (ESTADOS[pedido.estado] || { label: pedido.estado, clase: 'anulado' });
 
   return (
     <div className="detalle-tx-view detalle-ancho">
@@ -536,7 +553,7 @@ function DetallePedido() {
           </div>
         </div>
         <div className="pedido-detalle-acciones">
-          {pedido.estado === 'pendiente' && (
+          {pedido.estado === 'pendiente' && !pedido.ordenid && (
             <button className="pedidos-btn pedidos-btn-primary" onClick={handleConfirmar}>
               <Check size={14} />
               <span>Confirmar</span>
@@ -579,7 +596,9 @@ function DetallePedido() {
         <div className="pedido-alerta-stock">
           <Truck size={16} />
           <span>
-            Faltan {itemsSinStock.length} línea(s) por recibir.{hayParaEntregar ? ' Puedes entregar ahora lo que ya tienes en stock.' : ' Genera o recibe la compra para poder entregar.'}
+            {pedido.ordenid
+              ? `Faltan ${itemsSinStock.length} línea(s) por llegar del proveedor.${hayParaEntregar ? ' Puedes entregar ahora lo que ya llegó.' : ' Podrás entregar cuando llegue la mercancía.'}`
+              : `Faltan ${itemsSinStock.length} línea(s) por recibir.${hayParaEntregar ? ' Puedes entregar ahora lo que ya tienes en stock.' : ' Genera o recibe la compra para poder entregar.'}`}
           </span>
         </div>
       )}
@@ -722,7 +741,7 @@ function DetallePedido() {
                 <th>Producto</th>
                 <th>Cant.</th>
                 <th>Entregado</th>
-                <th>Stock físico</th>
+                <th>{pedido.ordenid ? 'Llegado' : 'Stock físico'}</th>
                 <th>Precio Unit.</th>
                 <th>Subtotal</th>
               </tr>
@@ -756,9 +775,9 @@ function DetallePedido() {
                       {pendiente <= 0 ? (
                         <span className="pedido-stock-ok">Entregado</span>
                       ) : faltante > 0 ? (
-                        <span className="pedido-stock-faltante">Faltan {formatearCantidad(faltante, item.producto?.unidadMedida)}</span>
+                        <span className="pedido-stock-faltante">{pedido.ordenid ? 'Por llegar' : 'Faltan'} {formatearCantidad(faltante, item.producto?.unidadMedida)}</span>
                       ) : (
-                        <span className="pedido-stock-ok">{formatearCantidad(stockFisico, item.producto?.unidadMedida)} disp.</span>
+                        <span className="pedido-stock-ok">{formatearCantidad(stockFisico, item.producto?.unidadMedida)} {pedido.ordenid ? 'por entregar' : 'disp.'}</span>
                       )}
                     </td>
                     <td className="item-price">{formatoMoneda(item.precioUnitario)}</td>

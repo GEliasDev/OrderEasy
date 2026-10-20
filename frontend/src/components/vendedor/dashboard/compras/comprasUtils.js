@@ -42,3 +42,6 @@ export const repartoSugerido = (detalle, llegaron) => {
 };
 
 export const etiquetaTalla = (detalle) => (detalle.talla ? ` · Talla ${detalle.talla}` : '');
+
+// Nombre con el que se muestra un pedido al proveedor
+export const nombrePedido = (orden) => orden.nombre || `Pedido #${orden.ordenid}`;

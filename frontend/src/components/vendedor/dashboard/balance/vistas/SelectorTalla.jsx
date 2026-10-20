@@ -7,6 +7,7 @@ import './styles/SelectorTalla.css';
  * Ventana para elegir la talla de un producto antes de agregarlo al carrito.
  * modo "venta": las tallas sin stock disponible no se pueden elegir.
  * modo "pedido" y "compra": cualquier talla se puede elegir (se puede pedir o comprar sin stock).
+ * modo "solicitud": se le pide al proveedor, así que no se muestra el inventario.
  */
 function SelectorTalla({ producto, modo = 'venta', onSelect, onClose }) {
   const tallas = tallasOrdenadas(producto);
@@ -40,7 +41,9 @@ function SelectorTalla({ producto, modo = 'venta', onSelect, onClose }) {
           {tallas.map((v) => {
             const disponible = Math.max(0, Number(v.cantidadDisponible) - Number(v.cantidadReservada || 0));
             const bloqueada = modo === 'venta' && disponible <= 0;
-            const detalle = modo === 'compra'
+            const detalle = modo === 'solicitud'
+              ? ''
+              : modo === 'compra'
               ? `Stock ${formatearCantidad(v.cantidadDisponible, producto.unidadMedida)}`
               : disponible > 0
                 ? `${formatearCantidad(disponible, producto.unidadMedida)} disp.`
@@ -54,7 +57,7 @@ function SelectorTalla({ producto, modo = 'venta', onSelect, onClose }) {
                 onClick={() => onSelect(v)}
               >
                 <strong>{v.talla}</strong>
-                <span>{detalle}</span>
+                {detalle && <span>{detalle}</span>}
               </button>
             );
           })}

@@ -169,7 +169,7 @@ function NuevoPedido() {
             </div>
 
             <p className="pedido-aviso">
-              {paraStock ? 'Pares extra que pides al proveedor sin cliente asignado: al recibirlos suben directo al stock. Los precios son tu costo de compra.' : 'Puedes pedir más unidades que el stock actual. Al confirmar el pedido se reserva el stock y puedes generar la compra al proveedor por los faltantes.'}
+              {paraStock ? 'Pares extra que pides al proveedor sin cliente asignado: al recibirlos suben directo al stock. Los precios son tu costo de compra.' : ordenid ? 'Esto es lo que el cliente le compra a este pedido: se le pide al proveedor y no usa tu inventario.' : 'Puedes pedir más unidades que el stock actual. Al confirmar el pedido se reserva el stock y puedes generar la compra al proveedor por los faltantes.'}
             </p>
 
             {cargando ? (
@@ -194,9 +194,11 @@ function NuevoPedido() {
                         className="producto-imagen"
                         onError={(e) => { e.target.src = '/images/default-product.png'; }}
                       />
-                      <div className={`stock-badge-cart ${producto.stockDisponible <= 0 ? 'stock-out-cart' : ''}`}>
-                        {producto.stockDisponible > 0 ? `Disponible: ${formatearCantidad(producto.stockDisponible, producto.unidadMedida)}` : (paraStock ? 'Sin stock' : 'Bajo pedido')}
-                      </div>
+                      {(!ordenid || paraStock) && (
+                        <div className={`stock-badge-cart ${producto.stockDisponible <= 0 ? 'stock-out-cart' : ''}`}>
+                          {producto.stockDisponible > 0 ? `Disponible: ${formatearCantidad(producto.stockDisponible, producto.unidadMedida)}` : (paraStock ? 'Sin stock' : 'Bajo pedido')}
+                        </div>
+                      )}
                     </div>
                     <div className="product-info">
                       <h3 className="producto-nombre">{producto.nombre}</h3>
@@ -365,7 +367,7 @@ function NuevoPedido() {
       {productoParaTalla && (
         <SelectorTalla
           producto={productoParaTalla}
-          modo="pedido"
+          modo={paraStock ? 'compra' : (ordenid ? 'solicitud' : 'pedido')}
           onSelect={elegirTalla}
           onClose={cerrarSelectorTalla}
         />
