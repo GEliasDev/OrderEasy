@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { getCategoriesByUser } from '../../../../services/categoryServices';
 import { getAllProducts } from '../../../../services/productServices';
 import { getClientes } from '../../../../services/clienteService';
-import { createPedido } from '../../../../services/pedidoService';
+import { agregarStockPedido, createPedido } from '../../../../services/pedidoService';
 import { useCarrito, pasoDe, minimoDe } from '../../../../hooks/useCarrito';
 import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import SelectorTalla from '../balance/vistas/SelectorTalla';
@@ -21,6 +21,8 @@ function NuevoPedido() {
   // ?pedido=ID: la compra se crea dentro de ese pedido al proveedor y se vuelve a él al terminar
   const [searchParams] = useSearchParams();
   const ordenid = Number(searchParams.get('pedido')) || null;
+  // ?tipo=stock: en vez de una compra de cliente, se eligen productos que se piden de más para el stock
+  const paraStock = Boolean(ordenid) && searchParams.get('tipo') === 'stock';
   const destino = ordenid ? `/dashboard/pedidos/${ordenid}` : '/dashboard/pedidos';
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -75,7 +77,24 @@ function NuevoPedido() {
       }));
   }, [productos, busqueda, categoriaSeleccionada]);
 
-  const totalCarrito = carrito.reduce((sum, item) => sum + Number(item.precioVenta) * item.cantidad, 0);
+  const precioDe = (item) => Number(paraStock ? item.precioCompra : item.precioVenta) || 0;
+  const totalCarrito = carrito.reduce((sum, item) => sum + precioDe(item) * item.cantidad, 0);
+
+  const agregarParaStock = async () => {
+    if (carrito.length === 0) return;
+    try {
+      setProcesando(true);
+      await agregarStockPedido(ordenid, {
+        items: carrito.map((item) => ({ productoid: item.productoid, talla: item.talla, cantidad: item.cantidad })),
+      });
+      toast.success(`Productos para stock agregados al pedido #${ordenid}.`);
+      navigate(destino);
+    } catch (error) {
+      toast.error(error?.response?.data?.mensaje || 'No se pudieron agregar los productos.');
+    } finally {
+      setProcesando(false);
+    }
+  };
 
   const finalizarPedido = async () => {
     if (carrito.length === 0) return;
@@ -120,7 +139,7 @@ function NuevoPedido() {
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <ClipboardList size={24} style={{ color: 'var(--color-primary)' }} />
-              <h2>{ordenid ? `Nueva compra · Pedido #${ordenid}` : 'Nueva compra de cliente'}</h2>
+              <h2>{paraStock ? `Productos para stock · Pedido #${ordenid}` : (ordenid ? `Nueva compra · Pedido #${ordenid}` : 'Nueva compra de cliente')}</h2>
             </div>
           </div>
         </div>
@@ -150,7 +169,7 @@ function NuevoPedido() {
             </div>
 
             <p className="pedido-aviso">
-              Puedes pedir más unidades que el stock actual. Al confirmar el pedido se reserva el stock y puedes generar la compra al proveedor por los faltantes.
+              {paraStock ? 'Pares extra que pides al proveedor sin cliente asignado: al recibirlos suben directo al stock. Los precios son tu costo de compra.' : 'Puedes pedir más unidades que el stock actual. Al confirmar el pedido se reserva el stock y puedes generar la compra al proveedor por los faltantes.'}
             </p>
 
             {cargando ? (
@@ -176,13 +195,13 @@ function NuevoPedido() {
                         onError={(e) => { e.target.src = '/images/default-product.png'; }}
                       />
                       <div className={`stock-badge-cart ${producto.stockDisponible <= 0 ? 'stock-out-cart' : ''}`}>
-                        {producto.stockDisponible > 0 ? `Disponible: ${formatearCantidad(producto.stockDisponible, producto.unidadMedida)}` : 'Bajo pedido'}
+                        {producto.stockDisponible > 0 ? `Disponible: ${formatearCantidad(producto.stockDisponible, producto.unidadMedida)}` : (paraStock ? 'Sin stock' : 'Bajo pedido')}
                       </div>
                     </div>
                     <div className="product-info">
                       <h3 className="producto-nombre">{producto.nombre}</h3>
                       {producto.categoriaNombre && <span className="product-category">{producto.categoriaNombre}</span>}
-                      <span className="producto-precio-cart">{formatoMoneda(producto.precioVenta)}</span>
+                      <span className="producto-precio-cart">{formatoMoneda(paraStock ? producto.precioCompra : producto.precioVenta)}</span>
                     </div>
                   </div>
                 ))}
@@ -198,9 +217,10 @@ function NuevoPedido() {
           <div className="cart-summary-panel">
             <div className="cart-title">
               <ClipboardList size={20} />
-              Pedido
+              {paraStock ? 'Para stock' : 'Pedido'}
             </div>
 
+            {!paraStock && (<>
             <div className="client-selection-cart">
               <label>Cliente</label>
               <select
@@ -255,6 +275,7 @@ function NuevoPedido() {
                 rows={2}
               />
             </div>
+            </>)}
 
             <div className="cart-items-list">
               {carrito.length === 0 ? (
@@ -277,7 +298,7 @@ function NuevoPedido() {
                         {item.nombre}
                         {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
                       </span>
-                      <span className="cart-item-price">{formatoMoneda(Number(item.precioVenta) * item.cantidad)}</span>
+                      <span className="cart-item-price">{formatoMoneda(precioDe(item) * item.cantidad)}</span>
                     </div>
                     <div className="cart-item-actions">
                       <Trash2
@@ -316,23 +337,23 @@ function NuevoPedido() {
 
             <div className="cart-footer">
               <div className="cart-total-row">
-                <span className="total-label">Total del pedido</span>
+                <span className="total-label">{paraStock ? 'Costo estimado' : 'Total del pedido'}</span>
                 <span className="total-amount">{formatoMoneda(totalCarrito)}</span>
               </div>
               <button
                 className={`checkout-button ${procesando ? 'loading' : ''}`}
-                disabled={carrito.length === 0 || !clienteId || procesando}
-                onClick={finalizarPedido}
+                disabled={carrito.length === 0 || (!paraStock && !clienteId) || procesando}
+                onClick={paraStock ? agregarParaStock : finalizarPedido}
               >
                 {procesando ? (
                   <>
                     <div className="loader-spinner"></div>
-                    <span>Creando pedido...</span>
+                    <span>{paraStock ? 'Agregando...' : 'Creando pedido...'}</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle2 size={20} />
-                    <span>Crear Pedido</span>
+                    <span>{paraStock ? 'Agregar al pedido' : 'Crear Pedido'}</span>
                   </>
                 )}
               </button>

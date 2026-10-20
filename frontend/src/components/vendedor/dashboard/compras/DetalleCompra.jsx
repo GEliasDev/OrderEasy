@@ -4,7 +4,6 @@ import { ArrowLeft, Calendar, Hash, PackageCheck, Plus, Send, Trash2, Truck, Use
 import { toast } from 'sonner';
 import {
   actualizarPedidoProveedor,
-  agregarStockPedido,
   anularOrdenCompra,
   asignarComprasPedido,
   enviarPedidoProveedor,
@@ -14,7 +13,6 @@ import {
   quitarStockPedido,
   recibirOrdenCompra,
 } from '../../../../services/pedidoService';
-import { getAllProducts } from '../../../../services/productServices';
 import { getProveedores } from '../../../../services/proveedorService';
 import {
   ESTADOS_COMPRA,
@@ -55,12 +53,10 @@ function DetalleCompra() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [orden, setOrden] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'recibir' | 'enviar' | 'stock' | 'existentes'
+  const [modal, setModal] = useState(null); // 'recibir' | 'enviar' | 'existentes'
   const [recepcion, setRecepcion] = useState({}); // detalleid -> { llegaron, reparto: { asignacionid: cantidad } }
   const [guardando, setGuardando] = useState(false);
   const [proveedores, setProveedores] = useState([]);
-  const [productos, setProductos] = useState([]);
-  const [stockForm, setStockForm] = useState({ productoid: '', talla: '', cantidad: '' });
   const [preview, setPreview] = useState(null);
   const [sueltas, setSueltas] = useState([]);
   const [marcadas, setMarcadas] = useState(() => new Set());
@@ -198,44 +194,6 @@ function DetalleCompra() {
     }
   };
 
-  // ── Productos para stock ──
-  const abrirStock = async () => {
-    setStockForm({ productoid: '', talla: '', cantidad: '' });
-    setModal('stock');
-    if (productos.length === 0) {
-      try {
-        const data = await getAllProducts();
-        setProductos(Array.isArray(data) ? data : []);
-      } catch {
-        toast.error('No se pudieron cargar los productos.');
-      }
-    }
-  };
-
-  const productoElegido = useMemo(
-    () => productos.find((p) => String(p.productoid) === String(stockForm.productoid)),
-    [productos, stockForm.productoid],
-  );
-
-  const agregarStock = async (e) => {
-    e.preventDefault();
-    if (!productoElegido) return toast.error('Elige un producto.');
-    if (productoElegido.usaTallas && !stockForm.talla) return toast.error('Elige la talla.');
-    if (num(stockForm.cantidad) <= 0) return toast.error('Indica la cantidad.');
-    try {
-      setGuardando(true);
-      setOrden(await agregarStockPedido(orden.ordenid, {
-        items: [{ productoid: productoElegido.productoid, talla: stockForm.talla || undefined, cantidad: num(stockForm.cantidad) }],
-      }));
-      setStockForm((prev) => ({ ...prev, cantidad: '' }));
-      toast.success('Agregado al pedido para stock.');
-    } catch (error) {
-      toast.error(error?.response?.data?.mensaje || 'No se pudo agregar el producto.');
-    } finally {
-      setGuardando(false);
-    }
-  };
-
   const quitarStock = async (detalle) => {
     try {
       setOrden(await quitarStockPedido(orden.ordenid, detalle.detalleid));
@@ -346,7 +304,7 @@ function DetalleCompra() {
         <div className="pedido-detalle-acciones">
           {abierto && (
             <>
-              <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirStock}>
+              <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}&tipo=stock`)}>
                 <Plus size={14} /><span>Para stock</span>
               </button>
               <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirExistentes}>
@@ -566,49 +524,6 @@ function DetalleCompra() {
             );
           })}
         </>
-      )}
-
-      {modal === 'stock' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Productos para stock</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
-            <form className="pedido-modal-form" onSubmit={agregarStock}>
-              <p className="pedido-modal-texto">Pares extra que pides al proveedor sin cliente asignado: suben directo al stock al recibirlos.</p>
-              <label>
-                Producto
-                <select value={stockForm.productoid} onChange={(e) => setStockForm({ productoid: e.target.value, talla: '', cantidad: stockForm.cantidad })} required>
-                  <option value="">Elige un producto</option>
-                  {productos.map((p) => <option key={p.productoid} value={p.productoid}>{p.nombre}</option>)}
-                </select>
-              </label>
-              {productoElegido?.usaTallas && (
-                <label>
-                  Talla
-                  <select value={stockForm.talla} onChange={(e) => setStockForm({ ...stockForm, talla: e.target.value })} required>
-                    <option value="">Elige la talla</option>
-                    {(productoElegido.variantes || []).map((v) => <option key={v.talla} value={v.talla}>{v.talla}</option>)}
-                  </select>
-                </label>
-              )}
-              <label>
-                Cantidad
-                <input type="number" min="0" step="any" value={stockForm.cantidad} onChange={(e) => setStockForm({ ...stockForm, cantidad: e.target.value })} required />
-              </label>
-              {detalles.length > 0 && (
-                <p className="pedido-ayuda">Ya en el pedido: {detalles.map((d) => `${cantidad(d.cantidad)}× ${d.productoNombre}${d.talla ? ` · ${d.talla}` : ''}`).join(', ')}.</p>
-              )}
-              <div className="pedido-modal-footer">
-                <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Listo</button>
-                <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={guardando}>
-                  {guardando ? 'Agregando...' : 'Agregar'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
 
       {modal === 'existentes' && (
