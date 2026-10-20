@@ -9,6 +9,7 @@ npm install
 cp .env.example .env   # completar DB_*, JWT_SECRET, CLOUDINARY_*, OPENROUTER_*
 npm run dev              # nodemon server.js, http://localhost:3000
 npm start                 # producción, sin watch
+npm run migrate           # aplica scripts/migrations/*.sql pendientes (también corre solo al arrancar)
 ```
 
 No hay script de migraciones ni de seed: el esquema se sincroniza automáticamente vía `sequelize.sync()` en `server.js` (con `alter: true` solo fuera de producción).
@@ -35,3 +36,16 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 - Las líneas de venta, pedido, orden de compra y egreso guardan `talla` y `varianteid`; los items de la API reciben `talla` (obligatoria solo si el producto usa tallas).
 - `productos.unidadMedida` (und, par, caja, kg, g, m, l; ver `utils/unidades.js`). Las cantidades son `DOUBLE` y solo kg, g, m y l admiten decimales (se validan en `validarCantidad`).
 - Producción no altera el esquema automáticamente: aplicar `scripts/migrations/001-tallas-y-unidades.sql` (idempotente).
+
+## Despliegue y producción
+
+- Guía completa en `DEPLOY.md` (raíz). `render.yaml` crea la API y la web como servicios independientes; `Dockerfile` en `backend/` y `frontend/`.
+- `GET /health` verifica la API y la base de datos (lo usan Render y Docker).
+- Producción exige `CORS_ORIGIN` y un `JWT_SECRET` de 32+ caracteres; `trust proxy` se activa solo (límite de intentos por IP real).
+- `config/database.js`: SSL automático si el host no es local (`DB_SSL` lo fuerza), `DB_PORT`, `DB_POOL_MAX` y `DB_SCHEMA`.
+  Con `DB_SCHEMA` todas las tablas viven en un schema propio (se fija `search_path` al conectar) para compartir base con otra app
+  (ver `scripts/supabase-setup.sql`). No usar `define.schema` de Sequelize: rompe el orden de creación de tablas por las referencias por nombre.
+  Los tipos `enum_*` de Sequelize se crean en `public`.
+- `utils/migrar.js` aplica las migraciones SQL pendientes al arrancar (con bloqueo asesor y registro en `schema_migrations`).
+  Cambios a tablas existentes = nuevo archivo `scripts/migrations/00N-*.sql` idempotente; `sync()` no altera tablas en producción.
+- Sin Cloudinary las imágenes se guardan en `uploads/` (disco efímero en Render: se pierden al redesplegar).

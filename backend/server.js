@@ -7,36 +7,24 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-const REQUIRED_ENV = ['JWT_SECRET', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+// En producción también es obligatorio saber qué frontend puede llamar a la API
+const REQUIRED_ENV = ['JWT_SECRET', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', ...(IS_PROD ? ['CORS_ORIGIN'] : [])];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
 if (missing.length) {
   console.error(`❌ Variables de entorno faltantes: ${missing.join(', ')}`);
   process.exit(1);
 }
+if (IS_PROD && process.env.JWT_SECRET.length < 32) {
+  console.error('❌ JWT_SECRET es demasiado corto para producción (mínimo 32 caracteres).');
+  process.exit(1);
+}
 
-const IS_PROD = process.env.NODE_ENV === 'production';
-
-// Conexión Sequelize
+// Conexión Sequelize y modelos
 const sequelize = require('./config/database');
-
-require('./models/negocioModel');
-require('./models/roleSeccionModel');
-require('./models/rolModel');
-require('./models/userModel');
-require('./models/categoryModel');
-require('./models/productModel');
-require('./models/varianteModel');
-require('./models/ventaModel');
-require('./models/ventaDetalleModel');
-require('./models/egresoModel');
-require('./models/egresoDetalleModel');
-require('./models/clientModel');
-require('./models/ventaPagoModel');
-require('./models/proveedorModel');
-require('./models/pedidoModel');
-require('./models/pedidoPagoModel');
-require('./models/ordenCompraModel');
-require('./models/ordenCompraAsignacionModel');
+require('./models');
+const migrar = require('./utils/migrar');
 
 // Rutas
 const authRoutes = require('./routes/authRoutes');
@@ -57,20 +45,33 @@ const ordenCompraRoutes = require('./routes/ordenCompraRoutes');
 
 const app = express();
 
+// Detrás del proxy de Render/Nginx/Cloudflare: sin esto el límite de intentos ve la IP del proxy y no la del cliente
+if (IS_PROD || process.env.TRUST_PROXY === 'true') app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(compression());
 
 const corsOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
-  .map((s) => s.trim())
+  .map((s) => s.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 
 app.use(cors({
   // En desarrollo refleja cualquier origen (localhost, 127.0.0.1, IPs de red);
   // en producción solo los orígenes configurados en CORS_ORIGIN.
-  origin: IS_PROD ? (corsOrigins.length ? corsOrigins : false) : true,
+  origin: IS_PROD ? corsOrigins : true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 }));
+
+// Chequeo de salud para la plataforma de despliegue (Render, Docker, balanceadores)
+app.get('/health', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.json({ ok: true, servicio: 'ordereasy-api' });
+  } catch {
+    res.status(503).json({ ok: false, mensaje: 'Base de datos no disponible' });
+  }
+});
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
@@ -105,24 +106,49 @@ app.use('/api/roles', rolesRoutes);
 app.use('/api/pedidos', pedidoRoutes);
 app.use('/api/ordenes-compra', ordenCompraRoutes);
 
-const PORT = process.env.PORT || 3000;
-
-// Sincronizar todas las tablas y luego arrancar el servidor
-// En producción no se altera el esquema automáticamente (riesgo de pérdida de datos)
-sequelize.sync({ alter: !IS_PROD })
-  .then(() => {
-    console.log(`✅ Tablas sincronizadas con PostgreSQL [${IS_PROD ? 'producción' : 'desarrollo'}]`);
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('❌ Error al sincronizar tablas:', err);
-    process.exit(1);
-  });
+app.use('/api', (req, res) => res.status(404).json({ mensaje: 'Ruta no encontrada.' }));
 
 // Manejador global de errores no capturados
 app.use((err, req, res, next) => {
   console.error('Error no capturado:', err);
   res.status(500).json({ mensaje: 'Error interno del servidor.' });
+});
+
+const PORT = process.env.PORT || 3000;
+
+const iniciar = async () => {
+  await sequelize.authenticate();
+  await sequelize.asegurarSchema();
+
+  // Sincronizar tablas. En producción no se altera el esquema automáticamente (riesgo de pérdida de datos):
+  // las tablas nuevas se crean y los cambios a tablas existentes llegan por las migraciones SQL.
+  await sequelize.sync({ alter: !IS_PROD });
+  console.log(`✅ Tablas sincronizadas con PostgreSQL [${IS_PROD ? 'producción' : 'desarrollo'}]${sequelize.schemaNombre ? ` (schema "${sequelize.schemaNombre}")` : ''}`);
+
+  if (process.env.RUN_MIGRATIONS !== 'false') await migrar();
+
+  if (IS_PROD && !process.env.CLOUDINARY_CLOUD_NAME) {
+    console.warn('⚠️  Cloudinary no está configurado: las imágenes se guardan en disco y se pierden en cada redeploy en plataformas con disco efímero (Render, Railway...).');
+  }
+
+  const servidor = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
+  });
+
+  // Cierre ordenado cuando la plataforma reinicia o apaga el servicio
+  const apagar = (senal) => {
+    console.log(`${senal} recibido: cerrando...`);
+    servidor.close(async () => {
+      await sequelize.close();
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 10000).unref();
+  };
+  process.on('SIGTERM', () => apagar('SIGTERM'));
+  process.on('SIGINT', () => apagar('SIGINT'));
+};
+
+iniciar().catch((err) => {
+  console.error('❌ No se pudo iniciar el servidor:', err);
+  process.exit(1);
 });

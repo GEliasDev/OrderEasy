@@ -1,10 +1,14 @@
 {
   "name": "ordereasy-js",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "migrate": "node utils/migrar.js",
     "seed": "node scripts/seed.js",
     "seed:catalogo": "node scripts/seed-catalogo.js",
     "convertir:tallas": "node scripts/convertir-a-tallas.js",
@@ -27,7 +31,6 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "ordereasy-js": "file:",
     "pg": "^8.13.3",
     "sequelize": "^6.37.5",
     "sharp": "^0.34.5"
