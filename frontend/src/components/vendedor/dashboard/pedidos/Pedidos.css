@@ -1174,3 +1174,6 @@
 }
 
 .pedido-recibo-btn:hover { background: var(--color-primary-soft, #EEF4FF); }
+
+/* Pedido y compra de cliente: usan todo el ancho disponible (la vista de transacciones del balance conserva su máximo) */
+.detalle-tx-view.detalle-ancho { max-width: none; margin: 0; }

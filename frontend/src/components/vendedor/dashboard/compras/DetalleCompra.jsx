@@ -289,7 +289,7 @@ function DetalleCompra() {
   const resumen = orden.resumenCompras || { cantidad: 0, total: 0, abonado: 0, saldo: 0 };
 
   return (
-    <div className="detalle-tx-view">
+    <div className="detalle-tx-view detalle-ancho">
       <div className="detalle-tx-header">
         <button className="btn-circle-back" onClick={() => navigate('/dashboard/pedidos')}>
           <ArrowLeft size={18} />

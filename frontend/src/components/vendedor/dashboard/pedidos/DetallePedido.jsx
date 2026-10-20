@@ -513,7 +513,7 @@ function DetallePedido() {
   const estadoConfig = ESTADOS[pedido.estado] || { label: pedido.estado, clase: 'anulado' };
 
   return (
-    <div className="detalle-tx-view">
+    <div className="detalle-tx-view detalle-ancho">
       <div className="detalle-tx-header">
         <button className="btn-circle-back" onClick={() => navigate(pedido.ordenid ? `/dashboard/pedidos/${pedido.ordenid}` : '/dashboard/pedidos')}>
           <ArrowLeft size={18} />
