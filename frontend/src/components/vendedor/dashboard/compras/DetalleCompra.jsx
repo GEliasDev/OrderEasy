@@ -397,23 +397,30 @@ function DetalleCompra() {
         </div>
       ) : (
         <div className="items-table-container">
-          <table className="items-table">
+          <table className="items-table compras-tabla">
             <thead>
-              <tr><th>Cliente</th><th>Compra</th><th>Productos</th><th>Total</th><th>Abonado</th><th>Saldo</th><th>Estado</th><th /></tr>
+              <tr>
+                <th>Cliente</th>
+                <th>Productos</th>
+                <th className="col-num">Total</th>
+                <th className="col-num">Abonado</th>
+                <th className="col-num">Saldo</th>
+                <th className="col-centro">Estado</th>
+                <th className="col-num">Acciones</th>
+              </tr>
             </thead>
             <tbody>
               {compras.map((compra) => {
                 const anulada = compra.estado === 'anulado';
                 return (
                   <tr key={compra.pedidoid} className={`compras-fila-link ${anulada ? 'compras-fila-cancelada' : ''}`} onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
-                    <td className="item-name">{compra.cliente?.nombreCliente || 'Sin cliente'}</td>
-                    <td>#{compra.pedidoid}</td>
+                    <td className="col-nombre">{compra.cliente?.nombreCliente || 'Sin cliente'}</td>
                     <td className="compras-clientes">{resumenProductos(compra)}</td>
-                    <td className="item-qty">{formatoMoneda(compra.total)}</td>
-                    <td className="item-qty">{formatoMoneda(compra.resumen?.abonado)}</td>
-                    <td className="item-qty">{anulada ? '—' : formatoMoneda(compra.resumen?.saldo)}</td>
-                    <td><span className={`pedido-estado pedido-estado-${compra.estado.replace('_', '-')}`}>{ESTADOS_COMPRA_CLIENTE[compra.estado] || compra.estado}</span></td>
-                    <td onClick={(e) => e.stopPropagation()}>
+                    <td className="col-num">{formatoMoneda(compra.total)}</td>
+                    <td className="col-num">{formatoMoneda(compra.resumen?.abonado)}</td>
+                    <td className="col-num">{anulada ? '—' : formatoMoneda(compra.resumen?.saldo)}</td>
+                    <td className="col-centro"><span className={`pedido-estado pedido-estado-${compra.estado.replace('_', '-')}`}>{ESTADOS_COMPRA_CLIENTE[compra.estado] || compra.estado}</span></td>
+                    <td className="col-num" onClick={(e) => e.stopPropagation()}>
                       <div className="compras-acciones-fila">
                         {!anulada && compra.estado !== 'entregado' && (
                           <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=abono`)}>
@@ -443,16 +450,24 @@ function DetalleCompra() {
             <div className="pedido-ordenes-vacio"><p>No hay productos para stock en este pedido.</p></div>
           ) : (
             <div className="items-table-container">
-              <table className="items-table">
-                <thead><tr><th>Producto</th><th>Talla</th><th>Cantidad</th><th>Costo</th><th /></tr></thead>
+              <table className="items-table compras-tabla">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th className="col-centro">Talla</th>
+                    <th className="col-centro">Cantidad</th>
+                    <th className="col-num">Costo</th>
+                    <th className="col-num" />
+                  </tr>
+                </thead>
                 <tbody>
                   {detalles.map((d) => (
                     <tr key={d.detalleid}>
-                      <td className="item-name">{d.productoNombre}</td>
-                      <td>{d.talla || '—'}</td>
-                      <td className="item-qty">{cantidad(d.cantidad)}</td>
-                      <td className="item-qty">{formatoMoneda(d.subtotal)}</td>
-                      <td>
+                      <td className="col-nombre">{d.productoNombre}</td>
+                      <td className="col-centro">{d.talla || '—'}</td>
+                      <td className="col-centro">{cantidad(d.cantidad)}</td>
+                      <td className="col-num">{formatoMoneda(d.subtotal)}</td>
+                      <td className="col-num">
                         <button className="pedidos-btn pedidos-btn-peligro pedidos-btn-sm" onClick={() => quitarStock(d)} title="Quitar">
                           <Trash2 size={13} />
                         </button>
@@ -489,9 +504,15 @@ function DetalleCompra() {
                 <div className="compras-barra"><div style={{ width: `${Math.min(100, progreso)}%` }} /></div>
 
                 <div className="items-table-container">
-                  <table className="items-table">
+                  <table className="items-table compras-tabla compras-tabla-reparto">
                     <thead>
-                      <tr><th>Cliente</th><th>Compra</th><th>Asignado</th><th>Recibido</th><th>Situación</th><th /></tr>
+                      <tr>
+                        <th>Cliente</th>
+                        <th className="col-centro">Asignado</th>
+                        <th className="col-centro">Recibido</th>
+                        <th className="col-centro">Situación</th>
+                        <th className="col-num">Acciones</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {(detalle.asignaciones || []).map((asignacion) => {
@@ -507,16 +528,15 @@ function DetalleCompra() {
                         else if (recibido > 0) situacion = { texto: 'Llegó parte', clase: 'parcial' };
                         return (
                           <tr key={asignacion.asignacionid} className={!activa ? 'compras-fila-cancelada' : ''}>
-                            <td className="item-name">{compra?.cliente?.nombreCliente || 'Sin cliente'}</td>
-                            <td>
+                            <td className="col-nombre">
                               <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedido/${compra?.pedidoid}`)}>
-                                #{compra?.pedidoid}
+                                {compra?.cliente?.nombreCliente || 'Sin cliente'}
                               </button>
                             </td>
-                            <td className="item-qty">{num(asignacion.cantidad)}</td>
-                            <td className="item-qty">{recibido}</td>
-                            <td><span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span></td>
-                            <td>
+                            <td className="col-centro">{num(asignacion.cantidad)}</td>
+                            <td className="col-centro">{recibido}</td>
+                            <td className="col-centro"><span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span></td>
+                            <td className="col-num">
                               {activa && !entregado && recibido > 0 && (
                                 <button
                                   className="pedidos-btn pedidos-btn-verde pedidos-btn-sm"
@@ -531,11 +551,11 @@ function DetalleCompra() {
                       })}
                       {paraStock > 0 && (
                         <tr>
-                          <td className="item-name">Stock (sin cliente)</td>
-                          <td>—</td>
-                          <td className="item-qty">{paraStock}</td>
-                          <td className="item-qty">—</td>
-                          <td colSpan="2"><span className="compras-situacion compras-situacion-espera">Va directo al stock</span></td>
+                          <td className="col-nombre">Stock (sin cliente)</td>
+                          <td className="col-centro">{paraStock}</td>
+                          <td className="col-centro">—</td>
+                          <td className="col-centro"><span className="compras-situacion compras-situacion-espera">Va directo al stock</span></td>
+                          <td className="col-num" />
                         </tr>
                       )}
                     </tbody>
