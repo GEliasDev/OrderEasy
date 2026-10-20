@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axiosInstance from '../api/axiosConfig';
+import { API_URL } from '../config';
 
 const ChatContext = createContext(null);
 
@@ -11,7 +11,7 @@ const getUserId = () => {
   catch { return null; }
 };
 
-const getApiBase = () => axiosInstance.defaults.baseURL || 'http://localhost:3000';
+const getApiBase = () => API_URL;
 const getToken = () => localStorage.getItem('token');
 
 export const ChatProvider = ({ children }) => {

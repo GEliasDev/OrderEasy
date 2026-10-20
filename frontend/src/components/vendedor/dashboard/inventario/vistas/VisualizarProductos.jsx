@@ -3,6 +3,7 @@ import { Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatearCantidad } from '../../../../../utils/unidades';
 import './styles/VisualizarProductos.css';
+import { API_URL } from '../../../../../config';
 
 function VisualizarProductos({ productos }) {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ function VisualizarProductos({ productos }) {
           <div className="producto-imagen-container">
             {producto.imagenes && producto.imagenes.length > 0 ? (
               <img
-                src={producto.imagenes[0].startsWith("http") ? producto.imagenes[0] : `http://localhost:3000/uploads/${producto.imagenes[0]}`}
+                src={producto.imagenes[0].startsWith("http") ? producto.imagenes[0] : `${API_URL}/uploads/${producto.imagenes[0]}`}
                 alt={producto.nombre}
                 className="producto-imagen"
                 onError={(e) => (e.target.src = "/images/default-product.png")}

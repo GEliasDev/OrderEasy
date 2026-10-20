@@ -4,6 +4,7 @@ import './styles/ProductoInfo.css';
 import { deleteProduct, getProductById } from '../../../../../services/productServices';
 import { getCategoriesByUser } from '../../../../../services/categoryServices';
 import EditarProductoForm from './EditarProductoForm';
+import { API_URL } from '../../../../../config';
 
 function ProductoInfo({ id, onClose, onRefresh }) {
   const [producto, setProducto] = useState(null);
@@ -91,7 +92,7 @@ function ProductoInfo({ id, onClose, onRefresh }) {
             <div className="detalle-imagen-container">
               {producto.imagenes?.length > 0 ? (
                 <img
-                  src={producto.imagenes[0].startsWith('http') ? producto.imagenes[0] : `http://localhost:3000/uploads/${producto.imagenes[0]}`}
+                  src={producto.imagenes[0].startsWith('http') ? producto.imagenes[0] : `${API_URL}/uploads/${producto.imagenes[0]}`}
                   alt={producto.nombre}
                   className="detalle-imagen"
                   onError={(e) => (e.target.src = '/images/default-product.png')}

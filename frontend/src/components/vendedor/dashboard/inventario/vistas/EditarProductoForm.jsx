@@ -5,6 +5,7 @@ import { updateProduct } from "../../../../../services/productServices";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import './styles/CrearProductoForm.css';
 import './styles/EditarProductoForm.css';
+import { API_URL } from '../../../../../config';
 
 const formatCOP = (val) =>
   val
@@ -218,7 +219,7 @@ function EditarProductoForm({ producto, onClose, onUpdate }) {
               {preview.map((img, i) => (
                 <img
                   key={i}
-                  src={img.startsWith('blob:') ? img : img.startsWith('http') ? img : `http://localhost:3000/uploads/${img}`}
+                  src={img.startsWith('blob:') ? img : img.startsWith('http') ? img : `${API_URL}/uploads/${img}`}
                   alt="Vista previa"
                   className="preview-image"
                 />

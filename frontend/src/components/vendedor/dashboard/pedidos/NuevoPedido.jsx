@@ -11,8 +11,7 @@ import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import SelectorTalla from '../balance/vistas/SelectorTalla';
 import '../balance/vistas/styles/CartStyles.css';
 import './Pedidos.css';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../../../config';
 
 const formatoMoneda = (valor) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(valor);

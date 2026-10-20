@@ -8,6 +8,7 @@ import StockSection from './StockSection';
 import { UNIDADES } from '../../../../../utils/unidades';
 import './styles/NuevoProducto.css';
 import { compararTallas } from '../../../../../utils/unidades';
+import { API_URL } from '../../../../../config';
 
 const formatCOP = (val) =>
   val
@@ -67,7 +68,7 @@ function EditarProducto() {
         setTasaIva(producto.tasaIva ?? 0);
         setPreview(
           (producto.imagenes || []).map((img) =>
-            img.startsWith('http') ? img : `http://localhost:3000/uploads/${img}`
+            img.startsWith('http') ? img : `${API_URL}/uploads/${img}`
           )
         );
       } catch {

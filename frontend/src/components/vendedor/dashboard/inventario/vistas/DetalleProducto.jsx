@@ -5,6 +5,7 @@ import { ArrowLeft, Edit3, Trash2, Package, Info, TrendingUp, Barcode, Layers } 
 import { deleteProduct, getProductById } from '../../../../../services/productServices';
 import { formatearCantidad, tallasOrdenadas, unidadInfo } from '../../../../../utils/unidades';
 import './styles/DetalleProducto.css';
+import { API_URL } from '../../../../../config';
 
 function DetalleProducto() {
   const { id } = useParams();
@@ -88,7 +89,7 @@ function DetalleProducto() {
             <div className="detail-image-box">
               {producto.imagenes?.length > 0 ? (
                 <img
-                  src={producto.imagenes[0].startsWith('http') ? producto.imagenes[0] : `http://localhost:3000/uploads/${producto.imagenes[0]}`}
+                  src={producto.imagenes[0].startsWith('http') ? producto.imagenes[0] : `${API_URL}/uploads/${producto.imagenes[0]}`}
                   alt={producto.nombre}
                   onError={(e) => (e.target.src = '/images/default-product.png')}
                 />
