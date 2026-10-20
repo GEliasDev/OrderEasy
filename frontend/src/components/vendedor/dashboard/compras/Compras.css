@@ -165,3 +165,10 @@
 :root[data-theme="dark"] .compras-situacion-listo { background: #10261E; color: #6EE7B7; }
 :root[data-theme="dark"] .compras-situacion-entregado { background: #1E2C44; color: #93C5FD; }
 :root[data-theme="dark"] .compras-situacion-cancelado { background: #331A1D; color: #FCA5A5; }
+
+/* ── Pedido al proveedor (contenedor de compras de clientes) ── */
+.compras-select-proveedor { width: 100%; max-width: 14rem; }
+.compras-acciones-fila { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.compras-nota-corta { display: block; margin-top: 2px; font-size: 0.7rem; font-weight: 400; color: var(--neutral-500, #64748B); }
+.compras-total-envio { margin: 12px 0 0; text-align: right; font-size: 0.85rem; color: var(--neutral-700, #334155); }
+.compras-fila-link { cursor: pointer; }

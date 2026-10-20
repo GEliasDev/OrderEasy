@@ -1,8 +1,21 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Hash, PackageCheck, Truck, User, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Hash, PackageCheck, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { anularOrdenCompra, getOrdenCompra, recibirOrdenCompra } from '../../../../services/pedidoService';
+import {
+  actualizarPedidoProveedor,
+  agregarStockPedido,
+  anularOrdenCompra,
+  asignarComprasPedido,
+  enviarPedidoProveedor,
+  getOrdenCompra,
+  getPedidos,
+  previewPedidoProveedor,
+  quitarStockPedido,
+  recibirOrdenCompra,
+} from '../../../../services/pedidoService';
+import { getAllProducts } from '../../../../services/productServices';
+import { getProveedores } from '../../../../services/proveedorService';
 import {
   ESTADOS_COMPRA,
   asignacionActiva,
@@ -19,30 +32,56 @@ import './Compras.css';
 
 const num = (valor) => Number(valor) || 0;
 const redondear = (n) => Math.round(n * 1000) / 1000;
+const cantidad = (n) => num(n).toLocaleString('es-CO', { maximumFractionDigits: 3 });
 
+const ESTADOS_COMPRA_CLIENTE = {
+  pendiente: 'Pendiente',
+  confirmado: 'Confirmada',
+  en_compra: 'En compra',
+  recibido: 'Recibida',
+  entregado: 'Entregada',
+  anulado: 'Anulada',
+};
+
+// Resumen corto de lo que compró el cliente: "2× Camille · 38, 1× Linda · 39"
+const resumenProductos = (compra) => (compra.detalles || [])
+  .map((d) => `${cantidad(d.cantidad)}× ${d.productoNombre}${d.talla ? ` · ${d.talla}` : ''}`)
+  .join(', ');
+
+// Pedido al proveedor: contiene las compras de los clientes (con sus abonos y entregas) y los productos para stock
 function DetalleCompra() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orden, setOrden] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null);
+  const [modal, setModal] = useState(null); // 'recibir' | 'enviar' | 'stock' | 'existentes'
   const [recepcion, setRecepcion] = useState({}); // detalleid -> { llegaron, reparto: { asignacionid: cantidad } }
   const [guardando, setGuardando] = useState(false);
+  const [proveedores, setProveedores] = useState([]);
+  const [productos, setProductos] = useState([]);
+  const [stockForm, setStockForm] = useState({ productoid: '', talla: '', cantidad: '' });
+  const [preview, setPreview] = useState(null);
+  const [sueltas, setSueltas] = useState([]);
+  const [marcadas, setMarcadas] = useState(() => new Set());
 
   const cargar = useCallback(async (silencioso = false) => {
     try {
       if (!silencioso) setLoading(true);
       setOrden(await getOrdenCompra(id));
     } catch {
-      toast.error('No se pudo cargar la compra.');
-      navigate('/dashboard/compras');
+      toast.error('No se pudo cargar el pedido.');
+      navigate('/dashboard/pedidos');
     } finally {
       setLoading(false);
     }
   }, [id, navigate]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  useEffect(() => {
+    getProveedores().then((data) => { if (Array.isArray(data)) setProveedores(data); }).catch(() => {});
+  }, []);
 
   const abrirRecepcion = useCallback((ordenActual) => {
     const inicial = {};
@@ -55,7 +94,7 @@ function DetalleCompra() {
     setModal('recibir');
   }, []);
 
-  // Desde la ficha del pedido se llega con ?accion=recibir
+  // Desde la ficha de una compra de cliente se llega con ?accion=recibir
   useEffect(() => {
     if (!orden || searchParams.get('accion') !== 'recibir') return;
     setSearchParams({}, { replace: true });
@@ -86,10 +125,10 @@ function DetalleCompra() {
     let asignado = 0;
     let error = null;
     for (const asignacion of activas) {
-      const cantidad = num(datos.reparto[asignacion.asignacionid]);
-      if (cantidad < 0) error = 'Hay cantidades negativas.';
-      if (cantidad > pendienteAsignacion(asignacion) + 0.0005) error = 'Asignaste más de lo que pidió un cliente.';
-      asignado = redondear(asignado + cantidad);
+      const cant = num(datos.reparto[asignacion.asignacionid]);
+      if (cant < 0) error = 'Hay cantidades negativas.';
+      if (cant > pendienteAsignacion(asignacion) + 0.0005) error = 'Asignaste más de lo que pidió un cliente.';
+      asignado = redondear(asignado + cant);
     }
     if (asignado > llegaron + 0.0005) error = 'Asignaste más de lo que llegó.';
     return { llegaron, asignado, error, libre: redondear(Math.max(0, llegaron - asignado)) };
@@ -133,17 +172,17 @@ function DetalleCompra() {
   };
 
   const handleAnular = () => {
-    toast(`¿Anular la compra #${orden.ordenid}?`, {
-      description: 'No se modifica el stock ya recibido. Los pedidos sin nada recibido vuelven a "confirmado".',
+    toast(`¿Anular el pedido #${orden.ordenid}?`, {
+      description: 'No se modifica el stock ya recibido. Las compras de los clientes siguen vigentes pero quedan sin pedido.',
       action: {
         label: 'Sí, anular',
         onClick: async () => {
           try {
             await anularOrdenCompra(orden.ordenid);
-            toast.success('Compra anulada.');
+            toast.success('Pedido anulado.');
             cargar(true);
           } catch (error) {
-            toast.error(error?.response?.data?.mensaje || 'No se pudo anular la compra.');
+            toast.error(error?.response?.data?.mensaje || 'No se pudo anular el pedido.');
           }
         },
       },
@@ -151,30 +190,176 @@ function DetalleCompra() {
     });
   };
 
+  const cambiarProveedor = async (valor) => {
+    try {
+      setOrden(await actualizarPedidoProveedor(orden.ordenid, { proveedorid: valor || null }));
+    } catch (error) {
+      toast.error(error?.response?.data?.mensaje || 'No se pudo cambiar el proveedor.');
+    }
+  };
+
+  // ── Productos para stock ──
+  const abrirStock = async () => {
+    setStockForm({ productoid: '', talla: '', cantidad: '' });
+    setModal('stock');
+    if (productos.length === 0) {
+      try {
+        const data = await getAllProducts();
+        setProductos(Array.isArray(data) ? data : []);
+      } catch {
+        toast.error('No se pudieron cargar los productos.');
+      }
+    }
+  };
+
+  const productoElegido = useMemo(
+    () => productos.find((p) => String(p.productoid) === String(stockForm.productoid)),
+    [productos, stockForm.productoid],
+  );
+
+  const agregarStock = async (e) => {
+    e.preventDefault();
+    if (!productoElegido) return toast.error('Elige un producto.');
+    if (productoElegido.usaTallas && !stockForm.talla) return toast.error('Elige la talla.');
+    if (num(stockForm.cantidad) <= 0) return toast.error('Indica la cantidad.');
+    try {
+      setGuardando(true);
+      setOrden(await agregarStockPedido(orden.ordenid, {
+        items: [{ productoid: productoElegido.productoid, talla: stockForm.talla || undefined, cantidad: num(stockForm.cantidad) }],
+      }));
+      setStockForm((prev) => ({ ...prev, cantidad: '' }));
+      toast.success('Agregado al pedido para stock.');
+    } catch (error) {
+      toast.error(error?.response?.data?.mensaje || 'No se pudo agregar el producto.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const quitarStock = async (detalle) => {
+    try {
+      setOrden(await quitarStockPedido(orden.ordenid, detalle.detalleid));
+    } catch (error) {
+      toast.error(error?.response?.data?.mensaje || 'No se pudo quitar la línea.');
+    }
+  };
+
+  // ── Compras de clientes que ya existían ──
+  const abrirExistentes = async () => {
+    setMarcadas(new Set());
+    setModal('existentes');
+    try {
+      const data = await getPedidos();
+      setSueltas((Array.isArray(data) ? data : []).filter((p) => !p.ordenid && ['pendiente', 'confirmado'].includes(p.estado)));
+    } catch {
+      toast.error('No se pudieron cargar las compras.');
+    }
+  };
+
+  const agregarExistentes = async () => {
+    if (marcadas.size === 0) return toast.error('Marca al menos una compra.');
+    try {
+      setGuardando(true);
+      setOrden(await asignarComprasPedido(orden.ordenid, [...marcadas]));
+      setModal(null);
+      toast.success('Compras agregadas al pedido.');
+    } catch (error) {
+      toast.error(error?.response?.data?.mensaje || 'No se pudieron agregar las compras.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  // ── Enviar al proveedor ──
+  const abrirEnviar = async () => {
+    setPreview(null);
+    setModal('enviar');
+    try {
+      setPreview(await previewPedidoProveedor(orden.ordenid));
+    } catch (error) {
+      toast.error(error?.response?.data?.mensaje || 'No se pudo calcular el pedido.');
+      setModal(null);
+    }
+  };
+
+  // Líneas de la vista previa: lo de clientes + lo de stock, por producto y talla
+  const lineasEnvio = useMemo(() => {
+    if (!preview || !orden) return [];
+    const mapa = new Map();
+    const clave = (productoid, varianteid) => `${productoid}:${varianteid || ''}`;
+    for (const g of preview.grupos) {
+      mapa.set(clave(g.productoid, g.varianteid), {
+        key: g.key, nombre: g.productoNombre, talla: g.talla, precio: g.precioCompra, clientes: g.lineas.filter((l) => l.faltante > 0), cubiertos: g.lineas.filter((l) => l.cubiertoStock > 0), delCliente: g.totalFaltante, deStock: 0,
+      });
+    }
+    for (const d of orden.detalles || []) {
+      const k = clave(d.productoid, d.varianteid);
+      const actual = mapa.get(k) || { key: k, nombre: d.productoNombre, talla: d.talla, precio: num(d.precioUnitario), clientes: [], cubiertos: [], delCliente: 0, deStock: 0 };
+      actual.deStock += num(d.cantidad);
+      mapa.set(k, actual);
+    }
+    return [...mapa.values()];
+  }, [preview, orden]);
+
+  const costoEnvio = lineasEnvio.reduce((s, l) => s + (l.delCliente + l.deStock) * l.precio, 0);
+
+  const confirmarEnvio = async () => {
+    try {
+      setGuardando(true);
+      setOrden(await enviarPedidoProveedor(orden.ordenid));
+      setModal(null);
+      toast.success('Pedido enviado al proveedor. Cuando llegue la mercancía registra la recepción.');
+    } catch (error) {
+      toast.error(error?.response?.data?.mensaje || 'No se pudo enviar el pedido.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   if (loading) return <div className="view-loading"><div className="loader-spinner-dark" /></div>;
   if (!orden) return null;
 
   const estado = ESTADOS_COMPRA[orden.estado] || { label: orden.estado, clase: 'anulado' };
   const detalles = orden.detalles || [];
-  const comprados = detalles.reduce((s, d) => s + num(d.cantidad), 0);
+  const compras = orden.compras || [];
+  const abierto = orden.estado === 'abierta';
+  const pedidos = detalles.reduce((s, d) => s + num(d.cantidad), 0);
   const recibidos = detalles.reduce((s, d) => s + num(d.cantidadRecibida), 0);
-  const puedeRecibir = ['borrador', 'enviada', 'recibida_parcial'].includes(orden.estado) && recibidos < comprados;
+  const puedeRecibir = ['borrador', 'enviada', 'recibida_parcial'].includes(orden.estado) && recibidos < pedidos;
   const puedeAnular = !['recibida', 'anulada'].includes(orden.estado);
+  const puedeCambiarProveedor = !['recibida', 'anulada'].includes(orden.estado);
+  const resumen = orden.resumenCompras || { cantidad: 0, total: 0, abonado: 0, saldo: 0 };
 
   return (
     <div className="detalle-tx-view">
       <div className="detalle-tx-header">
-        <button className="btn-circle-back" onClick={() => navigate('/dashboard/compras')}>
+        <button className="btn-circle-back" onClick={() => navigate('/dashboard/pedidos')}>
           <ArrowLeft size={18} />
         </button>
         <div className="detalle-tx-header-text">
           <div className="pedido-titulo-linea">
-            <h1>Compra #{orden.ordenid}</h1>
+            <h1>Pedido #{orden.ordenid}</h1>
             <span className={`pedido-estado pedido-estado-${estado.clase}`}>{estado.label}</span>
           </div>
-          <div className="detalle-tx-breadcrumb">Compras / <span className="active">Compra #{orden.ordenid}</span></div>
+          <div className="detalle-tx-breadcrumb">Pedidos / <span className="active">Pedido #{orden.ordenid}</span></div>
         </div>
         <div className="pedido-detalle-acciones">
+          {abierto && (
+            <>
+              <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirStock}>
+                <Plus size={14} /><span>Para stock</span>
+              </button>
+              <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirExistentes}>
+                <Users size={14} /><span>Agregar compra existente</span>
+              </button>
+              <button className="pedidos-btn pedidos-btn-primary" onClick={() => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}`)}>
+                <Plus size={14} /><span>Crear compra</span>
+              </button>
+              <button className="pedidos-btn pedidos-btn-verde" onClick={abrirEnviar} disabled={compras.length === 0 && detalles.length === 0}>
+                <Send size={14} /><span>Enviar al proveedor</span>
+              </button>
+            </>
+          )}
           {puedeRecibir && (
             <button className="pedidos-btn pedidos-btn-verde" onClick={() => abrirRecepcion(orden)}>
               <PackageCheck size={14} /><span>Registrar recepción</span>
@@ -190,14 +375,21 @@ function DetalleCompra() {
 
       <div className="detalle-tx-summary">
         <div className="detalle-tx-stat">
-          <div className="detalle-tx-stat-label"><Truck size={11} /> Total de la compra</div>
-          <div className="detalle-tx-stat-value amount expense">{formatoMoneda(orden.total)}</div>
+          <div className="detalle-tx-stat-label"><Truck size={11} /> Costo al proveedor</div>
+          <div className="detalle-tx-stat-value amount expense">{abierto ? 'Se calcula al enviar' : formatoMoneda(orden.total)}</div>
         </div>
         <div className="detalle-tx-stat">
           <div className="detalle-tx-stat-label"><User size={11} /> Proveedor</div>
-          <div className={`detalle-tx-stat-value ${!orden.proveedor ? 'muted' : ''}`}>
-            {orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial || 'Sin proveedor'}
-          </div>
+          {puedeCambiarProveedor ? (
+            <select className="pedidos-select compras-select-proveedor" value={orden.proveedorid || ''} onChange={(e) => cambiarProveedor(e.target.value)}>
+              <option value="">Sin proveedor</option>
+              {proveedores.map((p) => <option key={p.proveedorid} value={p.proveedorid}>{p.nombreProveedor || p.razonSocial}</option>)}
+            </select>
+          ) : (
+            <div className={`detalle-tx-stat-value ${!orden.proveedor ? 'muted' : ''}`}>
+              {orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial || 'Sin proveedor'}
+            </div>
+          )}
         </div>
         <div className="detalle-tx-stat">
           <div className="detalle-tx-stat-label"><Calendar size={11} /> Fecha</div>
@@ -205,84 +397,313 @@ function DetalleCompra() {
         </div>
         <div className="detalle-tx-stat">
           <div className="detalle-tx-stat-label"><Hash size={11} /> Recibido</div>
-          <div className="detalle-tx-stat-value">
-            {recibidos.toLocaleString('es-CO', { maximumFractionDigits: 3 })} / {comprados.toLocaleString('es-CO', { maximumFractionDigits: 3 })}
-          </div>
+          <div className="detalle-tx-stat-value">{abierto ? '—' : `${cantidad(recibidos)} / ${cantidad(pedidos)}`}</div>
         </div>
       </div>
 
       {orden.descripcion && <p className="compras-nota">{orden.descripcion}</p>}
 
-      <h2 className="compras-seccion-titulo"><Truck size={15} /> Reparto por cliente</h2>
+      <h2 className="compras-seccion-titulo"><Users size={15} /> Compras de clientes ({resumen.cantidad})</h2>
       <p className="pedido-ayuda compras-seccion-ayuda">
-        Cada par comprado está destinado a un cliente. Al registrar la recepción eliges a quién corresponde lo que llegó.
+        {abierto
+          ? 'Agrega las compras que te hacen los clientes. Dentro de cada una registras sus abonos, pagos y entregas.'
+          : 'Abre una compra para ver y registrar sus abonos, pagos y entrega.'}
+        {resumen.cantidad > 0 && ` Entre todas: abonado ${formatoMoneda(resumen.abonado)} · por cobrar ${formatoMoneda(resumen.saldo)}.`}
       </p>
 
-      {detalles.map((detalle) => {
-        const progreso = comprados === 0 ? 0 : (num(detalle.cantidadRecibida) / num(detalle.cantidad)) * 100;
-        return (
-          <div key={detalle.detalleid} className="compras-linea">
-            <div className="compras-linea-header">
-              <strong>
-                {detalle.productoNombre}
-                {detalle.talla && <span className="cart-item-talla">Talla {detalle.talla}</span>}
-              </strong>
-              <span>
-                {num(detalle.cantidadRecibida)} de {num(detalle.cantidad)} recibidos · {formatoMoneda(detalle.precioUnitario)} c/u
-              </span>
-            </div>
-            <div className="compras-barra"><div style={{ width: `${Math.min(100, progreso)}%` }} /></div>
+      {compras.length === 0 ? (
+        <div className="pedido-ordenes-vacio">
+          <Users size={32} />
+          <p>Este pedido todavía no tiene compras de clientes.</p>
+        </div>
+      ) : (
+        <div className="items-table-container">
+          <table className="items-table">
+            <thead>
+              <tr><th>Cliente</th><th>Compra</th><th>Productos</th><th>Total</th><th>Abonado</th><th>Saldo</th><th>Estado</th><th /></tr>
+            </thead>
+            <tbody>
+              {compras.map((compra) => {
+                const anulada = compra.estado === 'anulado';
+                return (
+                  <tr key={compra.pedidoid} className={`compras-fila-link ${anulada ? 'compras-fila-cancelada' : ''}`} onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
+                    <td className="item-name">{compra.cliente?.nombreCliente || 'Sin cliente'}</td>
+                    <td>#{compra.pedidoid}</td>
+                    <td className="compras-clientes">{resumenProductos(compra)}</td>
+                    <td className="item-qty">{formatoMoneda(compra.total)}</td>
+                    <td className="item-qty">{formatoMoneda(compra.resumen?.abonado)}</td>
+                    <td className="item-qty">{anulada ? '—' : formatoMoneda(compra.resumen?.saldo)}</td>
+                    <td><span className={`pedido-estado pedido-estado-${compra.estado.replace('_', '-')}`}>{ESTADOS_COMPRA_CLIENTE[compra.estado] || compra.estado}</span></td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <div className="compras-acciones-fila">
+                        {!anulada && compra.estado !== 'entregado' && (
+                          <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=abono`)}>
+                            Abonar
+                          </button>
+                        )}
+                        <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
+                          Detalle
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
+      {abierto ? (
+        <>
+          <h2 className="compras-seccion-titulo"><Truck size={15} /> Productos para stock</h2>
+          <p className="pedido-ayuda compras-seccion-ayuda">
+            Pares extra que pides sin cliente asignado: al recibirlos suben directo al stock.
+          </p>
+          {detalles.length === 0 ? (
+            <div className="pedido-ordenes-vacio"><p>No hay productos para stock en este pedido.</p></div>
+          ) : (
             <div className="items-table-container">
               <table className="items-table">
-                <thead>
-                  <tr><th>Cliente</th><th>Pedido</th><th>Asignado</th><th>Recibido</th><th>Situación</th><th /></tr>
-                </thead>
+                <thead><tr><th>Producto</th><th>Talla</th><th>Cantidad</th><th>Costo</th><th /></tr></thead>
                 <tbody>
-                  {(detalle.asignaciones || []).map((asignacion) => {
-                    const pedido = asignacion.pedidoDetalle?.pedido;
-                    const activa = asignacionActiva(asignacion);
-                    const recibido = num(asignacion.cantidadRecibida);
-                    const completo = recibido >= num(asignacion.cantidad);
-                    const entregado = num(asignacion.pedidoDetalle?.cantidadEntregada) >= num(asignacion.pedidoDetalle?.cantidad);
-                    let situacion = { texto: 'Esperando al proveedor', clase: 'espera' };
-                    if (!activa) situacion = { texto: 'Pedido cancelado', clase: 'cancelado' };
-                    else if (entregado) situacion = { texto: 'Entregado', clase: 'entregado' };
-                    else if (completo) situacion = { texto: 'Listo para entregar', clase: 'listo' };
-                    else if (recibido > 0) situacion = { texto: 'Llegó parte', clase: 'parcial' };
-                    return (
-                      <tr key={asignacion.asignacionid} className={!activa ? 'compras-fila-cancelada' : ''}>
-                        <td className="item-name">{pedido?.cliente?.nombreCliente || 'Sin cliente'}</td>
-                        <td>
-                          <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedido/${pedido?.pedidoid}`)}>
-                            #{pedido?.pedidoid}
-                          </button>
-                        </td>
-                        <td className="item-qty">{num(asignacion.cantidad)}</td>
-                        <td className="item-qty">{recibido}</td>
-                        <td><span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span></td>
-                        <td>
-                          {activa && !entregado && recibido > 0 && (
-                            <button
-                              className="pedidos-btn pedidos-btn-verde pedidos-btn-sm"
-                              onClick={() => navigate(`/dashboard/pedido/${pedido.pedidoid}?accion=entregar`)}
-                            >
-                              Entregar
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {(detalle.asignaciones || []).length === 0 && (
-                    <tr><td colSpan="6" className="compras-vacio">Esta línea no tiene reparto por cliente (compra anterior al reparto).</td></tr>
-                  )}
+                  {detalles.map((d) => (
+                    <tr key={d.detalleid}>
+                      <td className="item-name">{d.productoNombre}</td>
+                      <td>{d.talla || '—'}</td>
+                      <td className="item-qty">{cantidad(d.cantidad)}</td>
+                      <td className="item-qty">{formatoMoneda(d.subtotal)}</td>
+                      <td>
+                        <button className="pedidos-btn pedidos-btn-peligro pedidos-btn-sm" onClick={() => quitarStock(d)} title="Quitar">
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
+          )}
+        </>
+      ) : (
+        <>
+          <h2 className="compras-seccion-titulo"><Truck size={15} /> Lo pedido al proveedor y su reparto</h2>
+          <p className="pedido-ayuda compras-seccion-ayuda">
+            Cada par está destinado a un cliente; lo que no tiene cliente va al stock. Al registrar la recepción eliges a quién corresponde lo que llegó.
+          </p>
+
+          {detalles.map((detalle) => {
+            const progreso = num(detalle.cantidad) === 0 ? 0 : (num(detalle.cantidadRecibida) / num(detalle.cantidad)) * 100;
+            const activas = (detalle.asignaciones || []).filter(asignacionActiva);
+            const paraStock = redondear(num(detalle.cantidad) - activas.reduce((s, a) => s + num(a.cantidad), 0));
+            return (
+              <div key={detalle.detalleid} className="compras-linea">
+                <div className="compras-linea-header">
+                  <strong>
+                    {detalle.productoNombre}
+                    {detalle.talla && <span className="cart-item-talla">Talla {detalle.talla}</span>}
+                  </strong>
+                  <span>
+                    {num(detalle.cantidadRecibida)} de {num(detalle.cantidad)} recibidos · {formatoMoneda(detalle.precioUnitario)} c/u
+                  </span>
+                </div>
+                <div className="compras-barra"><div style={{ width: `${Math.min(100, progreso)}%` }} /></div>
+
+                <div className="items-table-container">
+                  <table className="items-table">
+                    <thead>
+                      <tr><th>Cliente</th><th>Compra</th><th>Asignado</th><th>Recibido</th><th>Situación</th><th /></tr>
+                    </thead>
+                    <tbody>
+                      {(detalle.asignaciones || []).map((asignacion) => {
+                        const compra = asignacion.pedidoDetalle?.pedido;
+                        const activa = asignacionActiva(asignacion);
+                        const recibido = num(asignacion.cantidadRecibida);
+                        const completo = recibido >= num(asignacion.cantidad);
+                        const entregado = num(asignacion.pedidoDetalle?.cantidadEntregada) >= num(asignacion.pedidoDetalle?.cantidad);
+                        let situacion = { texto: 'Esperando al proveedor', clase: 'espera' };
+                        if (!activa) situacion = { texto: 'Compra cancelada', clase: 'cancelado' };
+                        else if (entregado) situacion = { texto: 'Entregado', clase: 'entregado' };
+                        else if (completo) situacion = { texto: 'Listo para entregar', clase: 'listo' };
+                        else if (recibido > 0) situacion = { texto: 'Llegó parte', clase: 'parcial' };
+                        return (
+                          <tr key={asignacion.asignacionid} className={!activa ? 'compras-fila-cancelada' : ''}>
+                            <td className="item-name">{compra?.cliente?.nombreCliente || 'Sin cliente'}</td>
+                            <td>
+                              <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedido/${compra?.pedidoid}`)}>
+                                #{compra?.pedidoid}
+                              </button>
+                            </td>
+                            <td className="item-qty">{num(asignacion.cantidad)}</td>
+                            <td className="item-qty">{recibido}</td>
+                            <td><span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span></td>
+                            <td>
+                              {activa && !entregado && recibido > 0 && (
+                                <button
+                                  className="pedidos-btn pedidos-btn-verde pedidos-btn-sm"
+                                  onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=entregar`)}
+                                >
+                                  Entregar
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {paraStock > 0 && (
+                        <tr>
+                          <td className="item-name">Stock (sin cliente)</td>
+                          <td>—</td>
+                          <td className="item-qty">{paraStock}</td>
+                          <td className="item-qty">—</td>
+                          <td colSpan="2"><span className="compras-situacion compras-situacion-espera">Va directo al stock</span></td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {modal === 'stock' && (
+        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
+          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pedido-modal-header">
+              <h3>Productos para stock</h3>
+              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
+            </div>
+            <form className="pedido-modal-form" onSubmit={agregarStock}>
+              <p className="pedido-modal-texto">Pares extra que pides al proveedor sin cliente asignado: suben directo al stock al recibirlos.</p>
+              <label>
+                Producto
+                <select value={stockForm.productoid} onChange={(e) => setStockForm({ productoid: e.target.value, talla: '', cantidad: stockForm.cantidad })} required>
+                  <option value="">Elige un producto</option>
+                  {productos.map((p) => <option key={p.productoid} value={p.productoid}>{p.nombre}</option>)}
+                </select>
+              </label>
+              {productoElegido?.usaTallas && (
+                <label>
+                  Talla
+                  <select value={stockForm.talla} onChange={(e) => setStockForm({ ...stockForm, talla: e.target.value })} required>
+                    <option value="">Elige la talla</option>
+                    {(productoElegido.variantes || []).map((v) => <option key={v.talla} value={v.talla}>{v.talla}</option>)}
+                  </select>
+                </label>
+              )}
+              <label>
+                Cantidad
+                <input type="number" min="0" step="any" value={stockForm.cantidad} onChange={(e) => setStockForm({ ...stockForm, cantidad: e.target.value })} required />
+              </label>
+              {detalles.length > 0 && (
+                <p className="pedido-ayuda">Ya en el pedido: {detalles.map((d) => `${cantidad(d.cantidad)}× ${d.productoNombre}${d.talla ? ` · ${d.talla}` : ''}`).join(', ')}.</p>
+              )}
+              <div className="pedido-modal-footer">
+                <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Listo</button>
+                <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={guardando}>
+                  {guardando ? 'Agregando...' : 'Agregar'}
+                </button>
+              </div>
+            </form>
           </div>
-        );
-      })}
+        </div>
+      )}
+
+      {modal === 'existentes' && (
+        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
+          <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
+            <div className="pedido-modal-header">
+              <h3>Agregar compras existentes</h3>
+              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
+            </div>
+            <div className="pedido-modal-form">
+              {sueltas.length === 0 ? (
+                <p className="pedido-modal-texto">No hay compras de clientes sin pedido.</p>
+              ) : (
+                <div className="compras-lista-pedidos">
+                  {sueltas.map((c) => (
+                    <label key={c.pedidoid} className={`compras-pedido ${marcadas.has(c.pedidoid) ? 'marcado' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={marcadas.has(c.pedidoid)}
+                        onChange={() => setMarcadas((prev) => {
+                          const sig = new Set(prev);
+                          if (sig.has(c.pedidoid)) sig.delete(c.pedidoid); else sig.add(c.pedidoid);
+                          return sig;
+                        })}
+                      />
+                      <div className="compras-pedido-info">
+                        <strong>#{c.pedidoid} · {c.cliente?.nombreCliente || 'Sin cliente'}</strong>
+                        <span>{resumenProductos(c)}</span>
+                        <small>{formatoMoneda(c.total)} · {ESTADOS_COMPRA_CLIENTE[c.estado]}</small>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+              <div className="pedido-modal-footer">
+                <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
+                <button type="button" className="pedidos-btn pedidos-btn-primary" onClick={agregarExistentes} disabled={guardando || sueltas.length === 0}>
+                  {guardando ? 'Agregando...' : 'Agregar al pedido'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal === 'enviar' && (
+        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
+          <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
+            <div className="pedido-modal-header">
+              <h3>Enviar pedido #{orden.ordenid} al proveedor</h3>
+              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
+            </div>
+            <div className="pedido-modal-form">
+              {!preview ? (
+                <p className="pedido-modal-texto">Calculando lo que hay que pedir...</p>
+              ) : lineasEnvio.length === 0 ? (
+                <p className="pedido-modal-texto">No hay nada que pedir: el stock actual ya cubre las compras de los clientes.</p>
+              ) : (
+                <>
+                  <p className="pedido-modal-texto">
+                    Esto es lo que le pedirás al proveedor. Se descuenta el stock libre que ya tienes. Al enviar, las compras pendientes se confirman y reservan su stock.
+                  </p>
+                  <div className="compras-recepcion">
+                    {lineasEnvio.map((l) => (
+                      <div key={l.key} className="compras-recepcion-linea">
+                        <div className="compras-recepcion-cabecera">
+                          <strong>
+                            {l.nombre}
+                            {l.talla && <span className="cart-item-talla">Talla {l.talla}</span>}
+                          </strong>
+                          <span>Pedir {cantidad(l.delCliente + l.deStock)} · {formatoMoneda((l.delCliente + l.deStock) * l.precio)}</span>
+                        </div>
+                        <p className="pedido-ayuda">
+                          {[
+                            ...l.clientes.map((c) => `${c.cliente}: ${cantidad(c.faltante)}`),
+                            l.deStock > 0 ? `Para stock: ${cantidad(l.deStock)}` : null,
+                            l.cubiertos.length > 0 ? `(${l.cubiertos.map((c) => `${c.cliente}: ${cantidad(c.cubiertoStock)}`).join(', ')} se cubre con stock actual)` : null,
+                          ].filter(Boolean).join(' · ')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="compras-total-envio">Costo total al proveedor: <strong>{formatoMoneda(costoEnvio)}</strong></p>
+                </>
+              )}
+              <div className="pedido-modal-footer">
+                <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
+                <button type="button" className="pedidos-btn pedidos-btn-verde" onClick={confirmarEnvio} disabled={guardando || !preview}>
+                  {guardando ? 'Enviando...' : 'Enviar al proveedor'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modal === 'recibir' && (
         <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
@@ -293,7 +714,7 @@ function DetalleCompra() {
             </div>
             <form className="pedido-modal-form" onSubmit={confirmarRecepcion}>
               <p className="pedido-modal-texto">
-                Indica cuánto llegó de cada línea y a qué cliente corresponde. Por defecto se asigna al primero que pidió; puedes cambiarlo.
+                Indica cuánto llegó de cada línea y a qué cliente corresponde. Por defecto se asigna al primero que pidió; lo que no se asigne queda como stock libre.
               </p>
 
               <div className="compras-recepcion">
@@ -331,7 +752,7 @@ function DetalleCompra() {
                               <label key={asignacion.asignacionid} className={`compras-reparto-fila ${pendiente <= 0 ? 'completo' : ''}`}>
                                 <span>
                                   {asignacion.pedidoDetalle?.pedido?.cliente?.nombreCliente || 'Sin cliente'}
-                                  <small> · pedido #{asignacion.pedidoDetalle?.pedidoid} · pendiente {pendiente}</small>
+                                  <small> · compra #{asignacion.pedidoDetalle?.pedidoid} · pendiente {pendiente}</small>
                                 </span>
                                 <input
                                   type="number"

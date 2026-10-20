@@ -470,7 +470,7 @@ function DetallePedido() {
   };
 
   // La recepción se hace en la pantalla de la compra, donde se elige a qué cliente corresponde lo que llega
-  const handleRecibirOrden = (orden) => navigate(`/dashboard/compra/${orden.ordenid}?accion=recibir`);
+  const handleRecibirOrden = (orden) => navigate(`/dashboard/pedidos/${orden.ordenid}?accion=recibir`);
 
   const handleAnularOrden = (orden) => {
     toast(`¿Anular la orden #${orden.ordenid}?`, {
@@ -509,22 +509,30 @@ function DetallePedido() {
   const entregaCubierto = Math.min(entregaValor, resumen.disponibleAbonos);
   const entregaPorCobrar = Math.max(0, Math.round((entregaValor - entregaCubierto) * 100) / 100);
   const puedeEditar = !['entregado', 'anulado'].includes(pedido.estado);
-  const puedeGenerarCompra = ['confirmado', 'en_compra'].includes(pedido.estado);
+  const puedeGenerarCompra = ['confirmado', 'en_compra'].includes(pedido.estado) && !pedido.ordenid;
   const estadoConfig = ESTADOS[pedido.estado] || { label: pedido.estado, clase: 'anulado' };
 
   return (
     <div className="detalle-tx-view">
       <div className="detalle-tx-header">
-        <button className="btn-circle-back" onClick={() => navigate('/dashboard/pedidos')}>
+        <button className="btn-circle-back" onClick={() => navigate(pedido.ordenid ? `/dashboard/pedidos/${pedido.ordenid}` : '/dashboard/compras')}>
           <ArrowLeft size={18} />
         </button>
         <div className="detalle-tx-header-text">
           <div className="pedido-titulo-linea">
-            <h1>Pedido #{pedido.pedidoid}</h1>
+            <h1>Compra #{pedido.pedidoid}</h1>
             <span className={`pedido-estado pedido-estado-${estadoConfig.clase}`}>{estadoConfig.label}</span>
           </div>
           <div className="detalle-tx-breadcrumb">
-            Pedidos / <span className="active">Pedido #{pedido.pedidoid}</span>
+            {pedido.ordenid ? (
+              <>
+                <button className="pedido-link-venta" onClick={() => navigate('/dashboard/pedidos')}>Pedidos</button>
+                {' / '}
+                <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedidos/${pedido.ordenid}`)}>Pedido #{pedido.ordenid}</button>
+                {' / '}
+              </>
+            ) : 'Compras / '}
+            <span className="active">Compra #{pedido.pedidoid}</span>
           </div>
         </div>
         <div className="pedido-detalle-acciones">
@@ -769,6 +777,20 @@ function DetallePedido() {
         </div>
       </div>
 
+      {pedido.ordenid ? (
+        <div className="pedido-ordenes-section">
+          <div className="pedido-ordenes-header">
+            <div>
+              <h2><Truck size={16} /> Pedido al proveedor</h2>
+              <p>Esta compra va dentro del pedido #{pedido.ordenid}: lo que falta se pide al proveedor desde allí y lo que llega se reparte entre los clientes.</p>
+            </div>
+            <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate(`/dashboard/pedidos/${pedido.ordenid}`)}>
+              <Truck size={14} />
+              <span>Ver pedido #{pedido.ordenid}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="pedido-ordenes-section">
         <div className="pedido-ordenes-header">
           <div>
@@ -818,7 +840,7 @@ function DetallePedido() {
                   <div className="pedido-orden-acciones">
                     <span className="pedido-orden-fecha">
                       Creada el {formatearFecha(orden.createdAt)} ·{' '}
-                      <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/compra/${orden.ordenid}`)}>Ver compra #{orden.ordenid}</button>
+                      <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>Ver pedido #{orden.ordenid}</button>
                     </span>
                     <div>
                       {pendiente && (
@@ -841,6 +863,7 @@ function DetallePedido() {
           </div>
         )}
       </div>
+      )}
 
       {modal === 'editar' && (
         <div className="pedido-modal-overlay" onClick={() => setModal(null)}>

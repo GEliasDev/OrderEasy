@@ -1,11 +1,12 @@
 // Utilidades compartidas por las pantallas de compras al proveedor.
 
 export const ESTADOS_COMPRA = {
+  abierta: { label: 'Abierto', clase: 'pendiente' },
   borrador: { label: 'Borrador', clase: 'pendiente' },
-  enviada: { label: 'Pedida al proveedor', clase: 'en-compra' },
-  recibida_parcial: { label: 'Recibida parcial', clase: 'confirmado' },
-  recibida: { label: 'Recibida', clase: 'recibido' },
-  anulada: { label: 'Anulada', clase: 'anulado' },
+  enviada: { label: 'Enviado al proveedor', clase: 'en-compra' },
+  recibida_parcial: { label: 'Recibido parcial', clase: 'confirmado' },
+  recibida: { label: 'Recibido', clase: 'recibido' },
+  anulada: { label: 'Anulado', clase: 'anulado' },
 };
 
 export const formatoMoneda = (valor) =>

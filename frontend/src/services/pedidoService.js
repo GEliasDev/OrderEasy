@@ -100,3 +100,44 @@ export const deletePedido = async (id) => {
   const { data } = await axiosInstance.delete(`/api/pedidos/${id}`);
   return data;
 };
+
+// ───── Pedido al proveedor (contenedor de las compras de los clientes) ─────
+
+// payload: { proveedorid?, descripcion? }
+export const crearPedidoProveedor = async (payload = {}) => {
+  const { data } = await axiosInstance.post('/api/ordenes-compra', payload);
+  return data;
+};
+
+export const actualizarPedidoProveedor = async (id, payload) => {
+  const { data } = await axiosInstance.patch(`/api/ordenes-compra/${id}`, payload);
+  return data;
+};
+
+// Productos para stock (sin cliente). payload: { items: [{ productoid, talla?, cantidad }] }
+export const agregarStockPedido = async (id, payload) => {
+  const { data } = await axiosInstance.post(`/api/ordenes-compra/${id}/stock`, payload);
+  return data;
+};
+
+export const quitarStockPedido = async (id, detalleid) => {
+  const { data } = await axiosInstance.delete(`/api/ordenes-compra/${id}/stock/${detalleid}`);
+  return data;
+};
+
+// Agrega al pedido compras de clientes que ya existían
+export const asignarComprasPedido = async (id, pedidoids) => {
+  const { data } = await axiosInstance.post(`/api/ordenes-compra/${id}/compras`, { pedidoids });
+  return data;
+};
+
+// Lo que se pedirá al proveedor al enviar (por producto y talla, con el reparto por cliente)
+export const previewPedidoProveedor = async (id) => {
+  const { data } = await axiosInstance.get(`/api/ordenes-compra/${id}/preview`);
+  return data;
+};
+
+export const enviarPedidoProveedor = async (id) => {
+  const { data } = await axiosInstance.post(`/api/ordenes-compra/${id}/enviar`);
+  return data;
+};

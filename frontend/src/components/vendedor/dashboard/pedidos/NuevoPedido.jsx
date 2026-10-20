@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Calendar, CheckCircle2, ClipboardList, FileText, Minus, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getCategoriesByUser } from '../../../../services/categoryServices';
 import { getAllProducts } from '../../../../services/productServices';
@@ -18,6 +18,10 @@ const formatoMoneda = (valor) =>
 
 function NuevoPedido() {
   const navigate = useNavigate();
+  // ?pedido=ID: la compra se crea dentro de ese pedido al proveedor y se vuelve a él al terminar
+  const [searchParams] = useSearchParams();
+  const ordenid = Number(searchParams.get('pedido')) || null;
+  const destino = ordenid ? `/dashboard/pedidos/${ordenid}` : '/dashboard/compras';
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -87,6 +91,7 @@ function NuevoPedido() {
       setProcesando(true);
       await createPedido({
         clienteid: clienteId,
+        ordenid: ordenid || undefined,
         descripcion,
         fechaEntrega: fechaEntrega || null,
         abono: Number(abonoMonto) > 0 ? { monto: Number(abonoMonto), metodo: abonoMetodo } : undefined,
@@ -96,8 +101,8 @@ function NuevoPedido() {
           cantidad: item.cantidad,
         })),
       });
-      toast.success('Pedido creado. Confírmalo para reservar el stock.');
-      navigate('/dashboard/pedidos');
+      toast.success(ordenid ? `Compra agregada al pedido #${ordenid}.` : 'Compra creada. Confírmala para reservar el stock.');
+      navigate(destino);
     } catch (error) {
       toast.error(error?.response?.data?.mensaje || 'No se pudo crear el pedido.');
     } finally {
@@ -110,12 +115,12 @@ function NuevoPedido() {
       <div className="cart-modal-container full-page">
         <div className="cart-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button className="back-button" onClick={() => navigate('/dashboard/pedidos')}>
+            <button className="back-button" onClick={() => navigate(destino)}>
               <ArrowLeft size={20} />
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <ClipboardList size={24} style={{ color: 'var(--color-primary)' }} />
-              <h2>Nuevo Pedido</h2>
+              <h2>{ordenid ? `Nueva compra · Pedido #${ordenid}` : 'Nueva compra de cliente'}</h2>
             </div>
           </div>
         </div>

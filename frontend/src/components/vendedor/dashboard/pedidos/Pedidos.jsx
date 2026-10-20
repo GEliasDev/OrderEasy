@@ -95,21 +95,21 @@ function Pedidos() {
     <div className="pedidos-container">
       <div className="pedidos-header">
         <div>
-          <h1 className="pedidos-title">Pedidos</h1>
-          <p className="pedidos-subtitle">Registra pedidos de clientes y compra al proveedor solo lo que falte.</p>
+          <h1 className="pedidos-title">Compras de clientes</h1>
+          <p className="pedidos-subtitle">Todas las compras de tus clientes, estén o no dentro de un pedido al proveedor.</p>
         </div>
         <div className="pedidos-header-acciones">
           <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate('/dashboard/seguimiento')}>
             <Users size={16} />
             <span>Seguimiento de clientes</span>
           </button>
-          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate('/dashboard/compras')}>
+          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate('/dashboard/pedidos')}>
             <Truck size={16} />
-            <span>Compras al proveedor</span>
+            <span>Pedidos al proveedor</span>
           </button>
           <button className="pedidos-btn pedidos-btn-primary" onClick={() => navigate('/dashboard/nuevo-pedido')}>
             <Plus size={16} />
-            <span>Nuevo pedido</span>
+            <span>Nueva compra</span>
           </button>
         </div>
       </div>
