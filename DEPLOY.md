@@ -23,7 +23,7 @@ OrderEasy son **dos aplicaciones independientes** que se despliegan por separado
 | **A. Schema propio + rol propio** (preconfigurado) | Tablas separadas (`ordereasy.*`) y un rol que no puede leer ni modificar las tablas de Debti | Ninguno: ya está soportado con `DB_SCHEMA` | Quieres usar el mismo proyecto de Debti sin costo extra |
 | **B. Un segundo proyecto de Supabase** | Total (otra base, otras credenciales, otros backups) | Ninguno | Si tu cuenta gratuita aún tiene un proyecto libre (el plan gratis permite 2 activos) |
 
-Los archivos `.env.production` vienen configurados para la **opción A** sobre el proyecto de Debti. Para la opción B basta con cambiar `DB_HOST`, `DB_USER` y `DB_PASSWORD` por los del proyecto nuevo y dejar `DB_SCHEMA` vacío.
+Los archivos `.env.production` vienen configurados para la **opción B** con el proyecto propio `casdhytqkpdduxwwtgdi` (`DB_USER=postgres.casdhytqkpdduxwwtgdi`, `DB_SCHEMA` vacío, sin necesidad de `supabase-setup.sql`). Faltan el **host del pooler** (Supabase → botón *Connect* → *Session pooler*) y la **contraseña de la base de datos** (no las llaves `sb_publishable`/`sb_secret`: OrderEasy se conecta directo a Postgres y no usa la API REST de Supabase). Para la opción A (schema dentro del proyecto de Debti) usa `scripts/supabase-setup.sql` y `DB_SCHEMA=ordereasy`.
 
 **Lo que se comparte en la opción A:** el límite de 500 MB del plan gratuito, las conexiones, la CPU, las copias de seguridad y la pausa por inactividad (si el proyecto se pausa, se pausan las dos apps). Además, los tipos `enum_*` que crea Sequelize quedan en el schema `public` con prefijo `enum_` (no chocan con las tablas de Debti, pero no están dentro de `ordereasy`).
 

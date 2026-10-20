@@ -30,8 +30,6 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      - key: DB_SCHEMA
-        value: ordereasy
       - key: DB_SSL
         value: true
       - key: JWT_SECRET
