@@ -1,13 +1,14 @@
 const Proveedor = require('../models/proveedorModel');
 
+// Texto opcional: espacios -> null (así un campo se puede dejar vacío o borrar)
+const limpio = (valor) => (typeof valor === 'string' ? (valor.trim() || null) : (valor ?? null));
+
 // ========================================================
 // ➕ Crear un nuevo proveedor
 // ========================================================
 const createProveedor = async (req, res) => {
   try {
     const {
-      razonSocial,
-      nombreProveedor,
       nit,
       telefono,
       correo,
@@ -18,8 +19,16 @@ const createProveedor = async (req, res) => {
       categoriaSuministro,
       estado
     } = req.body;
+    const razonSocial = String(req.body.razonSocial ?? '').trim();
+    // El contacto es opcional: si no se indica, se usa el nombre del proveedor (así listados y compras siempre lo muestran)
+    const nombreProveedor = String(req.body.nombreProveedor ?? '').trim() || razonSocial;
 
     const { usuarioid, negocioid } = req.usuario;
+
+    // Solo el nombre es obligatorio; NIT, contacto, datos bancarios y demás se pueden completar después
+    if (!razonSocial) {
+      return res.status(400).json({ mensaje: 'El nombre del proveedor es obligatorio.' });
+    }
 
     const proveedorExistente = await Proveedor.findOne({
       where: { razonSocial, negocioid }
@@ -32,15 +41,15 @@ const createProveedor = async (req, res) => {
     const nuevoProveedor = await Proveedor.create({
       razonSocial,
       nombreProveedor,
-      nit,
-      telefono,
-      correo,
-      direccion,
-      banco,
-      numeroCuenta,
-      tipoCuenta,
+      nit: limpio(nit),
+      telefono: limpio(telefono),
+      correo: limpio(correo),
+      direccion: limpio(direccion),
+      banco: limpio(banco),
+      numeroCuenta: limpio(numeroCuenta),
+      tipoCuenta: limpio(tipoCuenta),
       categoriaSuministro,
-      estado,
+      estado: estado || 'Activo',
       usuarioid,
       negocioid
     });
@@ -101,14 +110,14 @@ const updateProveedor = async (req, res) => {
 
     await proveedor.update({
       razonSocial: razonSocial || proveedor.razonSocial,
-      nombreProveedor: nombreProveedor || proveedor.nombreProveedor,
-      nit: nit || proveedor.nit,
-      telefono: telefono || proveedor.telefono,
-      correo: correo || proveedor.correo,
-      direccion: direccion || proveedor.direccion,
-      banco: banco || proveedor.banco,
-      numeroCuenta: numeroCuenta || proveedor.numeroCuenta,
-      tipoCuenta: tipoCuenta || proveedor.tipoCuenta,
+      nombreProveedor: nombreProveedor || razonSocial || proveedor.nombreProveedor,
+      nit: nit !== undefined ? limpio(nit) : proveedor.nit,
+      telefono: telefono !== undefined ? limpio(telefono) : proveedor.telefono,
+      correo: correo !== undefined ? limpio(correo) : proveedor.correo,
+      direccion: direccion !== undefined ? limpio(direccion) : proveedor.direccion,
+      banco: banco !== undefined ? limpio(banco) : proveedor.banco,
+      numeroCuenta: numeroCuenta !== undefined ? limpio(numeroCuenta) : proveedor.numeroCuenta,
+      tipoCuenta: tipoCuenta !== undefined ? limpio(tipoCuenta) : proveedor.tipoCuenta,
       categoriaSuministro: categoriaSuministro || proveedor.categoriaSuministro,
       estado: estado || proveedor.estado,
     });

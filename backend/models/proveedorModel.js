@@ -23,39 +23,39 @@ const Proveedor = sequelize.define('Proveedor',{
 
   nit: {
     type: DataTypes.STRING(20),
-    allowNull: false
+    allowNull: true
   },
 
   telefono: {
     type: DataTypes.STRING(20),
-    allowNull: false
+    allowNull: true
   },
 
   correo: {
     type: DataTypes.STRING(100),
-    allowNull: false
+    allowNull: true
   },
 
   direccion: {
     type: DataTypes.STRING(100),
-    allowNull: false
+    allowNull: true
   },
 
   banco: {
     type: DataTypes.STRING(50),
-    allowNull: false
+    allowNull: true
   },
 
   numeroCuenta: {
     type: DataTypes.STRING(30),
-    allowNull: false,
+    allowNull: true,
     field: 'numero_cuenta'
   },
 
   // Corriente o Ahorros
   tipoCuenta: {
     type: DataTypes.STRING(20),
-    allowNull: false,
+    allowNull: true,
     field: 'tipo_cuenta'
   },
 
@@ -67,7 +67,8 @@ const Proveedor = sequelize.define('Proveedor',{
   // Activo o Inactivo
   estado: {
     type: DataTypes.STRING(20),
-    allowNull: false
+    allowNull: false,
+    defaultValue: 'Activo'
   },
 
   usuarioid: {

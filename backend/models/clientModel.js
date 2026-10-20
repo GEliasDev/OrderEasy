@@ -16,17 +16,17 @@ const Cliente = sequelize.define('Cliente',{
 
   telefono: {
     type: DataTypes.STRING(20),
-    allowNull: false
+    allowNull: true
   },
 
   correo: {
     type: DataTypes.STRING(100),
-    allowNull: false
+    allowNull: true
   },
 
   direccion: {
     type: DataTypes.STRING(100),
-    allowNull: false
+    allowNull: true
   },
   
   usuarioid: {

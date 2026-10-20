@@ -64,7 +64,7 @@ function Clientes() {
 
   const abrirEditar = (cliente) => {
     setClienteEditando(cliente);
-    setForm({ nombreCliente: cliente.nombreCliente, telefono: cliente.telefono, correo: cliente.correo, direccion: cliente.direccion });
+    setForm({ nombreCliente: cliente.nombreCliente, telefono: cliente.telefono ?? '', correo: cliente.correo ?? '', direccion: cliente.direccion ?? '' });
     setMostrarModal(true);
   };
 
@@ -219,17 +219,17 @@ function Clientes() {
               </div>
               <div className="clientes-form-row">
                 <div className="clientes-form-group">
-                  <label>Teléfono *</label>
-                  <input name="telefono" value={form.telefono} onChange={handleChange} required placeholder="3001234567" />
+                  <label>Teléfono <span className="campo-opcional">(opcional)</span></label>
+                  <input name="telefono" value={form.telefono} onChange={handleChange} placeholder="3001234567" />
                 </div>
                 <div className="clientes-form-group">
-                  <label>Correo *</label>
-                  <input name="correo" type="email" value={form.correo} onChange={handleChange} required placeholder="correo@email.com" />
+                  <label>Correo <span className="campo-opcional">(opcional)</span></label>
+                  <input name="correo" type="email" value={form.correo} onChange={handleChange} placeholder="correo@email.com" />
                 </div>
               </div>
               <div className="clientes-form-group">
-                <label>Dirección *</label>
-                <input name="direccion" value={form.direccion} onChange={handleChange} required placeholder="Dirección" />
+                <label>Dirección <span className="campo-opcional">(opcional)</span></label>
+                <input name="direccion" value={form.direccion} onChange={handleChange} placeholder="Dirección" />
               </div>
               <div className="clientes-form-actions">
                 <button type="button" className="clientes-btn-cancelar" onClick={cerrarModal}>Cancelar</button>

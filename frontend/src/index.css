@@ -202,3 +202,12 @@ div { padding: 0; }
   font-weight: 700;
   vertical-align: middle;
 }
+
+/* Etiqueta "(opcional)" de los formularios */
+.campo-opcional {
+  font-weight: 400;
+  font-size: 0.75em;
+  color: var(--neutral-500, #64748B);
+  text-transform: none;
+  letter-spacing: 0;
+}

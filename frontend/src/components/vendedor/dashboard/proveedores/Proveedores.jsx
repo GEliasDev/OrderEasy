@@ -12,7 +12,7 @@ const TIPO_CUENTA_OPTS = ['Ahorros', 'Corriente'];
 const formInicial = {
   razonSocial: '', nombreProveedor: '', nit: '', telefono: '',
   correo: '', direccion: '', banco: '', numeroCuenta: '',
-  tipoCuenta: 'Ahorros', categoriaSuministro: [], estado: 'Activo',
+  tipoCuenta: '', categoriaSuministro: [], estado: 'Activo',
 };
 
 const SkeletonRow = () => (
@@ -77,7 +77,7 @@ function Proveedores() {
       razonSocial: p.razonSocial || '', nombreProveedor: p.nombreProveedor || '',
       nit: p.nit || '', telefono: p.telefono || '', correo: p.correo || '',
       direccion: p.direccion || '', banco: p.banco || '', numeroCuenta: p.numeroCuenta || '',
-      tipoCuenta: p.tipoCuenta || 'Ahorros', categoriaSuministro: p.categoriaSuministro || [],
+      tipoCuenta: p.tipoCuenta || '', categoriaSuministro: p.categoriaSuministro || [],
       estado: p.estado || 'Activo',
     });
     setMostrarModal(true);
@@ -235,25 +235,26 @@ function Proveedores() {
             </div>
             <form onSubmit={handleSubmit} className="proveedores-form">
               <div className="proveedores-form-row">
-                <div className="proveedores-form-group"><label>Razón Social *</label><input name="razonSocial" value={form.razonSocial} onChange={handleChange} required /></div>
-                <div className="proveedores-form-group"><label>Nombre Contacto *</label><input name="nombreProveedor" value={form.nombreProveedor} onChange={handleChange} required /></div>
+                <div className="proveedores-form-group"><label>Nombre / Razón Social *</label><input name="razonSocial" value={form.razonSocial} onChange={handleChange} required /></div>
+                <div className="proveedores-form-group"><label>Nombre Contacto <span className="campo-opcional">(opcional)</span></label><input name="nombreProveedor" value={form.nombreProveedor} onChange={handleChange} /></div>
               </div>
               <div className="proveedores-form-row">
-                <div className="proveedores-form-group"><label>NIT *</label><input name="nit" value={form.nit} onChange={handleChange} required /></div>
-                <div className="proveedores-form-group"><label>Teléfono *</label><input name="telefono" value={form.telefono} onChange={handleChange} required /></div>
+                <div className="proveedores-form-group"><label>NIT <span className="campo-opcional">(opcional)</span></label><input name="nit" value={form.nit} onChange={handleChange} /></div>
+                <div className="proveedores-form-group"><label>Teléfono <span className="campo-opcional">(opcional)</span></label><input name="telefono" value={form.telefono} onChange={handleChange} /></div>
               </div>
               <div className="proveedores-form-row">
-                <div className="proveedores-form-group"><label>Correo *</label><input name="correo" type="email" value={form.correo} onChange={handleChange} required /></div>
-                <div className="proveedores-form-group"><label>Dirección *</label><input name="direccion" value={form.direccion} onChange={handleChange} required /></div>
+                <div className="proveedores-form-group"><label>Correo <span className="campo-opcional">(opcional)</span></label><input name="correo" type="email" value={form.correo} onChange={handleChange} /></div>
+                <div className="proveedores-form-group"><label>Dirección <span className="campo-opcional">(opcional)</span></label><input name="direccion" value={form.direccion} onChange={handleChange} /></div>
               </div>
               <div className="proveedores-form-row">
-                <div className="proveedores-form-group"><label>Banco *</label><input name="banco" value={form.banco} onChange={handleChange} required /></div>
-                <div className="proveedores-form-group"><label>Cuenta *</label><input name="numeroCuenta" value={form.numeroCuenta} onChange={handleChange} required /></div>
+                <div className="proveedores-form-group"><label>Banco <span className="campo-opcional">(opcional)</span></label><input name="banco" value={form.banco} onChange={handleChange} /></div>
+                <div className="proveedores-form-group"><label>Cuenta <span className="campo-opcional">(opcional)</span></label><input name="numeroCuenta" value={form.numeroCuenta} onChange={handleChange} /></div>
               </div>
               <div className="proveedores-form-row">
                 <div className="proveedores-form-group">
-                  <label>Tipo Cuenta *</label>
-                  <select name="tipoCuenta" value={form.tipoCuenta} onChange={handleChange} required>
+                  <label>Tipo Cuenta <span className="campo-opcional">(opcional)</span></label>
+                  <select name="tipoCuenta" value={form.tipoCuenta} onChange={handleChange}>
+                    <option value="">Sin especificar</option>
                     {TIPO_CUENTA_OPTS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>

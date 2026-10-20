@@ -7,10 +7,19 @@ const Cliente = require('../models/clientModel');
 // ===============================================
 // ➕ Crear un nuevo cliente
 // ===============================================
+// Texto opcional: espacios -> null (así un campo se puede dejar vacío o borrar)
+const limpio = (valor) => (typeof valor === 'string' ? (valor.trim() || null) : (valor ?? null));
+
 const createClient = async (req, res) => {
   try {
-    const { nombreCliente, telefono, correo, direccion } = req.body;
+    const { telefono, correo, direccion } = req.body;
+    const nombreCliente = String(req.body.nombreCliente ?? '').trim();
     const { usuarioid, negocioid } = req.usuario;
+
+    // Solo el nombre es obligatorio; teléfono, correo y dirección se pueden completar después
+    if (!nombreCliente) {
+      return res.status(400).json({ mensaje: 'El nombre del cliente es obligatorio.' });
+    }
 
     const clienteExistente = await Cliente.findOne({
       where: { nombreCliente, negocioid }
@@ -22,9 +31,9 @@ const createClient = async (req, res) => {
 
     const nuevoCliente = await Cliente.create({
       nombreCliente,
-      telefono,
-      correo,
-      direccion,
+      telefono: limpio(telefono),
+      correo: limpio(correo),
+      direccion: limpio(direccion),
       usuarioid,
       negocioid
     });
@@ -74,9 +83,9 @@ const updateCliente = async (req, res) => {
 
     await cliente.update({
       nombreCliente: nombreCliente || cliente.nombreCliente,
-      telefono: telefono || cliente.telefono,
-      correo: correo || cliente.correo,
-      direccion: direccion || cliente.direccion
+      telefono: telefono !== undefined ? limpio(telefono) : cliente.telefono,
+      correo: correo !== undefined ? limpio(correo) : cliente.correo,
+      direccion: direccion !== undefined ? limpio(direccion) : cliente.direccion
     });
 
     res.status(200).json({ mensaje: 'Cliente actualizado exitosamente', cliente });
