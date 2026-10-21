@@ -1,5 +1,6 @@
 const express = require('express');
 const {
+  eliminarOrden,
   crearPedido,
   actualizarPedido,
   agregarStock,
@@ -29,6 +30,7 @@ router.delete('/:id/stock/:detalleid', verificarToken, quitarStock);
 router.post('/:id/compras', verificarToken, asignarComprasAPedido);
 router.get('/:id/preview', verificarToken, previewPedido);
 router.post('/:id/enviar', verificarToken, enviarPedido);
+router.delete('/:id', verificarToken, eliminarOrden);
 router.post('/:id/recibir', verificarToken, recibirOrden);
 router.post('/:id/anular', verificarToken, anularOrden);
 

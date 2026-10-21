@@ -458,6 +458,36 @@ const anularOrden = async (req, res) => {
   }
 };
 
+// Elimina el pedido al proveedor en cualquier estado. Las compras de los clientes NO se borran: quedan sueltas con sus
+// abonos y entregas. Lo ya recibido (stock) y los egresos registrados tampoco se revierten.
+const eliminarOrden = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { negocioid } = req.usuario;
+    const orden = await OrdenCompra.findOne({ where: { ordenid: id, negocioid }, transaction: t, lock: true });
+    if (!orden) throw new ErrorOrden('Pedido no encontrado', 404);
+
+    const compras = await Pedido.findAll({ where: { ordenid: id, negocioid }, attributes: ['pedidoid'], transaction: t });
+    const detalles = await OrdenCompraDetalle.findAll({ where: { ordenid: id }, attributes: ['detalleid'], transaction: t });
+    const detalleids = detalles.map((d) => d.detalleid);
+
+    await Pedido.update({ ordenid: null }, { where: { ordenid: id, negocioid }, transaction: t });
+    if (detalleids.length) await Asignacion.destroy({ where: { ordendetalleid: detalleids }, transaction: t });
+    await OrdenCompraDetalle.destroy({ where: { ordenid: id }, transaction: t });
+    await orden.destroy({ transaction: t });
+
+    // Las compras sueltas recalculan su estado (ya no hay compra al proveedor que las respalde)
+    for (const compra of compras) await sincronizarEstadoPedido(compra.pedidoid, t);
+
+    await t.commit();
+    res.json({ mensaje: 'Pedido eliminado', comprasSueltas: compras.length });
+  } catch (error) {
+    await t.rollback();
+    responderError(res, error, 'Error al eliminar el pedido');
+  }
+};
+
 // Vista previa de lo que hay que comprar para un grupo de pedidos (por producto y talla, con el reparto por cliente)
 const previewLote = async (req, res) => {
   try {
@@ -486,6 +516,7 @@ const crearLote = async (req, res) => {
 };
 
 module.exports = {
+  eliminarOrden,
   crearPedido,
   actualizarPedido,
   agregarStock,
