@@ -4,6 +4,7 @@ const OrdenCompra = require('../models/ordenCompraModel');
 const OrdenCompraDetalle = require('../models/ordenCompraDetalleModel');
 const Producto = require('../models/productModel');
 const Variante = require('../models/varianteModel');
+const Asignacion = require('../models/ordenCompraAsignacionModel');
 const Venta = require('../models/ventaModel');
 const PedidoPago = require('../models/pedidoPagoModel');
 const { crearOrdenDesdePedidos, resumenComprasPorDetalle } = require('../services/compraLoteService');
@@ -717,6 +718,8 @@ const generarOrdenCompra = async (req, res) => {
   }
 };
 
+// Elimina una compra de cliente en cualquier estado. Se libera el stock que tenía reservado, se borran sus abonos y su reparto
+// del pedido al proveedor. Las ventas de entregas ya hechas NO se borran (son ventas reales): solo se desvinculan de la compra.
 const deletePedido = async (req, res) => {
   const t = await sequelize.transaction();
   try {
@@ -729,24 +732,36 @@ const deletePedido = async (req, res) => {
       lock: true,
     });
     if (!pedido) throw new ErrorPedido('Pedido no encontrado', 404);
-    if (!['pendiente', 'anulado'].includes(pedido.estado)) {
-      throw new ErrorPedido('Solo se pueden eliminar pedidos pendientes o anulados');
+
+    const detalles = await PedidoDetalle.findAll({ where: { pedidoid: id }, transaction: t });
+    const detalleids = detalles.map((d) => d.detalleid);
+
+    // Stock reservado para el cliente (igual que al anular): en un pedido al proveedor solo lo que ya llegó y no se entregó
+    if (['confirmado', 'en_compra', 'recibido'].includes(pedido.estado)) {
+      const llegado = pedido.ordenid ? await resumenComprasPorDetalle(detalleids, t) : null;
+      for (const detalle of detalles) {
+        if (!detalle.productoid) continue;
+        let reservado = Number(detalle.cantidad) - Number(detalle.cantidadEntregada || 0);
+        if (llegado) reservado = Math.max(0, (llegado.get(detalle.detalleid)?.recibido || 0) - Number(detalle.cantidadEntregada || 0));
+        if (reservado <= 0) continue;
+        const producto = await Producto.findOne({ where: { productoid: detalle.productoid, negocioid }, transaction: t, lock: true });
+        if (!producto) continue;
+        const stock = await resolverStockDeDetalle(producto, detalle, t);
+        await guardarStock(producto, stock, { cantidadReservada: Math.max(0, Number(stock.cantidadReservada) - reservado) }, t);
+      }
     }
 
-    const ordenes = await OrdenCompra.count({ where: { pedidoid: id }, transaction: t });
-    if (ordenes > 0) {
-      throw new ErrorPedido('El pedido tiene órdenes de compra asociadas; anúlalo en lugar de eliminarlo');
-    }
-
-    const movimientos = await PedidoPago.count({ where: { pedidoid: id }, transaction: t });
-    if (movimientos > 0) {
-      throw new ErrorPedido('El pedido tiene abonos registrados; anúlalo para devolver el dinero en lugar de eliminarlo');
-    }
-
+    // Referencias que apuntan a la compra
+    await OrdenCompra.update({ pedidoid: null }, { where: { pedidoid: id }, transaction: t });
+    await Venta.update({ pedidoid: null }, { where: { pedidoid: id }, transaction: t });
+    await pedido.update({ ventaid: null }, { transaction: t });
+    if (detalleids.length) await Asignacion.destroy({ where: { pedidodetalleid: detalleids }, transaction: t });
+    await PedidoPago.destroy({ where: { pedidoid: id }, transaction: t });
     await PedidoDetalle.destroy({ where: { pedidoid: id }, transaction: t });
     await pedido.destroy({ transaction: t });
+
     await t.commit();
-    res.json({ mensaje: 'Pedido eliminado' });
+    res.json({ mensaje: 'Compra eliminada' });
   } catch (error) {
     await t.rollback();
     responderError(res, error, 'Error al eliminar el pedido');
