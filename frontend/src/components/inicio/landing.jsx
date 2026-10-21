@@ -122,7 +122,7 @@ function Landing() {
               Iniciar Sesión
             </Link>
             <Link className="btn-primary no-underline btn-glow" to="/registro">
-              Registrarse Gratis
+              Registrarse<span className="solo-escritorio"> Gratis</span>
             </Link>
           </div>
         </div>
@@ -140,7 +140,7 @@ function Landing() {
               La gestión de tu negocio, <span className="gradient-text">simplificada e impulsada</span> por IA
             </h1>
             <p className="subtitle text-left">
-              Controla tu inventario, registra ventas y egresos, y toma decisiones financieras respaldadas por un asistente inteligente en lenguaje natural. **OrderEasy** une potencia y sencillez en una sola interfaz diseñada para crecer contigo.
+              Controla tu inventario, registra ventas y egresos, y toma decisiones financieras respaldadas por un asistente inteligente en lenguaje natural. <strong>OrderEasy</strong> une potencia y sencillez en una sola interfaz diseñada para crecer contigo.
             </p>
             <div className="button-group">
               <Link

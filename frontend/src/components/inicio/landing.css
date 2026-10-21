@@ -784,7 +784,7 @@
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 2.25rem;
 }
 
@@ -880,7 +880,7 @@
 
 .benefits-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 2.25rem;
 }
 
@@ -934,7 +934,7 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: 2.25rem;
 }
 
@@ -967,7 +967,7 @@
 
 .testimonials-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 2.25rem;
 }
 
@@ -1339,4 +1339,71 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* ───────── Adaptación a pantallas pequeñas ───────── */
+/* Los hijos de las cuadrículas pueden encogerse (si no, el contenido ancho ensancha toda la página) */
+.hero-grid > *,
+.features-grid > *,
+.benefits-grid > *,
+.stats-grid > *,
+.testimonials-grid > *,
+.footer-grid > * { min-width: 0; }
+
+.bg-blob { max-width: 100vw; }
+
+@media (max-width: 900px) {
+  .logo-badge { display: none; }
+  .nav-buttons { gap: 0.6rem; }
+  .hero { padding: 8rem 0 4rem; }
+  .features, .benefits, .testimonials { padding: 4.5rem 0; }
+  .stats { padding: 4rem 0; }
+  .cta { padding: 4.5rem 0 5.5rem; }
+  .section-header { margin-bottom: 2.75rem; }
+}
+
+@media (max-width: 640px) {
+  .nav-container { height: 4rem; padding: 0 1rem; }
+  .container { padding: 0 1rem; }
+  .logo { gap: 0.4rem; }
+  .logo-icon { width: 1.5rem; height: 1.5rem; }
+  .logo-text { font-size: 1.3rem; }
+  .nav-buttons { gap: 0.4rem; }
+  .nav-buttons .btn-secondary,
+  .nav-buttons .btn-primary { padding: 0.5rem 0.75rem; font-size: 0.8rem; white-space: nowrap; }
+  .solo-escritorio { display: none; }
+  .theme-toggle-btn { width: 2rem; height: 2rem; flex-shrink: 0; }
+
+  .hero { padding: 6.5rem 0 3rem; }
+  .hero-grid { gap: 2.5rem; }
+  .hero-title { font-size: 2.15rem; }
+  .subtitle { font-size: 0.95rem; }
+  .promo-badge { font-size: 0.72rem; text-align: left; }
+  .hero-stats { margin-top: 0.5rem; }
+
+  .chat-simulator-card { height: 480px; }
+  .chat-options-pills { padding-left: 0.75rem; padding-right: 0.75rem; }
+
+  .section-header h2,
+  .cta-content h2 { font-size: 1.75rem; }
+  .features, .benefits, .testimonials { padding: 3.5rem 0; }
+  .features-grid, .benefits-grid, .testimonials-grid { gap: 1.25rem; }
+  .feature-card, .testimonial-card { padding: 1.75rem 1.35rem; }
+  .benefit-item { padding: 1.5rem 1.25rem; }
+  .stats-grid { gap: 1.5rem; }
+  .stat-number { font-size: 2.2rem; }
+
+  .cta { padding: 3.5rem 0 4rem; }
+  .cta-content { padding: 2.5rem 1.25rem; }
+  .cta-content p { font-size: 0.95rem; }
+
+  .footer { padding: 3.5rem 0 2rem; }
+  .footer-grid { gap: 1.75rem; margin-bottom: 2.5rem; }
+}
+
+@media (max-width: 380px) {
+  .logo-text { font-size: 1.15rem; }
+  .nav-buttons .btn-secondary,
+  .nav-buttons .btn-primary { padding: 0.45rem 0.55rem; font-size: 0.75rem; }
+  .hero-title { font-size: 1.9rem; }
 }
