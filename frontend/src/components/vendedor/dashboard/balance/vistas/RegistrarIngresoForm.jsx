@@ -6,6 +6,8 @@ import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import { getAllProducts } from "../../../../../services/productServices";
 import { createVentaBatch } from "../../../../../services/ventaService";
 import { getClientes } from "../../../../../services/clienteService";
+import { useEsMovil } from '../../../../../hooks/useEsMovil';
+import BarraCarrito from '../../../../comunes/BarraCarrito';
 import { useCarrito, pasoDe, minimoDe } from "../../../../../hooks/useCarrito";
 import { stepCantidad, formatearCantidad } from "../../../../../utils/unidades";
 import SelectorTalla from "./SelectorTalla";
@@ -14,6 +16,8 @@ import { API_URL } from '../../../../../config';
 
 const RegistrarIngresoForm = () => {
   const navigate = useNavigate();
+  const esMovil = useEsMovil();
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -176,10 +180,13 @@ const RegistrarIngresoForm = () => {
           </div>
 
           {/* RIGHT: Cart summary */}
-          <div className="cart-summary-panel">
+          <div className={`cart-summary-panel${esMovil ? ' cart-sheet' : ''}${carritoAbierto ? ' abierto' : ''}`}>
             <div className="cart-title">
               <ShoppingCart size={20} />
               Carrito de Venta
+              {esMovil && (
+                <button type="button" className="cart-sheet-cerrar" onClick={() => setCarritoAbierto(false)} aria-label="Cerrar carrito"><X size={16} /></button>
+              )}
             </div>
 
             <div className="client-selection-cart">
@@ -293,6 +300,11 @@ const RegistrarIngresoForm = () => {
           </div>
         </div>
       </div>
+
+      {esMovil && carritoAbierto && <div className="cart-sheet-fondo" onClick={() => setCarritoAbierto(false)} />}
+      {esMovil && !carritoAbierto && (
+        <BarraCarrito cantidad={carrito.length} total={formatoMoneda(totalCarrito)} etiqueta="Cobrar" tono="venta" onAbrir={() => setCarritoAbierto(true)} />
+      )}
 
       {productoParaTalla && (
         <SelectorTalla

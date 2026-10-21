@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Calendar, CheckCircle2, ClipboardList, FileText, Minus, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
+import { X, ArrowLeft, Calendar, CheckCircle2, ClipboardList, FileText, Minus, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getCategoriesByUser } from '../../../../services/categoryServices';
 import { getAllProducts } from '../../../../services/productServices';
 import { getClientes } from '../../../../services/clienteService';
 import { agregarStockPedido, createPedido } from '../../../../services/pedidoService';
+import { useEsMovil } from '../../../../hooks/useEsMovil';
+import BarraCarrito from '../../../comunes/BarraCarrito';
 import { useCarrito, pasoDe, minimoDe } from '../../../../hooks/useCarrito';
 import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import SelectorTalla from '../balance/vistas/SelectorTalla';
@@ -18,6 +20,8 @@ const formatoMoneda = (valor) =>
 
 function NuevoPedido() {
   const navigate = useNavigate();
+  const esMovil = useEsMovil();
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
   // ?pedido=ID: la compra se crea dentro de ese pedido al proveedor y se vuelve a él al terminar
   const [searchParams] = useSearchParams();
   const ordenid = Number(searchParams.get('pedido')) || null;
@@ -216,10 +220,13 @@ function NuevoPedido() {
             )}
           </div>
 
-          <div className="cart-summary-panel">
+          <div className={`cart-summary-panel${esMovil ? ' cart-sheet' : ''}${carritoAbierto ? ' abierto' : ''}`}>
             <div className="cart-title">
               <ClipboardList size={20} />
               {paraStock ? 'Para stock' : 'Pedido'}
+              {esMovil && (
+                <button type="button" className="cart-sheet-cerrar" onClick={() => setCarritoAbierto(false)} aria-label="Cerrar carrito"><X size={16} /></button>
+              )}
             </div>
 
             {!paraStock && (<>
@@ -363,6 +370,11 @@ function NuevoPedido() {
           </div>
         </div>
       </div>
+
+      {esMovil && carritoAbierto && <div className="cart-sheet-fondo" onClick={() => setCarritoAbierto(false)} />}
+      {esMovil && !carritoAbierto && (
+        <BarraCarrito cantidad={carrito.length} total={formatoMoneda(totalCarrito)} etiqueta="Ver pedido" tono="primario" onAbrir={() => setCarritoAbierto(true)} />
+      )}
 
       {productoParaTalla && (
         <SelectorTalla

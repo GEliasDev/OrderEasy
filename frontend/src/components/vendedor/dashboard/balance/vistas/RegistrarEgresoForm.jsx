@@ -1,11 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
-import { Search, ShoppingCart, Trash2, Plus, Minus, AlertCircle, CheckCircle2, ArrowLeft, FileText, TrendingDown } from 'lucide-react';
+import { X, Search, ShoppingCart, Trash2, Plus, Minus, AlertCircle, CheckCircle2, ArrowLeft, FileText, TrendingDown } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
 import { getAllProducts } from "../../../../../services/productServices";
 import { createEgresoBatch } from "../../../../../services/egresoService";
 import { getProveedores } from "../../../../../services/proveedorService";
+import { useEsMovil } from '../../../../../hooks/useEsMovil';
+import BarraCarrito from '../../../../comunes/BarraCarrito';
 import { useCarrito, pasoDe, minimoDe } from "../../../../../hooks/useCarrito";
 import { stepCantidad, formatearCantidad } from "../../../../../utils/unidades";
 import SelectorTalla from "./SelectorTalla";
@@ -14,6 +16,8 @@ import { API_URL } from '../../../../../config';
 
 const RegistrarEgresoForm = () => {
   const navigate = useNavigate();
+  const esMovil = useEsMovil();
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [proveedores, setProveedores] = useState([]);
@@ -160,10 +164,13 @@ const RegistrarEgresoForm = () => {
           </div>
 
           {/* RIGHT: Cart summary */}
-          <div className="cart-summary-panel">
+          <div className={`cart-summary-panel${esMovil ? ' cart-sheet' : ''}${carritoAbierto ? ' abierto' : ''}`}>
             <div className="cart-title">
               <TrendingDown size={20} style={{ color: 'var(--color-danger)' }} />
               Lista de Compra
+              {esMovil && (
+                <button type="button" className="cart-sheet-cerrar" onClick={() => setCarritoAbierto(false)} aria-label="Cerrar carrito"><X size={16} /></button>
+              )}
             </div>
 
             <div className="client-selection-cart">
@@ -275,6 +282,11 @@ const RegistrarEgresoForm = () => {
           </div>
         </div>
       </div>
+
+      {esMovil && carritoAbierto && <div className="cart-sheet-fondo" onClick={() => setCarritoAbierto(false)} />}
+      {esMovil && !carritoAbierto && (
+        <BarraCarrito cantidad={carrito.length} total={formatoMoneda(totalCarrito)} etiqueta="Registrar" tono="egreso" onAbrir={() => setCarritoAbierto(true)} />
+      )}
 
       {productoParaTalla && (
         <SelectorTalla

@@ -540,19 +540,53 @@
     overflow: visible;
   }
 
-  /* El catálogo tiene su propio scroll para que el carrito quede a una pantalla de distancia, no al final de toda la lista */
+  /* El catálogo usa toda la pantalla (la búsqueda queda fija arriba) y el carrito es un panel que sube desde abajo */
   .product-selection-panel {
     border-right: none;
-    border-bottom: 1px solid var(--neutral-200, #E2E8F0);
-    flex: 0 0 auto;
-    height: 62vh;
-    min-height: 22rem;
-  }
-  .product-selection-panel .productos-container-cart { overflow-y: auto; flex: 1 1 auto; min-height: 0; grid-auto-rows: max-content; }
-
-  .cart-summary-panel {
     flex: none;
     height: auto;
+    min-height: 0;
+    overflow: visible;
   }
+  .product-selection-panel .search-filter-bar { position: sticky; top: 0; z-index: 6; background: var(--surface); }
+  .product-selection-panel .productos-container-cart { overflow: visible; flex: none; min-height: 0; grid-auto-rows: max-content; padding-bottom: 5.5rem; }
+
+  .cart-summary-panel { flex: none; height: auto; }
+
+  .cart-summary-panel.cart-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1300;
+    max-height: 90vh;
+    max-height: 90dvh;
+    overflow-y: auto;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.25);
+    transform: translateY(105%);
+    visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
+  }
+  .cart-summary-panel.cart-sheet.abierto { transform: none; visibility: visible; transition: transform 0.25s ease; }
+  .cart-sheet-fondo { position: fixed; inset: 0; z-index: 1250; background: rgba(15, 23, 42, 0.5); }
+  .cart-sheet .cart-title { position: sticky; top: 0; z-index: 2; }
+  .cart-sheet-cerrar {
+    margin-left: auto;
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--neutral-100, #F1F5F9);
+    color: var(--neutral-600, #475569);
+    cursor: pointer;
+  }
+  .cart-sheet .cart-footer { position: sticky; bottom: 0; }
 }
 
+@media (min-width: 769px) {
+  .cart-sheet-cerrar { display: none; }
+}
