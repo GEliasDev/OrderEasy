@@ -314,3 +314,16 @@
   .detalle-tx-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .detalle-tx-view { padding: 0.875rem; }
 }
+
+/* Celular: tarjetas del resumen bajitas (venta, egreso, pedido y compra comparten estilo) */
+@media (max-width: 768px) {
+  .detalle-tx-view { padding: 0.75rem; }
+  .detalle-tx-summary { gap: 0.5rem; margin-bottom: 0.75rem; }
+  .detalle-tx-stat { padding: 0.55rem 0.7rem; border-radius: 10px; }
+  .detalle-tx-stat-label { font-size: 0.6rem; margin-bottom: 0.15rem; }
+  .detalle-tx-stat-value { font-size: 0.95rem; line-height: 1.2; }
+  .detalle-tx-stat-value.amount { font-size: 1.15rem; }
+  .detalle-tx-description { padding: 0.5rem 0.7rem; margin-bottom: 0.5rem; }
+  .detalle-tx-description:has(.muted) { display: none; }
+  .items-table th, .items-table td { padding: 0.5rem 0.6rem; }
+}

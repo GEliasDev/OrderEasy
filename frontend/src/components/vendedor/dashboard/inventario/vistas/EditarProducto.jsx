@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, ImageIcon, Save, X, DollarSign, Info, Barcode } from 'lucide-react';
 import { toast } from 'sonner';
@@ -6,6 +6,8 @@ import { getProductById, updateProduct } from '../../../../../services/productSe
 import { getCategoriesByUser } from '../../../../../services/categoryServices';
 import StockSection from './StockSection';
 import { UNIDADES } from '../../../../../utils/unidades';
+import { useEsMovil } from '../../../../../hooks/useEsMovil';
+import { useTarjetasPlegables } from '../../../../../hooks/useTarjetasPlegables';
 import './styles/NuevoProducto.css';
 import { compararTallas } from '../../../../../utils/unidades';
 import { API_URL } from '../../../../../config';
@@ -35,6 +37,10 @@ function EditarProducto() {
   const [preview, setPreview] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [loading, setLoading] = useState(true);
+  const formRef = useRef(null);
+  const esMovil = useEsMovil();
+  // En celular el formulario se acorta: Inventario e Imágenes empiezan plegados
+  useTarjetasPlegables(formRef, { activo: esMovil, cerradas: [1, 3] });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -150,7 +156,7 @@ function EditarProducto() {
       </div>
 
       <div className="view-content">
-        <form onSubmit={handleSubmit} className="minimal-form-grid">
+        <form ref={formRef} onSubmit={handleSubmit} className="minimal-form-grid">
 
           <div className="form-column">
             <div className="form-card-minimal">

@@ -7,6 +7,7 @@ import { useEsMovil } from '../../../../hooks/useEsMovil';
 import ListaMovil, { ChipsFiltro } from '../../../comunes/ListaMovil';
 import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
 import { abrirWhatsApp } from '../../../../utils/whatsapp';
+import SeccionPlegable from '../../../comunes/SeccionPlegable';
 import './proveedores.css';
 import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 
@@ -308,6 +309,7 @@ function Proveedores() {
                 <div className="proveedores-form-group"><label>Nombre / Razón Social *</label><input name="razonSocial" value={form.razonSocial} onChange={handleChange} required /></div>
                 <div className="proveedores-form-group"><label>Nombre Contacto <span className="campo-opcional">(opcional)</span></label><input name="nombreProveedor" value={form.nombreProveedor} onChange={handleChange} /></div>
               </div>
+              <SeccionPlegable titulo="Contacto y ubicación" resumen="NIT, teléfono, correo, dirección">
               <div className="proveedores-form-row">
                 <div className="proveedores-form-group"><label>NIT <span className="campo-opcional">(opcional)</span></label><input name="nit" value={form.nit} onChange={handleChange} /></div>
                 <div className="proveedores-form-group"><label>Teléfono <span className="campo-opcional">(opcional)</span></label><input name="telefono" value={form.telefono} onChange={handleChange} /></div>
@@ -316,24 +318,25 @@ function Proveedores() {
                 <div className="proveedores-form-group"><label>Correo <span className="campo-opcional">(opcional)</span></label><input name="correo" type="email" value={form.correo} onChange={handleChange} /></div>
                 <div className="proveedores-form-group"><label>Dirección <span className="campo-opcional">(opcional)</span></label><input name="direccion" value={form.direccion} onChange={handleChange} /></div>
               </div>
+              </SeccionPlegable>
+              <SeccionPlegable titulo="Datos bancarios" resumen="Banco y cuenta">
               <div className="proveedores-form-row">
                 <div className="proveedores-form-group"><label>Banco <span className="campo-opcional">(opcional)</span></label><input name="banco" value={form.banco} onChange={handleChange} /></div>
                 <div className="proveedores-form-group"><label>Cuenta <span className="campo-opcional">(opcional)</span></label><input name="numeroCuenta" value={form.numeroCuenta} onChange={handleChange} /></div>
               </div>
-              <div className="proveedores-form-row">
-                <div className="proveedores-form-group">
-                  <label>Tipo Cuenta <span className="campo-opcional">(opcional)</span></label>
-                  <select name="tipoCuenta" value={form.tipoCuenta} onChange={handleChange}>
-                    <option value="">Sin especificar</option>
-                    {TIPO_CUENTA_OPTS.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div className="proveedores-form-group">
-                  <label>Estado *</label>
-                  <select name="estado" value={form.estado} onChange={handleChange} required>
-                    {ESTADO_OPTS.map(e => <option key={e} value={e}>{e}</option>)}
-                  </select>
-                </div>
+              <div className="proveedores-form-group">
+                <label>Tipo Cuenta <span className="campo-opcional">(opcional)</span></label>
+                <select name="tipoCuenta" value={form.tipoCuenta} onChange={handleChange}>
+                  <option value="">Sin especificar</option>
+                  {TIPO_CUENTA_OPTS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              </SeccionPlegable>
+              <div className="proveedores-form-group">
+                <label>Estado *</label>
+                <select name="estado" value={form.estado} onChange={handleChange} required>
+                  {ESTADO_OPTS.map(e => <option key={e} value={e}>{e}</option>)}
+                </select>
               </div>
               <div className="proveedores-form-actions">
                 <button type="button" className="proveedores-btn-cancelar" onClick={cerrarModal}>Cancelar</button>

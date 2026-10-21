@@ -284,3 +284,55 @@
 /* ── Modo oscuro ── */
 :root[data-theme="dark"] .lm-insignia.lm-aviso { background: #3A2E12; }
 :root[data-theme="dark"] .pi-fondo { background: rgba(0, 0, 0, 0.65); }
+
+/* ── Barra del carrito (celular) ── */
+.cart-bar {
+  position: fixed;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 3.25rem;
+  padding: 0 1rem;
+  border: none;
+  border-radius: 14px;
+  background: var(--color-primary, #1565C0);
+  color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.3);
+  cursor: pointer;
+}
+.cart-bar-egreso { background: #DC2626; }
+.cart-bar-venta { background: #059669; }
+.cart-bar-vacia { background: var(--neutral-700, #334155); opacity: 0.92; cursor: default; }
+.cart-bar-texto { flex: 1; text-align: left; font-weight: 600; }
+.cart-bar-total { font-size: 1rem; }
+.cart-bar-accion { font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 9999px; background: rgba(255, 255, 255, 0.22); white-space: nowrap; }
+
+/* ── Sección plegable de formularios (celular) ── */
+.sp { border: 1px solid var(--neutral-200, #E2E8F0); border-radius: 10px; margin: 0.25rem 0 0.75rem; background: var(--surface, #fff); }
+.sp-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--neutral-800, #1E293B);
+  cursor: pointer;
+  text-align: left;
+}
+.sp-titulo { flex: 1; }
+.sp-resumen { font-size: 0.7rem; font-weight: 400; color: var(--neutral-500, #64748B); }
+.sp-flecha { color: var(--neutral-400, #94A3B8); transition: transform 0.15s; }
+.sp-abierta .sp-flecha { transform: rotate(180deg); }
+.sp-cuerpo { padding: 0.25rem 0.75rem 0.25rem; border-top: 1px solid var(--neutral-100, #F0F4FA); }

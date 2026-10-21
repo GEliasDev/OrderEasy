@@ -279,3 +279,21 @@
   .form-actions-minimal .btn-cancel { padding: 0.625rem 0.75rem; }
   .form-actions-minimal .btn-save { flex: 1; justify-content: center; padding: 0.75rem 1rem; white-space: nowrap; }
 }
+
+/* Tarjetas plegables (editar producto en celular) */
+.form-card-minimal.plegable .card-header-minimal { cursor: pointer; position: relative; padding-right: 1.5rem; }
+.form-card-minimal.plegable .card-header-minimal::after {
+  content: "";
+  position: absolute;
+  right: 0.25rem;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--neutral-400, #94A3B8);
+  border-bottom: 2px solid var(--neutral-400, #94A3B8);
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform 0.15s;
+}
+.form-card-minimal.plegable.plegada .card-header-minimal::after { transform: translateY(-30%) rotate(-135deg); }
+.form-card-minimal.plegable.plegada .card-header-minimal { margin-bottom: 0; }
+.form-card-minimal.plegable.plegada > :not(.card-header-minimal) { display: none; }

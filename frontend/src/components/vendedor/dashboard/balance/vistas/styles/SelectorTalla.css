@@ -95,3 +95,22 @@
   font-size: 0.8rem;
   color: var(--neutral-500, #64748B);
 }
+
+/* Celular: panel que sube desde abajo con las tallas en una cuadrícula compacta */
+@media (max-width: 768px) {
+  .selector-talla-overlay { align-items: flex-end; padding: 0; }
+  .selector-talla-modal {
+    max-width: none;
+    max-height: 70vh;
+    max-height: 70dvh;
+    padding: 0.75rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    border-radius: 18px 18px 0 0;
+    animation: selector-talla-sube 0.22s ease-out;
+  }
+  .selector-talla-header { margin-bottom: 0.75rem; }
+  .selector-talla-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+  .selector-talla-opcion { padding: 0.5rem 0.25rem; min-height: 3.25rem; justify-content: center; }
+  .selector-talla-opcion strong { font-size: 1rem; }
+  .selector-talla-opcion span { font-size: 0.6rem; }
+}
+@keyframes selector-talla-sube { from { transform: translateY(100%); } to { transform: translateY(0); } }

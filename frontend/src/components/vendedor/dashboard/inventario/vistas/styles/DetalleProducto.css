@@ -398,3 +398,12 @@
   .detail-tallas-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
   .profit-analysis-minimal { padding: 0.75rem; }
 }
+
+@media (max-width: 560px) {
+  .detail-tallas-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+  .detail-talla { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 0.35rem; padding: 0.4rem 0.55rem; min-height: 0; }
+  .detail-talla strong { font-size: 0.9rem; }
+  .detail-talla span { font-size: 0.72rem; }
+  .detail-talla small { display: none; }
+  .detail-tallas { margin: 0.6rem 0; }
+}
