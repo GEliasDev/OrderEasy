@@ -406,3 +406,8 @@
   .clientes-table td.clientes-empty { display: block; text-align: center; }
   .clientes-table td.clientes-empty::before { display: none; }
 }
+
+/* Celular: separación pareja entre campos */
+@media (max-width: 640px) {
+  .clientes-form-row { gap: 0; }
+}

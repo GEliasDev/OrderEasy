@@ -435,3 +435,15 @@
 }
 
 :root[data-theme="dark"] .proveedores-estado.activo { background: #10261E; color: #6EE7B7; }
+
+/* Celular: separación pareja entre campos y botones siempre visibles al final del formulario */
+@media (max-width: 640px) {
+  .proveedores-form-row { gap: 0; }
+  .proveedores-form-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface, #fff);
+    padding-bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
+    z-index: 2;
+  }
+}

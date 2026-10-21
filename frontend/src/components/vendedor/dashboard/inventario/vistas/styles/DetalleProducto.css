@@ -372,3 +372,29 @@
   .product-detail-view .header-actions { margin-left: 0; width: 100%; }
   .product-detail-view .header-actions .btn-edit-minimal { flex: 1; justify-content: center; }
 }
+
+/* ── Celular: foto compacta con el estado encima, datos clave en una fila y tallas en tres columnas ── */
+@media (max-width: 560px) {
+  .product-detail-view { padding: 0.25rem 0 1rem; }
+  .detail-image-card { position: relative; gap: 0; width: 100%; }
+  .detail-image-box { width: 100%; max-width: none; box-sizing: border-box; }
+  .detail-image-box { aspect-ratio: auto; height: 15rem; }
+  .detail-image-box img { padding: 0.75rem; }
+  .detail-status {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.72rem;
+    border-radius: 9999px;
+  }
+  .detail-info-card { padding: 1rem; border-radius: 14px; }
+  .info-title-group h2 { font-size: 1.5rem; line-height: 1.15; overflow-wrap: anywhere; }
+  .detail-stats-minimal { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+  .stat-card-minimal { padding: 0.6rem 0.55rem; }
+  .stat-card-minimal .stat-label { font-size: 0.6rem; letter-spacing: 0.02em; }
+  .stat-card-minimal .stat-val { font-size: 0.95rem; overflow-wrap: anywhere; }
+  .stat-card-minimal .stat-val small { font-size: 0.65rem; }
+  .detail-tallas-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+  .profit-analysis-minimal { padding: 0.75rem; }
+}
