@@ -141,3 +141,9 @@ export const enviarPedidoProveedor = async (id) => {
   const { data } = await axiosInstance.post(`/api/ordenes-compra/${id}/enviar`);
   return data;
 };
+
+// Lo que los clientes le deben al negocio, sin importar el estado de los pedidos (compras de todos los pedidos y sueltas)
+export const getSaldoPorCobrar = async () => {
+  const { data } = await axiosInstance.get('/api/pedidos/saldo-por-cobrar');
+  return data;
+};

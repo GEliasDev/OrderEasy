@@ -2,6 +2,7 @@ const express = require('express');
 const {
   createPedido,
   getPedidos,
+  getSaldoPorCobrar,
   getPedidoById,
   updatePedido,
   confirmarPedido,
@@ -20,6 +21,7 @@ const router = express.Router();
 
 router.post('/', verificarToken, createPedido);
 router.get('/', verificarToken, getPedidos);
+router.get('/saldo-por-cobrar', verificarToken, getSaldoPorCobrar); // antes de /:id
 router.get('/saldo-favor/:clienteid', verificarToken, getSaldoFavor); // antes de /:id
 router.get('/:id', verificarToken, getPedidoById);
 router.patch('/:id', verificarToken, updatePedido);

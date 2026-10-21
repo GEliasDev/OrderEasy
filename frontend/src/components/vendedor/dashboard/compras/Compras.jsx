@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ClipboardList, Eye, PackageCheck, Plus, Truck, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { crearPedidoProveedor, getOrdenesCompra } from '../../../../services/pedidoService';
+import { crearPedidoProveedor, getOrdenesCompra, getSaldoPorCobrar } from '../../../../services/pedidoService';
 import { ESTADOS_COMPRA, formatearFecha, formatoMoneda, nombrePedido } from './comprasUtils';
 import '../pedidos/Pedidos.css';
 import './Compras.css';
@@ -13,6 +13,7 @@ const ESTADOS_ACTIVOS = ['abierta', 'borrador', 'enviada', 'recibida_parcial'];
 function Compras() {
   const navigate = useNavigate();
   const [ordenes, setOrdenes] = useState([]);
+  const [saldoPorCobrar, setSaldoPorCobrar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [creando, setCreando] = useState(false);
   const [modalNuevo, setModalNuevo] = useState(false);
@@ -23,8 +24,9 @@ function Compras() {
   useEffect(() => {
     const cargar = async () => {
       try {
-        const data = await getOrdenesCompra();
+        const [data, saldo] = await Promise.all([getOrdenesCompra(), getSaldoPorCobrar().catch(() => null)]);
         setOrdenes(Array.isArray(data) ? data : []);
+        setSaldoPorCobrar(saldo);
       } catch {
         toast.error('No se pudieron cargar los pedidos.');
       } finally {
@@ -76,9 +78,6 @@ function Compras() {
       abiertos: filas.filter(({ orden }) => orden.estado === 'abierta').length,
       enCamino: enCamino.length,
       porRecibir: enCamino.reduce((s, f) => s + (f.pedidos - f.recibidos), 0),
-      saldoClientes: filas
-        .filter(({ orden }) => ESTADOS_ACTIVOS.includes(orden.estado))
-        .reduce((s, f) => s + Number(f.orden.resumenCompras?.saldo || 0), 0),
     };
   }, [filas]);
 
@@ -110,7 +109,7 @@ function Compras() {
         </div>
         <div className="pedidos-metrica">
           <div className="pedidos-metrica-icon pedidos-icon-verde"><PackageCheck size={18} /></div>
-          <div><span>Saldo por cobrar a clientes</span><strong>{formatoMoneda(metricas.saldoClientes)}</strong></div>
+          <div><span>Saldo por cobrar a clientes</span><strong>{formatoMoneda(saldoPorCobrar?.total)}</strong></div>
         </div>
       </div>
 

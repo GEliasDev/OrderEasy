@@ -196,6 +196,39 @@ const getPedidos = async (req, res) => {
   }
 };
 
+// Lo que los clientes le deben al negocio: suma del saldo de TODAS sus compras, esté el pedido al proveedor
+// abierto, enviado, recibido o anulado (y también las compras sin pedido). Una compra anulada solo deja saldo
+// por lo ya entregado y no pagado.
+const getSaldoPorCobrar = async (req, res) => {
+  try {
+    const { negocioid } = req.usuario;
+    const compras = await Pedido.findAll({
+      where: { negocioid },
+      attributes: ['pedidoid', 'clienteid', 'estado', 'total'],
+      include: [
+        { model: PedidoDetalle, as: 'detalles', attributes: ['detalleid', 'cantidadEntregada', 'precioUnitario'] },
+        { model: PedidoPago, as: 'pagos' },
+      ],
+    });
+    let total = 0;
+    let abonado = 0;
+    const clientes = new Set();
+    let conSaldo = 0;
+    for (const compra of compras) {
+      const resumen = resumenPedido(compra.toJSON());
+      abonado += resumen.abonado;
+      if (resumen.saldo > 0) {
+        total += resumen.saldo;
+        conSaldo += 1;
+        if (compra.clienteid) clientes.add(compra.clienteid);
+      }
+    }
+    res.json({ total: dos(total), abonado: dos(abonado), compras: conSaldo, clientes: clientes.size });
+  } catch {
+    res.status(500).json({ mensaje: 'Error al calcular el saldo por cobrar' });
+  }
+};
+
 const getPedidoById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -719,6 +752,7 @@ const deletePedido = async (req, res) => {
 module.exports = {
   createPedido,
   getPedidos,
+  getSaldoPorCobrar,
   getPedidoById,
   updatePedido,
   confirmarPedido,
