@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, Minus
 import { toast } from 'sonner';
 import {
   anularOrdenCompra,
+  deletePedido,
   anularPedido,
   confirmarPedido,
   entregarPedido,
@@ -374,6 +375,26 @@ function DetallePedido() {
   };
   const handleAnular = abrirAnular;
 
+  // Elimina la compra en cualquier estado (a diferencia de anular, no queda registro de ella)
+  const handleEliminar = () => {
+    toast(`¿Eliminar la compra #${pedido.pedidoid}?`, {
+      description: 'Se borran la compra y sus abonos. Las ventas de entregas ya hechas se conservan y el stock reservado se libera. Esta acción no se puede deshacer.',
+      action: {
+        label: 'Sí, eliminar',
+        onClick: async () => {
+          try {
+            await deletePedido(pedido.pedidoid);
+            toast.success('Compra eliminada.');
+            navigate(pedido.ordenid ? `/dashboard/pedidos/${pedido.ordenid}` : '/dashboard/pedidos');
+          } catch (error) {
+            toast.error(error?.response?.data?.mensaje || 'No se pudo eliminar la compra.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
+    });
+  };
+
   const handleConfirmarAnulacion = async (e) => {
     e.preventDefault();
     try {
@@ -584,11 +605,15 @@ function DetallePedido() {
             </button>
           )}
           {puedeEditar && (
-            <button className="pedidos-btn pedidos-btn-peligro" onClick={handleAnular}>
+            <button className="pedidos-btn pedidos-btn-secundario" onClick={handleAnular}>
               <XCircle size={14} />
               <span>Anular</span>
             </button>
           )}
+          <button className="pedidos-btn pedidos-btn-peligro" onClick={handleEliminar}>
+            <Trash2 size={14} />
+            <span>Eliminar</span>
+          </button>
         </div>
       </div>
 
