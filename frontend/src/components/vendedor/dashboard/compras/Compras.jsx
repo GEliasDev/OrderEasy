@@ -76,8 +76,25 @@ function Compras() {
   const filas = useMemo(() => ordenes.map((orden) => {
     const pedidos = (orden.detalles || []).reduce((s, d) => s + Number(d.cantidad), 0);
     const recibidos = (orden.detalles || []).reduce((s, d) => s + Number(d.cantidadRecibida || 0), 0);
-    const clientes = [...new Set((orden.compras || []).filter((c) => c.estado !== 'anulado').map((c) => c.cliente?.nombreCliente).filter(Boolean))];
-    return { orden, pedidos, recibidos, clientes };
+    const comprasVigentes = (orden.compras || []).filter((c) => c.estado !== 'anulado');
+    const clientes = [...new Set(comprasVigentes.map((c) => c.cliente?.nombreCliente).filter(Boolean))];
+    // Unidades compradas por los clientes (lo que se les puede entregar)
+    const productosClientes = comprasVigentes.reduce(
+      (s, c) => s + (c.detalles || []).reduce((ss, d) => ss + Number(d.cantidad || 0), 0),
+      0
+    );
+    const entregados = comprasVigentes.reduce(
+      (s, c) => s + (c.detalles || []).reduce((ss, d) => ss + Number(d.cantidadEntregada || 0), 0),
+      0
+    );
+    // En un pedido abierto las líneas al proveedor aún no existen: se suman las compras de clientes.
+    // En uno enviado, `detalles` ya incluye clientes y stock.
+    const productos = orden.estado === 'abierta' ? pedidos + productosClientes : pedidos;
+    const saldo = Number(
+      orden.resumenCompras?.saldo
+      ?? comprasVigentes.reduce((s, c) => s + Number(c.resumen?.saldo || 0), 0)
+    );
+    return { orden, pedidos, recibidos, clientes, productos, productosClientes, entregados, saldo };
   }), [ordenes]);
 
   const filtradas = useMemo(() => {
@@ -158,15 +175,23 @@ function Compras() {
           cargando={loading}
           vacio="No hay pedidos que coincidan con el filtro."
           onAbrir={(f) => navigate(`/dashboard/pedidos/${f.orden.ordenid}`)}
-          fila={({ orden }) => {
+          fila={({ orden, productos, productosClientes, entregados, saldo }) => {
             const estado = ESTADOS_COMPRA[orden.estado] || { label: orden.estado };
             const proveedor = orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial;
             const compras = orden.resumenCompras?.cantidad || 0;
             return {
               nombre: nombrePedido(orden),
               titulo: nombrePedido(orden),
-              subtitulo: [proveedor || 'Sin proveedor', `${compras} compra${compras === 1 ? '' : 's'}`, formatearFecha(orden.createdAt)].join(' · '),
+              subtitulo: [
+                proveedor || 'Sin proveedor',
+                productos > 0 ? `${cantidad(productos)} producto${productos === 1 ? '' : 's'}` : 'Sin productos',
+                productosClientes > 0
+                  ? `${cantidad(entregados)} de ${cantidad(productosClientes)} entregados`
+                  : productos > 0 ? 'Para stock' : '',
+                `${compras} compra${compras === 1 ? '' : 's'}`,
+              ].filter(Boolean).join(' · '),
               derecha: formatoMoneda(orden.estado === 'abierta' ? orden.costoEstimado : orden.total),
+              derechaSecundaria: saldo > 0 ? `Saldo ${formatoMoneda(saldo)}` : undefined,
               insignia: estado.label,
               tono: TONO_ESTADO[orden.estado],
             };
@@ -191,15 +216,18 @@ function Compras() {
                 <th>Pedido</th>
                 <th>Proveedor</th>
                 <th>Clientes</th>
+                <th title="Unidades totales del pedido (compras de clientes y productos para stock)">Productos</th>
                 <th>Fecha</th>
                 <th>Estado</th>
-                <th>Recibido</th>
+                <th title="Unidades recibidas del proveedor">Recibido</th>
+                <th title="Unidades entregadas a clientes / unidades compradas por clientes">Entregados</th>
                 <th>Costo al proveedor</th>
+                <th title="Saldo pendiente de las compras de clientes en este pedido">Saldo por cobrar</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtradas.map(({ orden, pedidos, recibidos, clientes }) => {
+              {filtradas.map(({ orden, pedidos, recibidos, clientes, productos, productosClientes, entregados, saldo }) => {
                 const estado = ESTADOS_COMPRA[orden.estado] || { label: orden.estado, clase: 'anulado' };
                 const abierto = orden.estado === 'abierta';
                 return (
@@ -213,10 +241,13 @@ function Compras() {
                       {clientes.length === 0 ? '—' : `${clientes.slice(0, 2).join(', ')}${clientes.length > 2 ? ` +${clientes.length - 2}` : ''}`}
                       {(orden.resumenCompras?.cantidad || 0) > 0 && <small className="compras-nota-corta">{orden.resumenCompras.cantidad} compra(s)</small>}
                     </td>
+                    <td className="pedido-productos">{cantidad(productos)}</td>
                     <td>{formatearFecha(orden.createdAt)}</td>
                     <td><span className={`pedido-estado pedido-estado-${estado.clase}`}>{estado.label}</span></td>
                     <td>{abierto ? '—' : `${cantidad(recibidos)} / ${cantidad(pedidos)}`}</td>
+                    <td className="pedido-entregados">{productosClientes > 0 ? `${cantidad(entregados)} / ${cantidad(productosClientes)}` : '—'}</td>
                     <td className="pedido-total">{formatoMoneda(abierto ? orden.costoEstimado : orden.total)}</td>
+                    <td className={`pedido-saldo${saldo > 0 ? ' pedido-saldo-pendiente' : ''}`}>{formatoMoneda(saldo)}</td>
                     <td>
                       <div className="pedidos-acciones" onClick={(e) => e.stopPropagation()}>
                         <button className="pedidos-accion pedidos-accion-ver" title="Abrir pedido" onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
