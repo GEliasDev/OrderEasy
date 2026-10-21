@@ -5,10 +5,10 @@ import { toast } from 'sonner';
 import { getCategoriesByUser } from '../../../../services/categoryServices';
 import { getAllProducts } from '../../../../services/productServices';
 import { getClientes } from '../../../../services/clienteService';
-import { agregarStockPedido, createPedido } from '../../../../services/pedidoService';
+import { agregarStockPedido, createPedido, getPedidoById, updatePedido } from '../../../../services/pedidoService';
 import { useEsMovil } from '../../../../hooks/useEsMovil';
 import BarraCarrito from '../../../comunes/BarraCarrito';
-import { useCarrito, pasoDe, minimoDe } from '../../../../hooks/useCarrito';
+import { useCarrito, pasoDe, minimoDe, claveItem } from '../../../../hooks/useCarrito';
 import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import SelectorTalla from '../balance/vistas/SelectorTalla';
 import '../balance/vistas/styles/CartStyles.css';
@@ -25,9 +25,12 @@ function NuevoPedido() {
   // ?pedido=ID: la compra se crea dentro de ese pedido al proveedor y se vuelve a él al terminar
   const [searchParams] = useSearchParams();
   const ordenid = Number(searchParams.get('pedido')) || null;
+  // ?editar=ID: se abre la misma interfaz de carrito para cambiar los productos de una compra existente
+  const editarid = Number(searchParams.get('editar')) || null;
   // ?tipo=stock: en vez de una compra de cliente, se eligen productos que se piden de más para el stock
-  const paraStock = Boolean(ordenid) && searchParams.get('tipo') === 'stock';
+  const paraStock = !editarid && Boolean(ordenid) && searchParams.get('tipo') === 'stock';
   const destino = ordenid ? `/dashboard/pedidos/${ordenid}` : '/dashboard/pedidos';
+  const volverA = editarid ? `/dashboard/pedido/${editarid}` : destino;
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -36,8 +39,10 @@ function NuevoPedido() {
   const [fechaEntrega, setFechaEntrega] = useState('');
   const [abonoMonto, setAbonoMonto] = useState('');
   const [abonoMetodo, setAbonoMetodo] = useState('efectivo');
+  const [compraEditada, setCompraEditada] = useState(null);
+  const [preciosEdicion, setPreciosEdicion] = useState({});
   const {
-    carrito, productoParaTalla, elegirProducto, elegirTalla, cerrarSelectorTalla,
+    carrito, setCarrito, productoParaTalla, elegirProducto, elegirTalla, cerrarSelectorTalla,
     actualizarCantidad, setCantidadDirecta, eliminarDelCarrito,
   } = useCarrito({ limitarPorStock: false });
   const [busqueda, setBusqueda] = useState('');
@@ -49,14 +54,49 @@ function NuevoPedido() {
     const cargarDatos = async () => {
       try {
         setCargando(true);
-        const [categoriasData, productosData, clientesData] = await Promise.all([
+        const [categoriasData, productosData, clientesData, compraData] = await Promise.all([
           getCategoriesByUser(),
           getAllProducts(),
           getClientes(),
+          editarid ? getPedidoById(editarid) : Promise.resolve(null),
         ]);
+        const productosLista = Array.isArray(productosData) ? productosData : [];
         if (Array.isArray(categoriasData)) setCategorias(categoriasData);
         if (Array.isArray(productosData)) setProductos(productosData);
         if (Array.isArray(clientesData)) setClientes(clientesData);
+
+        if (compraData) {
+          setCompraEditada(compraData);
+          setClienteId(compraData.clienteid ? String(compraData.clienteid) : '');
+          setDescripcion(compraData.descripcion || '');
+          setFechaEntrega(compraData.fechaEntrega || '');
+
+          const precios = {};
+          const items = (compraData.detalles || [])
+            .filter((detalle) => detalle.productoid)
+            .map((detalle) => {
+              const producto = productosLista.find(
+                (p) => Number(p.productoid) === Number(detalle.productoid)
+              );
+              precios[detalle.productoid] = Number(detalle.precioUnitario);
+              return {
+                ...(producto || {}),
+                productoid: detalle.productoid,
+                nombre: detalle.productoNombre || producto?.nombre || 'Producto',
+                talla: detalle.talla || null,
+                clave: claveItem(detalle.productoid, detalle.talla),
+                cantidad: Number(detalle.cantidad),
+                unidadMedida: producto?.unidadMedida || detalle.producto?.unidadMedida || 'und',
+                precioUnitario: Number(detalle.precioUnitario),
+                stockDisponible: Math.max(
+                  0,
+                  Number(producto?.cantidadDisponible || 0) - Number(producto?.cantidadReservada || 0)
+                ),
+              };
+            });
+          setPreciosEdicion(precios);
+          setCarrito(items);
+        }
       } catch {
         toast.error('No se pudieron cargar los productos.');
       } finally {
@@ -64,7 +104,7 @@ function NuevoPedido() {
       }
     };
     cargarDatos();
-  }, []);
+  }, [editarid, setCarrito]);
 
   const productosFiltrados = useMemo(() => {
     return productos
@@ -81,7 +121,9 @@ function NuevoPedido() {
       }));
   }, [productos, busqueda, categoriaSeleccionada]);
 
-  const precioDe = (item) => Number(paraStock ? item.precioCompra : item.precioVenta) || 0;
+  const precioDe = (item) => Number(
+    item.precioUnitario ?? preciosEdicion[item.productoid] ?? (paraStock ? item.precioCompra : item.precioVenta)
+  ) || 0;
   const totalCarrito = carrito.reduce((sum, item) => sum + precioDe(item) * item.cantidad, 0);
 
   const agregarParaStock = async () => {
@@ -106,28 +148,40 @@ function NuevoPedido() {
       toast.error('Selecciona el cliente del pedido.');
       return;
     }
-    if (Number(abonoMonto) > totalCarrito) {
+    if (!editarid && Number(abonoMonto) > totalCarrito) {
       toast.error('El abono no puede superar el total del pedido.');
       return;
     }
+    const items = carrito.map((item) => ({
+      productoid: item.productoid,
+      talla: item.talla,
+      cantidad: item.cantidad,
+    }));
     try {
       setProcesando(true);
+      if (editarid) {
+        await updatePedido(editarid, {
+          clienteid: clienteId,
+          descripcion,
+          fechaEntrega: fechaEntrega || null,
+          items,
+        });
+        toast.success('Compra actualizada.');
+        navigate(volverA);
+        return;
+      }
       await createPedido({
         clienteid: clienteId,
         ordenid: ordenid || undefined,
         descripcion,
         fechaEntrega: fechaEntrega || null,
         abono: Number(abonoMonto) > 0 ? { monto: Number(abonoMonto), metodo: abonoMetodo } : undefined,
-        items: carrito.map((item) => ({
-          productoid: item.productoid,
-          talla: item.talla,
-          cantidad: item.cantidad,
-        })),
+        items,
       });
       toast.success(ordenid ? `Compra agregada al pedido #${ordenid}.` : 'Compra creada. Confírmala para reservar el stock.');
       navigate(destino);
     } catch (error) {
-      toast.error(error?.response?.data?.mensaje || 'No se pudo crear el pedido.');
+      toast.error(error?.response?.data?.mensaje || (editarid ? 'No se pudo actualizar la compra.' : 'No se pudo crear el pedido.'));
     } finally {
       setProcesando(false);
     }
@@ -138,12 +192,18 @@ function NuevoPedido() {
       <div className="cart-modal-container full-page">
         <div className="cart-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button className="back-button" onClick={() => navigate(destino)}>
+            <button className="back-button" onClick={() => navigate(volverA)}>
               <ArrowLeft size={20} />
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <ClipboardList size={24} style={{ color: 'var(--color-primary)' }} />
-              <h2>{paraStock ? `Productos para stock · Pedido #${ordenid}` : (ordenid ? `Nueva compra · Pedido #${ordenid}` : 'Nueva compra de cliente')}</h2>
+              <h2>
+                {editarid
+                  ? `Editar compra #${editarid}`
+                  : paraStock
+                    ? `Productos para stock · Pedido #${ordenid}`
+                    : (ordenid ? `Nueva compra · Pedido #${ordenid}` : 'Nueva compra de cliente')}
+              </h2>
             </div>
           </div>
         </div>
@@ -173,7 +233,13 @@ function NuevoPedido() {
             </div>
 
             <p className="pedido-aviso">
-              {paraStock ? 'Pares extra que pides al proveedor sin cliente asignado: al recibirlos suben directo al stock. Los precios son tu costo de compra.' : ordenid ? 'Esto es lo que el cliente le compra a este pedido: se le pide al proveedor y no usa tu inventario.' : 'Puedes pedir más unidades que el stock actual. Al confirmar el pedido se reserva el stock y puedes generar la compra al proveedor por los faltantes.'}
+              {editarid
+                ? 'Cambia los productos, cantidades y datos de la compra. Los cambios se guardan mientras el pedido al proveedor no haya sido enviado.'
+                : paraStock
+                  ? 'Pares extra que pides al proveedor sin cliente asignado: al recibirlos suben directo al stock. Los precios son tu costo de compra.'
+                  : ordenid
+                    ? 'Esto es lo que el cliente le compra a este pedido: se le pide al proveedor y no usa tu inventario.'
+                    : 'Puedes pedir más unidades que el stock actual. Al confirmar el pedido se reserva el stock y puedes generar la compra al proveedor por los faltantes.'}
             </p>
 
             {cargando ? (
@@ -244,6 +310,7 @@ function NuevoPedido() {
               </select>
             </div>
 
+            {!editarid && (
             <div className="client-selection-cart">
               <label>Abono inicial (Opcional)</label>
               <div className="pedido-abono-inicial">
@@ -263,6 +330,7 @@ function NuevoPedido() {
                 </select>
               </div>
             </div>
+            )}
 
             <div className="client-selection-cart">
               <label><Calendar size={11} /> Fecha de entrega (Opcional)</label>
@@ -346,7 +414,7 @@ function NuevoPedido() {
 
             <div className="cart-footer">
               <div className="cart-total-row">
-                <span className="total-label">{paraStock ? 'Costo estimado' : 'Total del pedido'}</span>
+                <span className="total-label">{editarid ? 'Total de la compra' : paraStock ? 'Costo estimado' : 'Total del pedido'}</span>
                 <span className="total-amount">{formatoMoneda(totalCarrito)}</span>
               </div>
               <button
@@ -357,12 +425,12 @@ function NuevoPedido() {
                 {procesando ? (
                   <>
                     <div className="loader-spinner"></div>
-                    <span>{paraStock ? 'Agregando...' : 'Creando pedido...'}</span>
+                    <span>{editarid ? 'Guardando...' : paraStock ? 'Agregando...' : 'Creando pedido...'}</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle2 size={20} />
-                    <span>{paraStock ? 'Agregar al pedido' : 'Crear Pedido'}</span>
+                    <span>{editarid ? 'Guardar cambios' : paraStock ? 'Agregar al pedido' : 'Crear Pedido'}</span>
                   </>
                 )}
               </button>
@@ -379,7 +447,7 @@ function NuevoPedido() {
       {productoParaTalla && (
         <SelectorTalla
           producto={productoParaTalla}
-          modo={paraStock ? 'compra' : (ordenid ? 'solicitud' : 'pedido')}
+          modo={paraStock ? 'compra' : ((editarid ? compraEditada?.ordenid : ordenid) ? 'solicitud' : 'pedido')}
           onSelect={elegirTalla}
           onClose={cerrarSelectorTalla}
         />

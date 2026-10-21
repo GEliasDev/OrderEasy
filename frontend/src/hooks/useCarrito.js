@@ -79,6 +79,7 @@ export function useCarrito({ limitarPorStock = false } = {}) {
 
   return {
     carrito,
+    setCarrito,
     productoParaTalla,
     elegirProducto,
     elegirTalla,

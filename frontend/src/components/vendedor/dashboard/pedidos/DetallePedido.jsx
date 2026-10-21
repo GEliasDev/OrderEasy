@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, Minus, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, Search, ShoppingBag, Trash2, Truck, User, Wallet, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, ShoppingBag, Trash2, Truck, User, Wallet, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   anularOrdenCompra,
@@ -17,10 +17,7 @@ import {
 } from '../../../../services/pedidoService';
 import { getClientes } from '../../../../services/clienteService';
 import { getProveedores } from '../../../../services/proveedorService';
-import { getAllProducts } from '../../../../services/productServices';
-import { pasoDe, minimoDe } from '../../../../hooks/useCarrito';
-import { stepCantidad, formatearCantidad, admiteDecimales } from '../../../../utils/unidades';
-import SelectorTalla from '../balance/vistas/SelectorTalla';
+import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import ReciboModal from './ReciboModal';
 import { getNegocio } from '../../../../services/negocioService';
 import { abrirWhatsApp, mensajeListoParaEntregar, mensajeRecordatorioSaldo } from '../../../../utils/whatsapp';
@@ -28,9 +25,6 @@ import '../balance/vistas/styles/DetalleTransaccion.css';
 import { useEsMovil } from '../../../../hooks/useEsMovil';
 import PanelInferior from '../../../comunes/PanelInferior';
 import './Pedidos.css';
-
-// Una línea del pedido es "producto + talla"
-const claveEdicion = (productoid, talla) => `${productoid}:${talla ?? ''}`;
 
 // Compras dentro de un pedido al proveedor: no se entrega del inventario sino lo que ya llegó para el cliente
 const conLlegado = (pedido) => {
@@ -131,8 +125,6 @@ function DetallePedido() {
   const [clientes, setClientes] = useState([]);
   const [guardando, setGuardando] = useState(false);
   const [editForm, setEditForm] = useState({ clienteid: '', fechaEntrega: '', descripcion: '' });
-  const [editItems, setEditItems] = useState([]);
-  const [productoParaTalla, setProductoParaTalla] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [saldoFavor, setSaldoFavor] = useState({ total: 0, pedidos: [] });
   const [pagoForm, setPagoForm] = useState({ tipo: 'abono', monto: '', metodo: 'efectivo', nota: '' });
@@ -146,9 +138,6 @@ function DetallePedido() {
   useEffect(() => {
     getNegocio().then(setNegocio).catch(() => setNegocio(null));
   }, []);
-  const [productos, setProductos] = useState([]);
-  const [busquedaProducto, setBusquedaProducto] = useState('');
-  const [cargandoProductos, setCargandoProductos] = useState(false);
   const [ocForm, setOcForm] = useState({ proveedorid: '', descripcion: '' });
 
   const cargarPedido = useCallback(async (silencioso = false) => {
@@ -182,117 +171,22 @@ function DetallePedido() {
       .catch(() => {});
   }, []);
 
-  const productosFiltrados = useMemo(() => {
-    const termino = busquedaProducto.trim().toLowerCase();
-    if (!termino) return [];
-    return productos
-      .filter((producto) => producto.nombre.toLowerCase().includes(termino))
-      .slice(0, 8);
-  }, [productos, busquedaProducto]);
-
-  const cargarProductos = async () => {
-    try {
-      setCargandoProductos(true);
-      const data = await getAllProducts();
-      if (Array.isArray(data)) setProductos(data);
-    } catch {
-      toast.error('No se pudieron cargar los productos.');
-    } finally {
-      setCargandoProductos(false);
-    }
-  };
-
   const abrirEditar = () => {
+    if (puedeEditarProductosDe(pedido)) {
+      const params = new URLSearchParams();
+      params.set('editar', String(pedido.pedidoid));
+      if (pedido.ordenid) params.set('pedido', String(pedido.ordenid));
+      navigate(`/dashboard/nuevo-pedido?${params.toString()}`);
+      return;
+    }
+
     setEditForm({
       clienteid: pedido.clienteid || '',
       fechaEntrega: pedido.fechaEntrega || '',
       descripcion: pedido.descripcion || '',
     });
-    setEditItems(
-      (pedido.detalles || [])
-        .filter((detalle) => detalle.productoid)
-        .map((detalle) => ({
-          clave: claveEdicion(detalle.productoid, detalle.talla),
-          productoid: detalle.productoid,
-          talla: detalle.talla || null,
-          unidadMedida: detalle.producto?.unidadMedida,
-          nombre: detalle.productoNombre,
-          cantidad: Number(detalle.cantidad),
-          precioUnitario: Number(detalle.precioUnitario),
-        }))
-    );
-    setBusquedaProducto('');
     setModal('editar');
-    if (puedeEditarProductosDe(pedido) && productos.length === 0) {
-      cargarProductos();
-    }
   };
-
-  const agregarProductoEdicion = (producto, variante = null) => {
-    const talla = variante ? variante.talla : null;
-    const clave = claveEdicion(producto.productoid, talla);
-    setEditItems((prev) => {
-      const existente = prev.find((item) => item.clave === clave);
-      if (existente) {
-        return prev.map((item) => (
-          item.clave === clave
-            ? { ...item, cantidad: Math.round((item.cantidad + pasoDe(item)) * 1000) / 1000 }
-            : item
-        ));
-      }
-
-      const original = (pedido.detalles || []).find(
-        (detalle) => Number(detalle.productoid) === Number(producto.productoid)
-      );
-      return [...prev, {
-        clave,
-        productoid: producto.productoid,
-        talla,
-        unidadMedida: producto.unidadMedida,
-        nombre: producto.nombre,
-        cantidad: 1,
-        precioUnitario: original ? Number(original.precioUnitario) : Number(producto.precioVenta),
-      }];
-    });
-    setBusquedaProducto('');
-  };
-
-  // Click en un resultado de búsqueda: con tallas abre el selector de talla
-  const elegirProductoEdicion = (producto) => {
-    if (producto.usaTallas) setProductoParaTalla(producto);
-    else agregarProductoEdicion(producto);
-  };
-
-  const elegirTallaEdicion = (variante) => {
-    if (productoParaTalla) agregarProductoEdicion(productoParaTalla, variante);
-    setProductoParaTalla(null);
-  };
-
-  const actualizarCantidadEdicion = (clave, direccion) => {
-    setEditItems((prev) => prev.map((item) => {
-      if (item.clave !== clave) return item;
-      const nueva = Math.round((item.cantidad + direccion * pasoDe(item)) * 1000) / 1000;
-      return nueva >= minimoDe(item) ? { ...item, cantidad: nueva } : item;
-    }));
-  };
-
-  const setCantidadEdicion = (clave, valor) => {
-    setEditItems((prev) => prev.map((item) => {
-      if (item.clave !== clave) return item;
-      const numero = admiteDecimales(item.unidadMedida) ? parseFloat(valor) : parseInt(valor, 10);
-      if (Number.isNaN(numero)) return item;
-      return { ...item, cantidad: Math.max(minimoDe(item), Math.round(numero * 1000) / 1000) };
-    }));
-  };
-
-  const eliminarProductoEdicion = (clave) => {
-    setEditItems((prev) => prev.filter((item) => item.clave !== clave));
-  };
-
-  const totalEdicion = editItems.reduce(
-    (sum, item) => sum + Number(item.precioUnitario) * item.cantidad,
-    0
-  );
 
   const abrirOrdenCompra = () => {
     setOcForm({ proveedorid: '', descripcion: `Compra para pedido #${pedido.pedidoid}` });
@@ -478,27 +372,13 @@ function DetallePedido() {
 
   const handleGuardarEdicion = async (e) => {
     e.preventDefault();
-    const editarProductos = puedeEditarProductosDe(pedido);
-    if (editarProductos && editItems.length === 0) {
-      toast.error('El pedido debe tener al menos un producto.');
-      return;
-    }
-
     try {
       setGuardando(true);
-      const payload = {
+      await updatePedido(pedido.pedidoid, {
         clienteid: editForm.clienteid || null,
         fechaEntrega: editForm.fechaEntrega || null,
         descripcion: editForm.descripcion,
-      };
-      if (editarProductos) {
-        payload.items = editItems.map((item) => ({
-          productoid: item.productoid,
-          talla: item.talla,
-          cantidad: item.cantidad,
-        }));
-      }
-      await updatePedido(pedido.pedidoid, payload);
+      });
       setModal(null);
       toast.success('Pedido actualizado.');
       cargarPedido(true);
@@ -567,7 +447,6 @@ function DetallePedido() {
   const entregaCubierto = Math.min(entregaValor, resumen.disponibleAbonos);
   const entregaPorCobrar = Math.max(0, Math.round((entregaValor - entregaCubierto) * 100) / 100);
   const puedeEditar = !['entregado', 'anulado'].includes(pedido.estado);
-  const editarProductos = puedeEditarProductosDe(pedido);
   const puedeGenerarCompra = ['confirmado', 'en_compra'].includes(pedido.estado) && !pedido.ordenid;
   // Dentro de un pedido al proveedor no hay paso de confirmar: la compra simplemente está en el pedido
   const estadoConfig = pedido.ordenid && pedido.estado === 'confirmado'
@@ -1006,109 +885,10 @@ function DetallePedido() {
                 />
               </div>
 
-              {editarProductos ? (
-                <div className="pedido-form-group">
-                  <label>Productos del pedido</label>
-                  <div className="pedido-edit-items">
-                    {editItems.length === 0 ? (
-                      <p className="pedido-edit-hint">El pedido no tiene productos. Agrega al menos uno.</p>
-                    ) : editItems.map((item) => (
-                      <div key={item.clave} className="pedido-edit-item">
-                        <div className="pedido-edit-item-info">
-                          <span className="pedido-edit-item-name">
-                            {item.nombre}
-                            {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
-                          </span>
-                          <span className="pedido-edit-item-price">
-                            {formatoMoneda(item.precioUnitario)} c/u
-                          </span>
-                        </div>
-                        <div className="pedido-edit-item-actions">
-                          <button
-                            type="button"
-                            className="pedido-edit-qty-btn"
-                            onClick={() => actualizarCantidadEdicion(item.clave, -1)}
-                            disabled={item.cantidad - pasoDe(item) < minimoDe(item)}
-                            aria-label={`Quitar una unidad de ${item.nombre}`}
-                          >
-                            <Minus size={12} />
-                          </button>
-                          <input
-                            type="number"
-                            min={minimoDe(item)}
-                            step={stepCantidad(item.unidadMedida)}
-                            className="pedido-edit-qty-input"
-                            value={item.cantidad}
-                            onChange={(e) => setCantidadEdicion(item.clave, e.target.value)}
-                            aria-label={`Cantidad de ${item.nombre}`}
-                          />
-                          <button
-                            type="button"
-                            className="pedido-edit-qty-btn"
-                            onClick={() => actualizarCantidadEdicion(item.clave, 1)}
-                            aria-label={`Agregar una unidad de ${item.nombre}`}
-                          >
-                            <Plus size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            className="pedido-edit-remove"
-                            onClick={() => eliminarProductoEdicion(item.clave)}
-                            aria-label={`Eliminar ${item.nombre}`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="pedido-edit-search">
-                    <Search size={14} className="pedido-edit-search-icon" />
-                    <input
-                      type="text"
-                      placeholder="Buscar producto para agregar..."
-                      value={busquedaProducto}
-                      onChange={(e) => setBusquedaProducto(e.target.value)}
-                    />
-                  </div>
-
-                  {cargandoProductos ? (
-                    <p className="pedido-edit-hint">Cargando productos...</p>
-                  ) : busquedaProducto.trim() !== '' && (
-                    productosFiltrados.length === 0 ? (
-                      <p className="pedido-edit-hint">No se encontraron productos.</p>
-                    ) : (
-                      <div className="pedido-edit-resultados">
-                        {productosFiltrados.map((producto) => (
-                          <button
-                            type="button"
-                            key={producto.productoid}
-                            className="pedido-edit-resultado"
-                            onClick={() => elegirProductoEdicion(producto)}
-                          >
-                            <span>{producto.nombre}</span>
-                            <span className="pedido-edit-resultado-precio">
-                              {formatoMoneda(producto.precioVenta)}
-                            </span>
-                            <Plus size={13} />
-                          </button>
-                        ))}
-                      </div>
-                    )
-                  )}
-
-                  <div className="pedido-edit-total">
-                    <span>Total actualizado</span>
-                    <strong>{formatoMoneda(totalEdicion)}</strong>
-                  </div>
-                </div>
-              ) : (
-                <p className="pedido-edit-hint">
-                  Los productos ya no se pueden modificar porque la compra ya fue enviada al proveedor,
-                  está en una orden activa o tiene entregas registradas.
-                </p>
-              )}
+              <p className="pedido-edit-hint">
+                Los productos ya no se pueden modificar porque la compra ya fue enviada al proveedor,
+                está en una orden activa o tiene entregas registradas.
+              </p>
 
               <div className="pedido-form-group">
                 <label>Notas</label>
@@ -1364,15 +1144,6 @@ function DetallePedido() {
 
       {reciboPago && (
         <ReciboModal pedido={pedido} pago={reciboPago} negocio={negocio} onClose={() => setReciboPago(null)} />
-      )}
-
-      {productoParaTalla && (
-        <SelectorTalla
-          producto={productoParaTalla}
-          modo="pedido"
-          onSelect={elegirTallaEdicion}
-          onClose={() => setProductoParaTalla(null)}
-        />
       )}
     </div>
   );
