@@ -505,6 +505,7 @@ function DetalleCompra() {
             <tbody>
               {compras.map((compra) => {
                 const anulada = compra.estado === 'anulado';
+                const estadoCompra = compra.estado || 'pendiente';
                 return (
                   <tr key={compra.pedidoid} className={`compras-fila-link ${anulada ? 'compras-fila-cancelada' : ''}`} onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
                     <td className="col-nombre">{compra.cliente?.nombreCliente || 'Sin cliente'}</td>
@@ -512,7 +513,7 @@ function DetalleCompra() {
                     <td className="col-num">{formatoMoneda(compra.total)}</td>
                     <td className="col-num">{formatoMoneda(compra.resumen?.abonado)}</td>
                     <td className="col-num">{anulada ? '—' : formatoMoneda(compra.resumen?.saldo)}</td>
-                    <td className="col-centro"><span className={`pedido-estado pedido-estado-${compra.estado.replace('_', '-')}`}>{ESTADOS_COMPRA_CLIENTE[compra.estado] || compra.estado}</span></td>
+                    <td className="col-centro"><span className={`pedido-estado pedido-estado-${estadoCompra.replace('_', '-')}`}>{ESTADOS_COMPRA_CLIENTE[estadoCompra] || estadoCompra}</span></td>
                     <td className="col-num" onClick={(e) => e.stopPropagation()}>
                       <div className="compras-acciones-fila">
                         {!anulada && compra.estado !== 'entregado' && (
