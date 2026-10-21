@@ -457,7 +457,7 @@ function DetalleCompra() {
       <h2 className="compras-seccion-titulo"><Users size={15} /> Compras de clientes ({resumen.cantidad})</h2>
       <p className="pedido-ayuda compras-seccion-ayuda">
         {abierto
-          ? 'Agrega las compras que te hacen los clientes. Dentro de cada una registras sus abonos, pagos y entregas.'
+          ? 'Agrega las compras que te hacen los clientes. Dentro de cada una registras sus abonos, pagos y entregas, y puedes editar sus productos mientras el pedido no se haya enviado.'
           : 'Abre una compra para ver y registrar sus abonos, pagos y entrega.'}
         {resumen.cantidad > 0 && ` Entre todas: abonado ${formatoMoneda(resumen.abonado)} · por cobrar ${formatoMoneda(resumen.saldo)}.`}
       </p>

@@ -47,6 +47,8 @@ const includePedido = [
       { model: Proveedor, as: 'proveedor', attributes: ['proveedorid', 'nombreProveedor', 'razonSocial'] },
     ],
   },
+  // Pedido al proveedor que contiene esta compra (pedido.ordenid), para saber si aún se puede editar
+  { model: OrdenCompra, as: 'pedidoProveedor', attributes: ['ordenid', 'estado', 'nombre'] },
 ];
 
 // Pedido en JSON con el resumen de dinero (abonado, saldo, entregado...) y los movimientos en orden
@@ -263,28 +265,74 @@ const updatePedido = async (req, res) => {
     }
 
     let total;
+    let reservarStock = false;
     if (items !== undefined) {
-      if (pedido.ordenid) {
-        const orden = await OrdenCompra.findOne({ where: { ordenid: pedido.ordenid, negocioid }, transaction: t });
-        if (orden?.estado !== 'abierta') {
-          throw new ErrorPedido('El pedido ya fue enviado al proveedor; no se pueden modificar los productos de la compra');
-        }
-      } else if (pedido.estado !== 'pendiente') {
-        throw new ErrorPedido('Solo se pueden modificar los productos de un pedido pendiente');
-      }
       if (!Array.isArray(items) || items.length === 0) {
         throw new ErrorPedido('Debe incluir al menos un producto');
       }
 
-      const ordenes = await OrdenCompra.count({ where: { pedidoid: id }, transaction: t });
-      if (ordenes > 0) {
-        throw new ErrorPedido('El pedido tiene órdenes de compra asociadas; no se pueden modificar los productos');
+      const ordenContenedora = pedido.ordenid
+        ? await OrdenCompra.findOne({ where: { ordenid: pedido.ordenid, negocioid }, transaction: t })
+        : null;
+      const ordenesVinculadas = await OrdenCompra.findAll({
+        where: { pedidoid: id, negocioid },
+        attributes: ['ordenid', 'estado'],
+        transaction: t,
+      });
+      const ordenVinculadaVigente = ordenesVinculadas.find((orden) => orden.estado !== 'anulada');
+      const enPedidoAbierto = ordenContenedora?.estado === 'abierta';
+      const compraSueltaEditable = !pedido.ordenid && !ordenVinculadaVigente
+        && ['pendiente', 'confirmado'].includes(pedido.estado);
+
+      if (!enPedidoAbierto && !compraSueltaEditable) {
+        if (ordenContenedora && ordenContenedora.estado !== 'abierta') {
+          throw new ErrorPedido('El pedido ya fue enviado al proveedor; no se pueden modificar los productos de la compra');
+        }
+        if (ordenVinculadaVigente) {
+          throw new ErrorPedido('La compra tiene una orden de compra activa; no se pueden modificar los productos');
+        }
+        throw new ErrorPedido('Solo se pueden modificar los productos de una compra pendiente o de un pedido aún no enviado');
       }
 
       const detallesActuales = await PedidoDetalle.findAll({
         where: { pedidoid: id },
         transaction: t,
+        lock: true,
       });
+      if (detallesActuales.some((detalle) => Number(detalle.cantidadEntregada || 0) > 0)) {
+        throw new ErrorPedido('La compra ya tiene entregas registradas; no se pueden modificar los productos');
+      }
+      const asignaciones = await Asignacion.count({
+        include: [{ model: PedidoDetalle, as: 'pedidoDetalle', where: { pedidoid: id }, attributes: [] }],
+        transaction: t,
+      });
+      if (asignaciones > 0) {
+        throw new ErrorPedido('La compra ya está en una orden enviada al proveedor; no se pueden modificar los productos');
+      }
+
+      // Una compra suelta confirmada tiene stock reservado: se libera y se vuelve a reservar con las nuevas cantidades.
+      // Las compras dentro de un pedido al proveedor no usan inventario, así que no tocan el stock.
+      reservarStock = !enPedidoAbierto && !pedido.ordenid && pedido.estado === 'confirmado';
+
+      if (reservarStock) {
+        for (const detalle of detallesActuales) {
+          if (!detalle.productoid) continue;
+          const producto = await Producto.findOne({
+            where: { productoid: detalle.productoid, negocioid },
+            transaction: t,
+            lock: true,
+          });
+          if (!producto) continue;
+          const stock = await resolverStockDeDetalle(producto, detalle, t);
+          const pendiente = Math.max(0, Number(detalle.cantidad) - Number(detalle.cantidadEntregada || 0));
+          if (pendiente > 0) {
+            await guardarStock(producto, stock, {
+              cantidadReservada: Math.max(0, Number(stock.cantidadReservada) - pendiente),
+            }, t);
+          }
+        }
+      }
+
       const preciosActuales = new Map(
         detallesActuales
           .filter((detalle) => detalle.productoid)
@@ -308,13 +356,14 @@ const updatePedido = async (req, res) => {
       await PedidoDetalle.destroy({ where: { pedidoid: id }, transaction: t });
 
       total = 0;
+      const nuevosDetalles = [];
       for (const { producto, stock, cantidad } of itemsPorProducto.values()) {
         const precioUnitario = preciosActuales.get(Number(producto.productoid))
           ?? Number(producto.precioVenta);
         const subtotal = cantidad * precioUnitario;
         total += subtotal;
 
-        await PedidoDetalle.create({
+        const detalle = await PedidoDetalle.create({
           pedidoid: pedido.pedidoid,
           productoid: producto.productoid,
           productoNombre: producto.nombre,
@@ -324,6 +373,23 @@ const updatePedido = async (req, res) => {
           categoriaid: producto.categoriaid,
           ...datosTalla(producto, stock),
         }, { transaction: t });
+        nuevosDetalles.push(detalle);
+      }
+
+      if (reservarStock) {
+        for (const detalle of nuevosDetalles) {
+          if (!detalle.productoid) continue;
+          const producto = await Producto.findOne({
+            where: { productoid: detalle.productoid, negocioid },
+            transaction: t,
+            lock: true,
+          });
+          if (!producto) continue;
+          const stock = await resolverStockDeDetalle(producto, detalle, t);
+          await guardarStock(producto, stock, {
+            cantidadReservada: Number(stock.cantidadReservada) + Number(detalle.cantidad),
+          }, t);
+        }
       }
 
       const pagosPedido = await PedidoPago.findAll({ where: { pedidoid: id }, transaction: t });

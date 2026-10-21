@@ -44,6 +44,23 @@ const conLlegado = (pedido) => {
   };
 };
 
+// Los productos se pueden cambiar mientras la compra no se haya enviado al proveedor
+// y no tenga entregas ni unidades comprometidas en una orden ya enviada.
+const puedeEditarProductosDe = (pedido) => {
+  if (!pedido || ['entregado', 'anulado'].includes(pedido.estado)) return false;
+  if ((pedido.detalles || []).some((detalle) => Number(detalle.cantidadEntregada || 0) > 0)) return false;
+  if ((pedido.detalles || []).some(
+    (detalle) => Number(detalle.enCompra || 0) > 0 || Number(detalle.recibidoCompra || 0) > 0
+  )) return false;
+
+  const ordenesVinculadas = (pedido.ordenes || []).filter((orden) => orden.estado !== 'anulada');
+  if (ordenesVinculadas.length > 0) return false;
+
+  if (pedido.pedidoProveedor?.estado === 'abierta') return true;
+  if (!pedido.ordenid && ['pendiente', 'confirmado'].includes(pedido.estado)) return true;
+  return false;
+};
+
 // Stock físico de una línea: el de su talla si el producto maneja tallas, o el total del producto
 // (en una compra dentro de un pedido al proveedor, lo que ya llegó y falta entregar)
 const stockFisicoDe = (detalle) => {
@@ -206,7 +223,7 @@ function DetallePedido() {
     );
     setBusquedaProducto('');
     setModal('editar');
-    if (pedido.estado === 'pendiente' && productos.length === 0) {
+    if (puedeEditarProductosDe(pedido) && productos.length === 0) {
       cargarProductos();
     }
   };
@@ -461,7 +478,8 @@ function DetallePedido() {
 
   const handleGuardarEdicion = async (e) => {
     e.preventDefault();
-    if (pedido.estado === 'pendiente' && editItems.length === 0) {
+    const editarProductos = puedeEditarProductosDe(pedido);
+    if (editarProductos && editItems.length === 0) {
       toast.error('El pedido debe tener al menos un producto.');
       return;
     }
@@ -473,7 +491,7 @@ function DetallePedido() {
         fechaEntrega: editForm.fechaEntrega || null,
         descripcion: editForm.descripcion,
       };
-      if (pedido.estado === 'pendiente') {
+      if (editarProductos) {
         payload.items = editItems.map((item) => ({
           productoid: item.productoid,
           talla: item.talla,
@@ -549,6 +567,7 @@ function DetallePedido() {
   const entregaCubierto = Math.min(entregaValor, resumen.disponibleAbonos);
   const entregaPorCobrar = Math.max(0, Math.round((entregaValor - entregaCubierto) * 100) / 100);
   const puedeEditar = !['entregado', 'anulado'].includes(pedido.estado);
+  const editarProductos = puedeEditarProductosDe(pedido);
   const puedeGenerarCompra = ['confirmado', 'en_compra'].includes(pedido.estado) && !pedido.ordenid;
   // Dentro de un pedido al proveedor no hay paso de confirmar: la compra simplemente está en el pedido
   const estadoConfig = pedido.ordenid && pedido.estado === 'confirmado'
@@ -987,7 +1006,7 @@ function DetallePedido() {
                 />
               </div>
 
-              {pedido.estado === 'pendiente' ? (
+              {editarProductos ? (
                 <div className="pedido-form-group">
                   <label>Productos del pedido</label>
                   <div className="pedido-edit-items">
@@ -1086,7 +1105,8 @@ function DetallePedido() {
                 </div>
               ) : (
                 <p className="pedido-edit-hint">
-                  Los productos solo se pueden modificar mientras el pedido está pendiente.
+                  Los productos ya no se pueden modificar porque la compra ya fue enviada al proveedor,
+                  está en una orden activa o tiene entregas registradas.
                 </p>
               )}
 
