@@ -7,7 +7,7 @@
 .cart-modal-container.full-page {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100vh; min-height: 100dvh;
   background: var(--neutral-50, #F8FAFC);
 }
 
@@ -54,7 +54,7 @@
 .cart-main-content {
   display: flex;
   flex: 1;
-  height: calc(100vh - 57px);
+  height: calc(100vh - 57px); height: calc(100dvh - 57px);
   overflow: hidden;
 }
 

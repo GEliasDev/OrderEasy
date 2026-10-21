@@ -2,7 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 .registro-container {
-  min-height: 100vh;
+  min-height: 100vh; min-height: 100dvh;
   background-color: var(--neutral-100, #F0F4FA);
   display: flex;
   align-items: center;
@@ -26,7 +26,7 @@
 
 .registro-wrapper {
   width: 100%;
-  min-height: 100vh;
+  min-height: 100vh; min-height: 100dvh;
   background: var(--surface);
   display: flex;
   box-shadow: var(--shadow-md, 0 4px 6px rgba(0,0,0,0.07));
@@ -229,13 +229,13 @@
 
 @media (max-width: 1023px) {
   .registro-container { padding: 0; }
-  .registro-wrapper { min-height: 100vh; }
+  .registro-wrapper { min-height: 100vh; min-height: 100dvh; }
   .grupo-inputs { grid-template-columns: 1fr; }
   .boton-home { top: 0.625rem; left: 0.625rem; }
 }
 
 @media (max-width: 640px) {
   .registro-container { padding: 0; }
-  .registro-wrapper { min-height: 100vh; }
+  .registro-wrapper { min-height: 100vh; min-height: 100dvh; }
   .formulario-seccion { padding: 0.875rem; }
 }

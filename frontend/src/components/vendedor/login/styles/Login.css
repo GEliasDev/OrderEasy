@@ -2,7 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 .login-container {
-  min-height: 100vh;
+  min-height: 100vh; min-height: 100dvh;
   background-color: var(--neutral-100, #F0F4FA);
   position: relative;
   display: flex;
