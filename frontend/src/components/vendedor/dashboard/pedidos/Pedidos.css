@@ -923,13 +923,6 @@
     flex-direction: column;
   }
 
-  .pedidos-tabla {
-    min-width: 760px;
-  }
-
-  .pedidos-tabla-wrapper {
-    overflow-x: auto;
-  }
 
   .pedido-orden-top,
   .pedido-orden-acciones {
@@ -1177,3 +1170,74 @@
 
 /* Pedido y compra de cliente: usan todo el ancho disponible (la vista de transacciones del balance conserva su máximo) */
 .detalle-tx-view.detalle-ancho { max-width: none; margin: 0; }
+
+/* ── Tablas como tarjetas en celular (ver utils/tablaTarjetas.js) ── */
+@media (max-width: 900px) {
+  .pedidos-tabla-wrapper,
+  .items-table-container { overflow: visible; background: transparent; border: none; box-shadow: none; }
+  .tabla-tarjetas { min-width: 0 !important; }
+  .tabla-tarjetas thead { display: none; }
+  .tabla-tarjetas,
+  .tabla-tarjetas tbody,
+  .tabla-tarjetas tfoot,
+  .tabla-tarjetas tr,
+  .tabla-tarjetas td { display: block; width: 100%; box-sizing: border-box; }
+  .tabla-tarjetas tbody tr {
+    background: var(--surface, #fff) !important;
+    border: 1px solid var(--neutral-200, #E2E8F0);
+    border-radius: 10px;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+    margin-bottom: 0.625rem;
+    padding: 0.25rem 0.875rem;
+  }
+  .tabla-tarjetas tbody td,
+  .items-table.compras-tabla.tabla-tarjetas td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    text-align: right;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--neutral-100, #F0F4FA);
+    font-size: 0.85rem;
+    white-space: normal;
+    max-width: none;
+  }
+  .tabla-tarjetas tbody td:last-child { border-bottom: none; }
+  .tabla-tarjetas tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--neutral-500, #64748B);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .tabla-tarjetas tbody td[data-label=""]::before { display: none; }
+  .tabla-tarjetas tbody td[data-label=""] { justify-content: flex-end; }
+  .tabla-tarjetas td.item-name { flex-wrap: wrap; justify-content: flex-end; }
+  .tabla-tarjetas td .compras-acciones-fila,
+  .tabla-tarjetas td .pedidos-acciones { justify-content: flex-end; }
+  .tabla-tarjetas tfoot tr { display: flex; justify-content: space-between; padding: 0.5rem 0.875rem; }
+  .tabla-tarjetas tfoot td { display: block; width: auto; border: none; padding: 0; }
+  .tabla-tarjetas tbody td { flex-wrap: wrap; }
+  .tabla-tarjetas tbody td .compras-nota-corta { flex: 1 0 100%; text-align: right; margin-top: 0; }
+}
+
+/* ── Encabezado de detalle (pedido / compra): título arriba y acciones debajo ── */
+@media (max-width: 900px) {
+  .detalle-tx-header { flex-wrap: wrap; align-items: flex-start; }
+  .detalle-tx-header-text { flex: 1 1 calc(100% - 3rem); min-width: 0; }
+  .detalle-tx-header-text h1 { overflow-wrap: anywhere; }
+  .pedido-titulo-linea { flex-wrap: wrap; gap: 0.5rem; }
+  .detalle-tx-breadcrumb { overflow-wrap: anywhere; }
+  .detalle-tx-header .pedido-detalle-acciones { flex: 1 1 100%; width: 100%; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-start; }
+  .detalle-tx-header .pedido-detalle-acciones .pedidos-btn { flex: 1 1 calc(50% - 0.5rem); justify-content: center; }
+}
+
+/* Entre tablet y escritorio angosto la tabla de pedidos conserva sus columnas y se desplaza en horizontal en vez de apretarse */
+@media (min-width: 901px) {
+  .pedidos-tabla-wrapper { overflow-x: auto; }
+  .pedidos-tabla { min-width: 760px; }
+}

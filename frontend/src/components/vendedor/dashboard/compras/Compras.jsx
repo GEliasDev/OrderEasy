@@ -141,7 +141,7 @@ function Compras() {
             </button>
           </div>
         ) : (
-          <table className="pedidos-tabla">
+          <table className="pedidos-tabla tabla-tarjetas">
             <thead>
               <tr>
                 <th>Pedido</th>

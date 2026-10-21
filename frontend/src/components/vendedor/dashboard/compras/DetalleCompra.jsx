@@ -397,7 +397,7 @@ function DetalleCompra() {
         </div>
       ) : (
         <div className="items-table-container">
-          <table className="items-table compras-tabla">
+          <table className="tabla-tarjetas items-table compras-tabla">
             <thead>
               <tr>
                 <th>Cliente</th>
@@ -450,7 +450,7 @@ function DetalleCompra() {
             <div className="pedido-ordenes-vacio"><p>No hay productos para stock en este pedido.</p></div>
           ) : (
             <div className="items-table-container">
-              <table className="items-table compras-tabla">
+              <table className="tabla-tarjetas items-table compras-tabla">
                 <thead>
                   <tr>
                     <th>Producto</th>
@@ -504,7 +504,7 @@ function DetalleCompra() {
                 <div className="compras-barra"><div style={{ width: `${Math.min(100, progreso)}%` }} /></div>
 
                 <div className="items-table-container">
-                  <table className="items-table compras-tabla compras-tabla-reparto">
+                  <table className="tabla-tarjetas items-table compras-tabla compras-tabla-reparto">
                     <thead>
                       <tr>
                         <th>Cliente</th>

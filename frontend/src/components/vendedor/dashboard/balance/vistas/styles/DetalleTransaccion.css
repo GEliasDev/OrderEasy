@@ -311,6 +311,6 @@
 }
 
 @media (max-width: 480px) {
-  .detalle-tx-summary { grid-template-columns: 1fr; }
+  .detalle-tx-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .detalle-tx-view { padding: 0.875rem; }
 }

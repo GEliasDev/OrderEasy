@@ -676,7 +676,7 @@ function DetallePedido() {
           <p className="pedido-pagos-vacio">Aún no hay abonos registrados en este pedido.</p>
         ) : (
           <div className="items-table-container">
-            <table className="items-table pedido-movimientos">
+            <table className="items-table pedido-movimientos tabla-tarjetas">
               <thead>
                 <tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th>Nota</th><th>Monto</th><th /></tr>
               </thead>
@@ -735,7 +735,7 @@ function DetallePedido() {
           <Package size={15} /> Productos del pedido
         </div>
         <div className="items-table-container">
-          <table className="items-table">
+          <table className="items-table tabla-tarjetas">
             <thead>
               <tr>
                 <th>Producto</th>
