@@ -83,10 +83,6 @@ function Compras() {
       (s, c) => s + (c.detalles || []).reduce((ss, d) => ss + Number(d.cantidad || 0), 0),
       0
     );
-    const entregados = comprasVigentes.reduce(
-      (s, c) => s + (c.detalles || []).reduce((ss, d) => ss + Number(d.cantidadEntregada || 0), 0),
-      0
-    );
     // En un pedido abierto las líneas al proveedor aún no existen: se suman las compras de clientes.
     // En uno enviado, `detalles` ya incluye clientes y stock.
     const productos = orden.estado === 'abierta' ? pedidos + productosClientes : pedidos;
@@ -94,7 +90,7 @@ function Compras() {
       orden.resumenCompras?.saldo
       ?? comprasVigentes.reduce((s, c) => s + Number(c.resumen?.saldo || 0), 0)
     );
-    return { orden, pedidos, recibidos, clientes, productos, productosClientes, entregados, saldo };
+    return { orden, pedidos, recibidos, clientes, productos, saldo };
   }), [ordenes]);
 
   const filtradas = useMemo(() => {
@@ -175,7 +171,7 @@ function Compras() {
           cargando={loading}
           vacio="No hay pedidos que coincidan con el filtro."
           onAbrir={(f) => navigate(`/dashboard/pedidos/${f.orden.ordenid}`)}
-          fila={({ orden, productos, productosClientes, entregados, saldo }) => {
+          fila={({ orden, productos, saldo }) => {
             const estado = ESTADOS_COMPRA[orden.estado] || { label: orden.estado };
             const proveedor = orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial;
             const compras = orden.resumenCompras?.cantidad || 0;
@@ -185,9 +181,6 @@ function Compras() {
               subtitulo: [
                 proveedor || 'Sin proveedor',
                 productos > 0 ? `${cantidad(productos)} producto${productos === 1 ? '' : 's'}` : 'Sin productos',
-                productosClientes > 0
-                  ? `${cantidad(entregados)} de ${cantidad(productosClientes)} entregados`
-                  : productos > 0 ? 'Para stock' : '',
                 `${compras} compra${compras === 1 ? '' : 's'}`,
               ].filter(Boolean).join(' · '),
               derecha: formatoMoneda(orden.estado === 'abierta' ? orden.costoEstimado : orden.total),
@@ -219,15 +212,13 @@ function Compras() {
                 <th title="Unidades totales del pedido (compras de clientes y productos para stock)">Productos</th>
                 <th>Fecha</th>
                 <th>Estado</th>
-                <th title="Unidades recibidas del proveedor">Recibido</th>
-                <th title="Unidades entregadas a clientes / unidades compradas por clientes">Entregados</th>
                 <th>Costo al proveedor</th>
                 <th title="Saldo pendiente de las compras de clientes en este pedido">Saldo por cobrar</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtradas.map(({ orden, pedidos, recibidos, clientes, productos, productosClientes, entregados, saldo }) => {
+              {filtradas.map(({ orden, clientes, productos, saldo }) => {
                 const estado = ESTADOS_COMPRA[orden.estado] || { label: orden.estado, clase: 'anulado' };
                 const abierto = orden.estado === 'abierta';
                 return (
@@ -244,8 +235,6 @@ function Compras() {
                     <td className="pedido-productos">{cantidad(productos)}</td>
                     <td>{formatearFecha(orden.createdAt)}</td>
                     <td><span className={`pedido-estado pedido-estado-${estado.clase}`}>{estado.label}</span></td>
-                    <td>{abierto ? '—' : `${cantidad(recibidos)} / ${cantidad(pedidos)}`}</td>
-                    <td className="pedido-entregados">{productosClientes > 0 ? `${cantidad(entregados)} / ${cantidad(productosClientes)}` : '—'}</td>
                     <td className="pedido-total">{formatoMoneda(abierto ? orden.costoEstimado : orden.total)}</td>
                     <td className={`pedido-saldo${saldo > 0 ? ' pedido-saldo-pendiente' : ''}`}>{formatoMoneda(saldo)}</td>
                     <td>

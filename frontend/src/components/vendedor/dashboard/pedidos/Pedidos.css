@@ -258,14 +258,12 @@
 }
 
 .pedido-productos,
-.pedido-entregados,
 .pedido-saldo {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-.pedido-productos,
-.pedido-entregados {
+.pedido-productos {
   font-weight: 600;
   color: var(--neutral-800, #1E293B);
 }
@@ -1261,7 +1259,7 @@
 /* Entre tablet y escritorio angosto la tabla de pedidos conserva sus columnas y se desplaza en horizontal en vez de apretarse */
 @media (min-width: 901px) {
   .pedidos-tabla-wrapper { overflow-x: auto; }
-  .pedidos-tabla { min-width: 1060px; }
+  .pedidos-tabla { min-width: 860px; }
 }
 
 /* ───────── Detalle de pedido y de compra: versión compacta para celular ───────── */
