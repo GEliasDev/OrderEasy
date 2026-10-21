@@ -167,7 +167,7 @@
 :root[data-theme="dark"] .compras-situacion-cancelado { background: #331A1D; color: #FCA5A5; }
 
 /* ── Pedido al proveedor (contenedor de compras de clientes) ── */
-.compras-select-proveedor { width: 100%; max-width: 14rem; }
+.compras-select-proveedor { width: 100%; min-width: 0; max-width: 14rem; box-sizing: border-box; text-overflow: ellipsis; }
 .compras-acciones-fila { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
 .compras-nota-corta { display: block; margin-top: 2px; font-size: 0.7rem; font-weight: 400; color: var(--neutral-500, #64748B); }
 .compras-total-envio { margin: 12px 0 0; text-align: right; font-size: 0.85rem; color: var(--neutral-700, #334155); }
@@ -196,4 +196,10 @@
   .compras-linea-header { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
   .compras-select-proveedor { max-width: none; }
   .compras-recepcion-cabecera { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+}
+
+/* El selector de proveedor nunca se sale de su tarjeta; en celular la tarjeta ocupa toda la fila */
+.detalle-tx-stat .compras-select-proveedor { max-width: 100%; }
+@media (max-width: 480px) {
+  .detalle-tx-stat:has(.compras-select-proveedor) { grid-column: 1 / -1; }
 }

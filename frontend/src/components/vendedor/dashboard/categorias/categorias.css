@@ -411,3 +411,34 @@
   .categorias-table td.categorias-empty { display: block; text-align: center; }
   .categorias-table td.categorias-empty::before { display: none; }
 }
+
+/* ── Tarjeta de categoría en celular: nombre y cantidad arriba, descripción y acciones abajo ── */
+@media (max-width: 768px) {
+  .categorias-table tbody tr:has(td[data-label="Nombre"]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "nombre productos"
+      "descripcion acciones";
+    gap: 0.35rem 0.75rem;
+    align-items: center;
+    padding: 0.875rem;
+    margin-bottom: 0.75rem;
+  }
+  .categorias-table tbody tr:has(td[data-label="Nombre"]) td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: none;
+    text-align: left;
+    min-width: 0;
+  }
+  .categorias-table tbody tr:has(td[data-label="Nombre"]) td::before { display: none; }
+
+  .categorias-table td[data-label="Nombre"] { grid-area: nombre; font-size: 1rem; font-weight: 700; color: var(--neutral-900, #0F172A); overflow-wrap: anywhere; }
+  .categorias-table td[data-label="Productos"] { grid-area: productos; justify-self: end; }
+  .categorias-table td[data-label="Productos"] .categorias-count-badge::after { content: " productos"; font-weight: 600; }
+  .categorias-table td[data-label="Descripción"] { grid-area: descripcion; color: var(--neutral-500, #64748B); font-size: 0.8rem; overflow-wrap: anywhere; }
+  .categorias-table td[data-label="Acciones"] { grid-area: acciones; justify-self: end; display: flex; gap: 0.5rem; }
+  .categorias-table td[data-label="Acciones"] button { width: 2.25rem; height: 2.25rem; display: inline-flex; align-items: center; justify-content: center; }
+}
