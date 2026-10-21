@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Plus, Users, Search, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Users, Search, Edit2, Trash2, Phone, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { getClientes, createCliente, updateCliente, deleteCliente } from '../../../../services/clienteService';
+import { getSaldoPorCobrar } from '../../../../services/pedidoService';
+import { abrirWhatsApp } from '../../../../utils/whatsapp';
+import { useEsMovil } from '../../../../hooks/useEsMovil';
+import ListaMovil, { ChipsFiltro } from '../../../comunes/ListaMovil';
+import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
 import './clientes.css';
 import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 
@@ -16,7 +21,13 @@ const SkeletonRow = () => (
   </tr>
 );
 
+const formatoMoneda = (valor) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(valor) || 0);
+
 function Clientes() {
+  const esMovil = useEsMovil();
+  const [seleccionado, setSeleccionado] = useState(null);
+  const [saldos, setSaldos] = useState({});
+  const [filtroMovil, setFiltroMovil] = useState('todos');
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState(() => localStorage.getItem('cliSearchTerm') || '');
@@ -37,6 +48,7 @@ function Clientes() {
     try {
       const data = await getClientes();
       setClientes(data);
+      getSaldoPorCobrar().then((r) => setSaldos(r?.porCliente || {})).catch(() => {});
     } catch {
       toast.error('Error al obtener clientes.');
     } finally {
@@ -119,6 +131,11 @@ function Clientes() {
     c.telefono?.includes(debouncedBusqueda)
   );
 
+  // En celular: orden alfabético y filtro rápido por saldo
+  const listaMovil = clientesFiltrados
+    .filter((c) => filtroMovil !== 'saldo' || Number(saldos[c.clienteid] || 0) > 0)
+    .sort((a, b) => String(a.nombreCliente).localeCompare(String(b.nombreCliente), 'es'));
+
   const total = Math.ceil(clientesFiltrados.length / registrosPorPagina);
   const inicio = (paginaActual - 1) * registrosPorPagina;
   const pagina = clientesFiltrados.slice(inicio, inicio + registrosPorPagina);
@@ -160,6 +177,34 @@ function Clientes() {
         />
       </div>
 
+      {esMovil ? (
+        <>
+          <ChipsFiltro
+            opciones={[{ id: 'todos', label: 'Todos' }, { id: 'saldo', label: 'Con saldo por cobrar' }]}
+            valor={filtroMovil}
+            onCambiar={setFiltroMovil}
+          />
+          <ListaMovil
+            items={listaMovil}
+            clave={(c) => c.clienteid}
+            cargando={loading}
+            letras
+            vacio="No se encontraron clientes"
+            onAbrir={setSeleccionado}
+            fila={(c) => {
+              const saldo = Number(saldos[c.clienteid] || 0);
+              return {
+                titulo: c.nombreCliente,
+                subtitulo: c.telefono || c.correo || 'Sin datos de contacto',
+                derecha: saldo > 0 ? formatoMoneda(saldo) : undefined,
+                derechaSecundaria: saldo > 0 ? 'por cobrar' : undefined,
+                tono: 'peligro',
+              };
+            }}
+          />
+        </>
+      ) : (
+      <>
       <div className="clientes-table-wrap" ref={tablaWrapRef}>
         <table className={`clientes-table${paginaLlena ? ' clientes-table-llena' : ''}`}>
           <thead>
@@ -204,6 +249,37 @@ function Clientes() {
           <button onClick={() => handleSetPagina(paginaActual + 1)} disabled={paginaActual === total}>Siguiente</button>
         </div>
       )}
+      </>
+      )}
+
+      <PanelInferior
+        abierto={Boolean(seleccionado)}
+        onCerrar={() => setSeleccionado(null)}
+        titulo={seleccionado?.nombreCliente}
+        subtitulo="Cliente"
+        acciones={seleccionado && (
+          <>
+            {seleccionado.telefono && <a className="pi-accion" href={`tel:${seleccionado.telefono}`}><Phone size={15} /> Llamar</a>}
+            {seleccionado.telefono && (
+              <button type="button" className="pi-accion pi-accion-whatsapp" onClick={() => { if (!abrirWhatsApp(seleccionado.telefono, `Hola ${String(seleccionado.nombreCliente).split(' ')[0]}`)) toast.error('El teléfono no parece válido para WhatsApp.'); }}>
+                <MessageCircle size={15} /> WhatsApp
+              </button>
+            )}
+            <button type="button" className="pi-accion pi-accion-primaria" onClick={() => { const c = seleccionado; setSeleccionado(null); abrirEditar(c); }}><Edit2 size={15} /> Editar</button>
+            <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const c = seleccionado; setSeleccionado(null); handleEliminar(c.clienteid, c.nombreCliente); }}><Trash2 size={15} /> Eliminar</button>
+          </>
+        )}
+      >
+        {seleccionado && (
+          <>
+            <DatoPanel etiqueta="Saldo por cobrar" valor={Number(saldos[seleccionado.clienteid] || 0) > 0 ? formatoMoneda(saldos[seleccionado.clienteid]) : 'Al día'} tono={Number(saldos[seleccionado.clienteid] || 0) > 0 ? 'peligro' : 'ok'} />
+            <DatoPanel etiqueta="Teléfono" valor={seleccionado.telefono} enlace={seleccionado.telefono ? `tel:${seleccionado.telefono}` : undefined} />
+            <DatoPanel etiqueta="Correo" valor={seleccionado.correo} enlace={seleccionado.correo ? `mailto:${seleccionado.correo}` : undefined} />
+            <DatoPanel etiqueta="Dirección" valor={seleccionado.direccion} />
+            {!seleccionado.telefono && !seleccionado.correo && !seleccionado.direccion && <p className="lm-vacio" style={{ border: 'none' }}>Este cliente solo tiene el nombre. Toca Editar para completar sus datos.</p>}
+          </>
+        )}
+      </PanelInferior>
 
       {mostrarModal && (
         <div className="clientes-overlay" onClick={cerrarModal}>

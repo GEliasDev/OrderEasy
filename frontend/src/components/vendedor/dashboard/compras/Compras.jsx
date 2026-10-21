@@ -4,12 +4,17 @@ import { ClipboardList, Eye, PackageCheck, Plus, Trash2, Truck, X } from 'lucide
 import { toast } from 'sonner';
 import { crearPedidoProveedor, eliminarPedidoProveedor, getOrdenesCompra, getSaldoPorCobrar } from '../../../../services/pedidoService';
 import { ESTADOS_COMPRA, formatearFecha, formatoMoneda, nombrePedido } from './comprasUtils';
+import { useEsMovil } from '../../../../hooks/useEsMovil';
+import ListaMovil from '../../../comunes/ListaMovil';
 import '../pedidos/Pedidos.css';
 import './Compras.css';
 
 
 // Pedidos al proveedor (Pedido 1, Pedido 2...): cada uno contiene las compras de varios clientes
+const TONO_ESTADO = { abierta: 'aviso', enviada: undefined, recibida_parcial: 'aviso', recibida: 'ok', anulada: 'peligro' };
+
 function Compras() {
+  const esMovil = useEsMovil();
   const navigate = useNavigate();
   const [ordenes, setOrdenes] = useState([]);
   const [saldoPorCobrar, setSaldoPorCobrar] = useState(null);
@@ -146,6 +151,28 @@ function Compras() {
         </select>
       </div>
 
+      {esMovil ? (
+        <ListaMovil
+          items={filtradas}
+          clave={(f) => f.orden.ordenid}
+          cargando={loading}
+          vacio="No hay pedidos que coincidan con el filtro."
+          onAbrir={(f) => navigate(`/dashboard/pedidos/${f.orden.ordenid}`)}
+          fila={({ orden }) => {
+            const estado = ESTADOS_COMPRA[orden.estado] || { label: orden.estado };
+            const proveedor = orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial;
+            const compras = orden.resumenCompras?.cantidad || 0;
+            return {
+              nombre: nombrePedido(orden),
+              titulo: nombrePedido(orden),
+              subtitulo: [proveedor || 'Sin proveedor', `${compras} compra${compras === 1 ? '' : 's'}`, formatearFecha(orden.createdAt)].join(' · '),
+              derecha: formatoMoneda(orden.estado === 'abierta' ? orden.costoEstimado : orden.total),
+              insignia: estado.label,
+              tono: TONO_ESTADO[orden.estado],
+            };
+          }}
+        />
+      ) : (
       <div className="pedidos-tabla-wrapper">
         {loading ? (
           <div className="pedidos-vacio"><div className="pedidos-spinner"></div><p>Cargando pedidos...</p></div>
@@ -207,6 +234,7 @@ function Compras() {
           </table>
         )}
       </div>
+      )}
 
       {modalNuevo && (
         <div className="pedido-modal-overlay" onClick={() => setModalNuevo(false)}>

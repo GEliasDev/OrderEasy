@@ -3,10 +3,15 @@ import { Plus, Tag, Search, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { getCategoriesByUser, createCategory, updateCategory, deleteCategory } from '../../../../services/categoryServices';
+import { useEsMovil } from '../../../../hooks/useEsMovil';
+import ListaMovil from '../../../comunes/ListaMovil';
+import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
 import './categorias.css';
 import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 
 function Categorias() {
+  const esMovil = useEsMovil();
+  const [seleccionada, setSeleccionada] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [busqueda, setBusqueda] = useState(() => localStorage.getItem('catSearchTerm') || '');
   const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem('catCurrentPage')) || 1);
@@ -106,6 +111,8 @@ function Categorias() {
     c.descripcion?.toLowerCase().includes(debouncedBusqueda.toLowerCase())
   );
 
+  const listaMovil = [...categoriasFiltradas].sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+
   const total = Math.ceil(categoriasFiltradas.length / registrosPorPagina);
   const inicio = (paginaActual - 1) * registrosPorPagina;
   const pagina = categoriasFiltradas.slice(inicio, inicio + registrosPorPagina);
@@ -145,6 +152,21 @@ function Categorias() {
         />
       </div>
 
+      {esMovil ? (
+        <ListaMovil
+          items={listaMovil}
+          clave={(c) => c.categoriaid}
+          vacio="No se encontraron categorías"
+          onAbrir={setSeleccionada}
+          fila={(c) => ({
+            titulo: c.nombre,
+            subtitulo: c.descripcion,
+            derecha: `${c.totalProductos || 0}`,
+            derechaSecundaria: Number(c.totalProductos || 0) === 1 ? 'producto' : 'productos',
+          })}
+        />
+      ) : (
+      <>
       <div className="categorias-table-wrap" ref={tablaWrapRef}>
         <table className={`categorias-table${paginaLlena ? ' categorias-table-llena' : ''}`}>
           <thead>
@@ -187,6 +209,29 @@ function Categorias() {
           <button onClick={() => handleSetPagina(paginaActual + 1)} disabled={paginaActual === total}>Siguiente</button>
         </div>
       )}
+
+      </>
+      )}
+
+      <PanelInferior
+        abierto={Boolean(seleccionada)}
+        onCerrar={() => setSeleccionada(null)}
+        titulo={seleccionada?.nombre}
+        subtitulo="Categoría"
+        acciones={seleccionada && (
+          <>
+            <button type="button" className="pi-accion pi-accion-primaria" onClick={() => { const c = seleccionada; setSeleccionada(null); abrirEditar(c); }}><Edit2 size={15} /> Editar</button>
+            <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const c = seleccionada; setSeleccionada(null); handleEliminar(c.categoriaid, c.nombre); }}><Trash2 size={15} /> Eliminar</button>
+          </>
+        )}
+      >
+        {seleccionada && (
+          <>
+            <DatoPanel etiqueta="Descripción" valor={seleccionada.descripcion} />
+            <DatoPanel etiqueta="Productos" valor={`${seleccionada.totalProductos || 0}`} />
+          </>
+        )}
+      </PanelInferior>
 
       {mostrarModal && (
         <div className="categorias-overlay" onClick={cerrarModal}>

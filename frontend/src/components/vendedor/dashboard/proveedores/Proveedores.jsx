@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Truck, Search, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Truck, Search, Edit2, Trash2, Phone, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { getProveedores, createProveedor, updateProveedor, deleteProveedor } from '../../../../services/proveedorService';
+import { useEsMovil } from '../../../../hooks/useEsMovil';
+import ListaMovil, { ChipsFiltro } from '../../../comunes/ListaMovil';
+import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
+import { abrirWhatsApp } from '../../../../utils/whatsapp';
 import './proveedores.css';
 import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 
@@ -26,6 +30,9 @@ const SkeletonRow = () => (
 );
 
 function Proveedores() {
+  const esMovil = useEsMovil();
+  const [seleccionado, setSeleccionado] = useState(null);
+  const [filtroMovil, setFiltroMovil] = useState('todos');
   const [proveedores, setProveedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState(() => localStorage.getItem('provSearchTerm') || '');
@@ -134,6 +141,11 @@ function Proveedores() {
     p.nit?.includes(debouncedBusqueda)
   );
 
+  // En celular: orden alfabético y filtro rápido por estado
+  const listaMovil = filtrados
+    .filter((p) => filtroMovil === 'todos' || (filtroMovil === 'activos' ? p.estado === 'Activo' : p.estado !== 'Activo'))
+    .sort((a, b) => String(a.razonSocial).localeCompare(String(b.razonSocial), 'es'));
+
   const total = Math.ceil(filtrados.length / registrosPorPagina);
   const inicio = (paginaActual - 1) * registrosPorPagina;
   const pagina = filtrados.slice(inicio, inicio + registrosPorPagina);
@@ -175,6 +187,30 @@ function Proveedores() {
         />
       </div>
 
+      {esMovil ? (
+        <>
+          <ChipsFiltro
+            opciones={[{ id: 'todos', label: 'Todos' }, { id: 'activos', label: 'Activos' }, { id: 'inactivos', label: 'Inactivos' }]}
+            valor={filtroMovil}
+            onCambiar={setFiltroMovil}
+          />
+          <ListaMovil
+            items={listaMovil}
+            clave={(p) => p.proveedorid}
+            cargando={loading}
+            letras
+            vacio="No se encontraron proveedores"
+            onAbrir={setSeleccionado}
+            fila={(p) => ({
+              titulo: p.razonSocial,
+              subtitulo: [p.nombreProveedor !== p.razonSocial ? p.nombreProveedor : null, p.telefono].filter(Boolean).join(' · ') || 'Sin datos de contacto',
+              insignia: p.estado,
+              tono: p.estado === 'Activo' ? 'ok' : 'aviso',
+            })}
+          />
+        </>
+      ) : (
+      <>
       <div className="proveedores-table-wrap" ref={tablaWrapRef}>
         <table className={`proveedores-table${paginaLlena ? ' proveedores-table-llena' : ''}`}>
           <thead>
@@ -225,6 +261,40 @@ function Proveedores() {
           <button onClick={() => handleSetPagina(paginaActual + 1)} disabled={paginaActual === total}>Siguiente</button>
         </div>
       )}
+      </>
+      )}
+
+      <PanelInferior
+        abierto={Boolean(seleccionado)}
+        onCerrar={() => setSeleccionado(null)}
+        titulo={seleccionado?.razonSocial}
+        subtitulo={seleccionado ? `Proveedor · ${seleccionado.estado}` : ''}
+        acciones={seleccionado && (
+          <>
+            {seleccionado.telefono && <a className="pi-accion" href={`tel:${seleccionado.telefono}`}><Phone size={15} /> Llamar</a>}
+            {seleccionado.telefono && (
+              <button type="button" className="pi-accion pi-accion-whatsapp" onClick={() => { if (!abrirWhatsApp(seleccionado.telefono, `Hola ${seleccionado.nombreProveedor || seleccionado.razonSocial}`)) toast.error('El teléfono no parece válido para WhatsApp.'); }}>
+                <MessageCircle size={15} /> WhatsApp
+              </button>
+            )}
+            <button type="button" className="pi-accion pi-accion-primaria" onClick={() => { const p = seleccionado; setSeleccionado(null); abrirEditar(p); }}><Edit2 size={15} /> Editar</button>
+            <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const p = seleccionado; setSeleccionado(null); handleEliminar(p.proveedorid, p.razonSocial); }}><Trash2 size={15} /> Eliminar</button>
+          </>
+        )}
+      >
+        {seleccionado && (
+          <>
+            <DatoPanel etiqueta="Contacto" valor={seleccionado.nombreProveedor} />
+            <DatoPanel etiqueta="NIT" valor={seleccionado.nit} />
+            <DatoPanel etiqueta="Teléfono" valor={seleccionado.telefono} enlace={seleccionado.telefono ? `tel:${seleccionado.telefono}` : undefined} />
+            <DatoPanel etiqueta="Correo" valor={seleccionado.correo} enlace={seleccionado.correo ? `mailto:${seleccionado.correo}` : undefined} />
+            <DatoPanel etiqueta="Dirección" valor={seleccionado.direccion} />
+            <DatoPanel etiqueta="Banco" valor={seleccionado.banco} />
+            <DatoPanel etiqueta="Cuenta" valor={[seleccionado.tipoCuenta, seleccionado.numeroCuenta].filter(Boolean).join(' · ')} />
+            <DatoPanel etiqueta="Suministra" valor={Array.isArray(seleccionado.categoriaSuministro) ? seleccionado.categoriaSuministro.join(', ') : seleccionado.categoriaSuministro} />
+          </>
+        )}
+      </PanelInferior>
 
       {mostrarModal && (
         <div className="proveedores-overlay" onClick={cerrarModal}>

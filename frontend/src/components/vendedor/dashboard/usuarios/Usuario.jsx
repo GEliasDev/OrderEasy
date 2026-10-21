@@ -2,11 +2,16 @@ import { useState, useEffect } from 'react';
 import { Users, Plus, Edit2, Trash2, X, User, Mail, Phone, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import axiosInstance from '../../../../api/axiosConfig';
+import { useEsMovil } from '../../../../hooks/useEsMovil';
+import ListaMovil from '../../../comunes/ListaMovil';
+import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
 import './Usuarios.css';
 
 const VACIO = { primerNombre: '', primerApellido: '', correo: '', telefono: '', contraseña: '', rolid: '' };
 
 const Personal = () => {
+  const esMovil = useEsMovil();
+  const [seleccionado, setSeleccionado] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +124,21 @@ const Personal = () => {
         </button>
       </div>
 
+      {esMovil ? (
+        <ListaMovil
+          items={[...usuarios].sort((a, b) => `${a.primer_nombre} ${a.primer_apellido}`.localeCompare(`${b.primer_nombre} ${b.primer_apellido}`, 'es'))}
+          clave={(u) => u.usuarioid}
+          letras
+          vacio="Aún no hay usuarios"
+          onAbrir={setSeleccionado}
+          fila={(u) => ({
+            titulo: `${u.primer_nombre} ${u.primer_apellido}`,
+            subtitulo: u.correo,
+            insignia: nombreRol(u),
+            tono: u.rol === 'administrador' ? 'aviso' : undefined,
+          })}
+        />
+      ) : (
       <div className="personal-lista">
         {usuarios.map((u) => (
           <div key={u.usuarioid} className="personal-card">
@@ -160,6 +180,28 @@ const Personal = () => {
           </div>
         ))}
       </div>
+      )}
+
+      <PanelInferior
+        abierto={Boolean(seleccionado)}
+        onCerrar={() => setSeleccionado(null)}
+        titulo={seleccionado ? `${seleccionado.primer_nombre} ${seleccionado.primer_apellido}` : ''}
+        subtitulo={seleccionado ? nombreRol(seleccionado) : ''}
+        acciones={seleccionado && seleccionado.rol !== 'administrador' && (
+          <>
+            <button type="button" className="pi-accion pi-accion-primaria" onClick={() => { const u = seleccionado; setSeleccionado(null); abrirEditar(u); }}><Edit2 size={15} /> Editar</button>
+            <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const u = seleccionado; setSeleccionado(null); eliminar(u); }}><Trash2 size={15} /> Eliminar</button>
+          </>
+        )}
+      >
+        {seleccionado && (
+          <>
+            <DatoPanel etiqueta="Correo" valor={seleccionado.correo} enlace={`mailto:${seleccionado.correo}`} />
+            <DatoPanel etiqueta="Teléfono" valor={seleccionado.telefono} enlace={seleccionado.telefono ? `tel:${seleccionado.telefono}` : undefined} />
+            <DatoPanel etiqueta="Rol" valor={nombreRol(seleccionado)} />
+          </>
+        )}
+      </PanelInferior>
 
       {modal && (
         <div className="personal-overlay" onClick={cerrar}>

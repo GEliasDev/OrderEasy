@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileDown, TrendingDown } from 'lucide-react';
 import '../vistas/styles/TablaVentas.css';
+import { useEsMovil } from '../../../../../hooks/useEsMovil';
+import ListaMovil from '../../../../comunes/ListaMovil';
 import { getEgresos } from '../../../../../services/egresoService';
 import { getProveedores } from '../../../../../services/proveedorService';
 import { exportarEgresos } from '../exportarBalance';
@@ -14,6 +16,7 @@ const formatearFecha = (fecha) => {
 const REGISTROS_POR_PAGINA = 15;
 
 const TablaEgresos = ({ from = '', to = '' }) => {
+  const esMovil = useEsMovil();
   const navigate = useNavigate();
   const [egresos, setEgresos] = useState([]);
   const [proveedores, setProveedores] = useState([]);
@@ -132,6 +135,29 @@ const TablaEgresos = ({ from = '', to = '' }) => {
         {egresosFiltrados.length} resultado{egresosFiltrados.length !== 1 ? 's' : ''}
       </div>
 
+      {esMovil ? (
+        <ListaMovil
+          items={egresosFiltrados}
+          clave={(e) => e.egresoid}
+          vacio={searchTerm || dateFrom ? 'Sin resultados para los filtros aplicados' : 'Aún no hay registros'}
+          onAbrir={(item) => navigate(`/dashboard/egreso/${item.egresoid}`, { state: { egreso: item } })}
+          fila={(egreso) => {
+            const totalItems = egreso.detalles?.reduce((acc, d) => acc + d.cantidad, 0) || 0;
+            const resumen = egreso.detalles?.length > 1
+              ? `${egreso.detalles[0].productoNombre} (+${egreso.detalles.length - 1})`
+              : egreso.detalles?.[0]?.productoNombre || 'Egreso';
+            return {
+              nombre: egreso.proveedor?.nombreProveedor || resumen,
+              titulo: resumen,
+              subtitulo: `${formatearFecha(egreso.createdAt)} · ${egreso.proveedor?.nombreProveedor || 'General'}`,
+              derecha: `$${Number(egreso.total).toLocaleString('es-CO')}`,
+              derechaSecundaria: `${totalItems} ${totalItems === 1 ? 'item' : 'items'}`,
+              tono: 'peligro',
+            };
+          }}
+        />
+      ) : (
+      <>
       <table className="tabla-productos">
         <thead>
           <tr>
@@ -196,6 +222,8 @@ const TablaEgresos = ({ from = '', to = '' }) => {
             Siguiente
           </button>
         </div>
+      )}
+      </>
       )}
     </div>
   );

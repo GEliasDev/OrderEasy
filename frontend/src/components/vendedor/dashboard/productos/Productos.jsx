@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Search, FileSpreadsheet } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ShoppingCart, Search, FileSpreadsheet, Eye } from 'lucide-react';
 import { getAllProducts } from '../../../../services/productServices';
 import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 import { formatearCantidad } from '../../../../utils/unidades';
 import { exportarProductosPorPaginas } from './exportarExcel';
+import { imagenUrl } from '../../../../config';
+import { useEsMovil } from '../../../../hooks/useEsMovil';
+import ListaMovil, { ChipsFiltro } from '../../../comunes/ListaMovil';
+import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
 import './Productos.css';
 
 // Filas por página al exportar a Excel (la tabla en pantalla ajusta las suyas al alto disponible)
@@ -11,7 +16,14 @@ const FILAS_EXPORTACION = 20;
 // Filas por página en móvil (las filas se muestran como tarjetas y la página hace scroll)
 const FILAS_MOVIL = 20;
 
+const formatoPeso = (valor) => `$${Number(valor).toLocaleString('es-CO')}`;
+
 const Productos = () => {
+  const esMovil = useEsMovil();
+  const navigate = useNavigate();
+  const [seleccionado, setSeleccionado] = useState(null);
+  const [filtroStock, setFiltroStock] = useState('todos');
+  const [cargadoMovil, setCargadoMovil] = useState(false);
   const [productos, setProductos] = useState([]);
   const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem("prodSearchTerm") || "");
   const [categoriaFiltro, setCategoriaFiltro] = useState(() => localStorage.getItem("prodCatFilter") || "Todas");
@@ -27,6 +39,8 @@ const Productos = () => {
         setProductos(data);
       } catch (error) {
         console.error('Error al obtener productos:', error);
+      } finally {
+        setCargadoMovil(true);
       }
     };
     fetchProductos();
@@ -65,6 +79,11 @@ const Productos = () => {
     const coincideCategoria = categoriaFiltro === 'Todas' || p.categoriaNombre === categoriaFiltro;
     return coincideNombre && coincideCategoria;
   });
+
+  // En celular: orden alfabético y filtro rápido por existencias
+  const listaMovil = productosFiltrados
+    .filter((p) => filtroStock === 'todos' || (filtroStock === 'con' ? Number(p.cantidadDisponible) > 0 : Number(p.cantidadDisponible) <= 0))
+    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
 
   const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
   const totalPaginasExportacion = Math.ceil(productosFiltrados.length / FILAS_EXPORTACION);
@@ -129,6 +148,32 @@ const Productos = () => {
         />
       </div>
 
+      {esMovil ? (
+        <>
+          <ChipsFiltro
+            opciones={[{ id: 'todos', label: 'Todos' }, { id: 'con', label: 'Con stock' }, { id: 'sin', label: 'Sin stock' }]}
+            valor={filtroStock}
+            onCambiar={setFiltroStock}
+          />
+          <ListaMovil
+            items={listaMovil}
+            clave={(p) => p.productoid}
+            cargando={!cargadoMovil}
+            vacio="No se encontraron productos"
+            onAbrir={setSeleccionado}
+            fila={(p) => ({
+              nombre: p.nombre,
+              imagen: p.imagenes?.[0] ? imagenUrl(p.imagenes[0]) : undefined,
+              titulo: p.nombre,
+              subtitulo: `${p.categoriaNombre || 'Sin categoría'} · ${formatearCantidad(p.cantidadDisponible, p.unidadMedida)}`,
+              derecha: formatoPeso(p.precioVenta),
+              derechaSecundaria: Number(p.cantidadDisponible) <= 0 ? 'Agotado' : undefined,
+              tono: Number(p.cantidadDisponible) <= 0 ? 'peligro' : undefined,
+            })}
+          />
+        </>
+      ) : (
+      <>
       <div className="productos-table-wrap" ref={tablaWrapRef}>
         <table className={`productos-table${paginaLlena ? ' productos-table-llena' : ''}`}>
           <thead>
@@ -179,6 +224,34 @@ const Productos = () => {
           <button onClick={() => handleSetPagina(paginaActual + 1)} disabled={paginaActual === totalPaginas}>Siguiente</button>
         </div>
       )}
+      </>
+      )}
+
+      <PanelInferior
+        abierto={Boolean(seleccionado)}
+        onCerrar={() => setSeleccionado(null)}
+        titulo={seleccionado?.nombre}
+        subtitulo={seleccionado?.categoriaNombre || 'Sin categoría'}
+        imagen={seleccionado?.imagenes?.[0] ? imagenUrl(seleccionado.imagenes[0]) : undefined}
+        acciones={seleccionado && (
+          <button type="button" className="pi-accion pi-accion-primaria" onClick={() => navigate(`/dashboard/producto/${seleccionado.productoid}`)}><Eye size={15} /> Ver producto completo</button>
+        )}
+      >
+        {seleccionado && (
+          <>
+            <DatoPanel etiqueta="Descripción" valor={seleccionado.descripcion} />
+            <DatoPanel etiqueta="Stock" valor={`${formatearCantidad(seleccionado.cantidadDisponible, seleccionado.unidadMedida)}${seleccionado.usaTallas ? ` · ${seleccionado.variantes?.length || 0} tallas` : ''}`} tono={Number(seleccionado.cantidadDisponible) <= 0 ? 'peligro' : undefined} />
+            {seleccionado.usaTallas && (
+              <DatoPanel etiqueta="Por talla" valor={(seleccionado.variantes || []).map((v) => `${v.talla}: ${v.cantidadDisponible}`).join(' · ')} />
+            )}
+            <DatoPanel etiqueta="Precio de compra" valor={formatoPeso(seleccionado.precioCompra)} />
+            <DatoPanel etiqueta="Precio de venta" valor={formatoPeso(seleccionado.precioVenta)} />
+            <DatoPanel etiqueta="IVA" valor={`${seleccionado.tasaIva ?? 0}%`} />
+            <DatoPanel etiqueta="Código de barras" valor={seleccionado.codigoBarras} />
+            <DatoPanel etiqueta="Creado" valor={formatFecha(seleccionado.createdat)} />
+          </>
+        )}
+      </PanelInferior>
     </div>
   );
 };

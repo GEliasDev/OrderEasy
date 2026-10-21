@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileDown, TrendingUp } from 'lucide-react';
 import '../vistas/styles/TablaVentas.css';
+import { useEsMovil } from '../../../../../hooks/useEsMovil';
+import ListaMovil from '../../../../comunes/ListaMovil';
 import { getVentas } from '../../../../../services/ventaService';
 import { getClientes } from '../../../../../services/clienteService';
 import { exportarVentas } from '../exportarBalance';
@@ -14,6 +16,7 @@ const formatearFecha = (fecha) => {
 const REGISTROS_POR_PAGINA = 15;
 
 const TablaIngresos = ({ from = '', to = '' }) => {
+  const esMovil = useEsMovil();
   const navigate = useNavigate();
   const [ventas, setVentas] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -132,6 +135,29 @@ const TablaIngresos = ({ from = '', to = '' }) => {
         {ventasFiltradas.length} resultado{ventasFiltradas.length !== 1 ? 's' : ''}
       </div>
 
+      {esMovil ? (
+        <ListaMovil
+          items={ventasFiltradas}
+          clave={(v) => v.ventaid}
+          vacio={searchTerm || dateFrom ? 'Sin resultados para los filtros aplicados' : 'Aún no hay registros'}
+          onAbrir={(item) => navigate(`/dashboard/venta/${item.ventaid}`, { state: { venta: item } })}
+          fila={(venta) => {
+            const totalItems = venta.detalles?.reduce((acc, d) => acc + d.cantidad, 0) || 0;
+            const resumen = venta.detalles?.length > 1
+              ? `${venta.detalles[0].productoNombre} (+${venta.detalles.length - 1})`
+              : venta.detalles?.[0]?.productoNombre || 'Venta';
+            return {
+              nombre: venta.cliente?.nombreCliente || resumen,
+              titulo: resumen,
+              subtitulo: `${formatearFecha(venta.createdAt)} · ${venta.cliente?.nombreCliente || 'General'}`,
+              derecha: `$${Number(venta.total).toLocaleString('es-CO')}`,
+              derechaSecundaria: `${totalItems} ${totalItems === 1 ? 'item' : 'items'}`,
+              tono: 'ok',
+            };
+          }}
+        />
+      ) : (
+      <>
       <table className="tabla-productos">
         <thead>
           <tr>
@@ -196,6 +222,8 @@ const TablaIngresos = ({ from = '', to = '' }) => {
             Siguiente
           </button>
         </div>
+      )}
+      </>
       )}
     </div>
   );
