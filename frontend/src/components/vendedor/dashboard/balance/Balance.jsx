@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import TablaIngresos from './vistas/TablaIngresos';
 import TablaEgresos from './vistas/TablaEgresos';
 import PeriodSelector from './vistas/PeriodSelector';
-import BalanceTrendChart from './vistas/BalanceTrendChart';
 import { getBalanceSummary } from '../../../../services/balanceService';
 import './balance.css';
 
@@ -155,8 +154,6 @@ function Balance({ token }) {
           </div>
         </div>
       </div>
-
-      <BalanceTrendChart />
 
       <div className="tab-controls">
         <button

@@ -233,33 +233,6 @@
   color: var(--color-danger, #DC2626);
 }
 
-/* Trend chart */
-.trend-chart-container {
-  width: 100%;
-  background: var(--surface);
-  border-radius: var(--radius-md, 8px);
-  padding: 0.875rem;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
-  margin-bottom: 0.75rem;
-}
-
-.trend-chart-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--neutral-500, #64748B);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.chart-skeleton {
-  height: 160px;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s infinite;
-}
-
 /* Tarjeta de abonos de clientes por entregar */
 .metric-card.anticipos .metric-icon { background: var(--color-warning-soft, #FFFBEB); color: var(--color-warning, #D97706); }
 .metric-nota { display: block; margin-top: 0.15rem; font-size: 0.68rem; color: var(--neutral-500, #64748B); }
