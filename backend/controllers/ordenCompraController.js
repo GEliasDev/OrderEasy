@@ -86,7 +86,11 @@ const comprasDeOrdenes = async (ordenids) => {
   const compras = await Pedido.findAll({
     where: { ordenid: ordenids },
     include: [
-      { model: PedidoDetalle, as: 'detalles' },
+      {
+        model: PedidoDetalle,
+        as: 'detalles',
+        include: [{ model: Producto, as: 'producto', attributes: ['productoid', 'imagenes'] }],
+      },
       { model: PedidoPago, as: 'pagos' },
       { model: Cliente, as: 'cliente', attributes: ['clienteid', 'nombreCliente', 'telefono'] },
     ],

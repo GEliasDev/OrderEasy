@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Hash, MoreHorizontal, PackageCheck, Pencil, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { imagenUrl } from '../../../../config';
 import {
   actualizarPedidoProveedor,
   anularOrdenCompra,
@@ -51,6 +52,37 @@ const ESTADOS_COMPRA_CLIENTE = {
 const resumenProductos = (compra) => (compra.detalles || [])
   .map((d) => `${cantidad(d.cantidad)}× ${d.productoNombre}${d.talla ? ` · ${d.talla}` : ''}`)
   .join(', ');
+
+// Desglose de productos de una compra de cliente, con una miniatura de cada producto
+const desgloseProductos = (compra) => (
+  <div className="compras-productos-desglose">
+    {(compra.detalles || []).map((d) => {
+      const ruta = d.producto?.imagenes?.[0];
+      return (
+        <div className="compras-producto-linea" key={d.detalleid}>
+          <span className="compras-producto-miniatura" aria-hidden="true">
+            <Package size={15} />
+            {ruta && (
+              <img
+                src={imagenUrl(ruta)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            )}
+          </span>
+          <span className="compras-producto-info">
+            <span className="compras-producto-nombre">{d.productoNombre}</span>
+            <span className="compras-producto-meta">
+              {cantidad(d.cantidad)} × {d.talla ? `Talla ${d.talla}` : 'Sin talla'}
+            </span>
+          </span>
+        </div>
+      );
+    })}
+  </div>
+);
 
 // Pedido al proveedor: contiene las compras de los clientes (con sus abonos y entregas) y los productos para stock
 function DetalleCompra() {
@@ -509,7 +541,7 @@ function DetalleCompra() {
                 return (
                   <tr key={compra.pedidoid} className={`compras-fila-link ${anulada ? 'compras-fila-cancelada' : ''}`} onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
                     <td className="col-nombre">{compra.cliente?.nombreCliente || 'Sin cliente'}</td>
-                    <td className="compras-clientes">{resumenProductos(compra)}</td>
+                    <td className="compras-clientes">{desgloseProductos(compra)}</td>
                     <td className="col-num">{formatoMoneda(compra.total)}</td>
                     <td className="col-num">{formatoMoneda(compra.resumen?.abonado)}</td>
                     <td className="col-num">{anulada ? '—' : formatoMoneda(compra.resumen?.saldo)}</td>
