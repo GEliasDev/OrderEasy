@@ -147,3 +147,9 @@ export const getSaldoPorCobrar = async () => {
   const { data } = await axiosInstance.get('/api/pedidos/saldo-por-cobrar');
   return data;
 };
+
+// Elimina el pedido al proveedor en cualquier estado (las compras de los clientes quedan sueltas)
+export const eliminarPedidoProveedor = async (id) => {
+  const { data } = await axiosInstance.delete(`/api/ordenes-compra/${id}`);
+  return data;
+};

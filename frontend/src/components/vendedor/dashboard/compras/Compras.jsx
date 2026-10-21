@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Eye, PackageCheck, Plus, Truck, X } from 'lucide-react';
+import { ClipboardList, Eye, PackageCheck, Plus, Trash2, Truck, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { crearPedidoProveedor, getOrdenesCompra, getSaldoPorCobrar } from '../../../../services/pedidoService';
+import { crearPedidoProveedor, eliminarPedidoProveedor, getOrdenesCompra, getSaldoPorCobrar } from '../../../../services/pedidoService';
 import { ESTADOS_COMPRA, formatearFecha, formatoMoneda, nombrePedido } from './comprasUtils';
 import '../pedidos/Pedidos.css';
 import './Compras.css';
 
-const ESTADOS_ACTIVOS = ['abierta', 'borrador', 'enviada', 'recibida_parcial'];
 
 // Pedidos al proveedor (Pedido 1, Pedido 2...): cada uno contiene las compras de varios clientes
 function Compras() {
@@ -18,7 +17,7 @@ function Compras() {
   const [creando, setCreando] = useState(false);
   const [modalNuevo, setModalNuevo] = useState(false);
   const [nombreNuevo, setNombreNuevo] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('activas');
+  const [filtroEstado, setFiltroEstado] = useState('todas');
   const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
@@ -35,6 +34,26 @@ function Compras() {
     };
     cargar();
   }, []);
+
+  const eliminarPedido = (orden) => {
+    toast(`¿Eliminar ${nombrePedido(orden)}?`, {
+      description: 'Las compras de los clientes no se borran: quedan sueltas con sus abonos. Lo ya recibido en el inventario y los egresos no se revierten.',
+      action: {
+        label: 'Sí, eliminar',
+        onClick: async () => {
+          try {
+            await eliminarPedidoProveedor(orden.ordenid);
+            setOrdenes((prev) => prev.filter((o) => o.ordenid !== orden.ordenid));
+            getSaldoPorCobrar().then(setSaldoPorCobrar).catch(() => {});
+            toast.success('Pedido eliminado.');
+          } catch (error) {
+            toast.error(error?.response?.data?.mensaje || 'No se pudo eliminar el pedido.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
+    });
+  };
 
   const crearPedido = async (e) => {
     e?.preventDefault();
@@ -60,7 +79,7 @@ function Compras() {
     const texto = busqueda.trim().toLowerCase();
     return filas.filter(({ orden, clientes }) => {
       const coincideEstado = filtroEstado === 'todas'
-        || (filtroEstado === 'activas' ? ESTADOS_ACTIVOS.includes(orden.estado) : orden.estado === filtroEstado);
+        || orden.estado === filtroEstado;
       const proveedor = orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial || '';
       const coincideTexto = !texto
         || String(orden.ordenid).includes(texto)
@@ -122,7 +141,6 @@ function Compras() {
           onChange={(e) => setBusqueda(e.target.value)}
         />
         <select className="pedidos-select" value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
-          <option value="activas">Activos</option>
           <option value="todas">Todos</option>
           {Object.entries(ESTADOS_COMPRA).filter(([key]) => key !== 'borrador').map(([key, c]) => <option key={key} value={key}>{c.label}</option>)}
         </select>
@@ -176,6 +194,9 @@ function Compras() {
                       <div className="pedidos-acciones" onClick={(e) => e.stopPropagation()}>
                         <button className="pedidos-accion pedidos-accion-ver" title="Abrir pedido" onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
                           <Eye size={14} />
+                        </button>
+                        <button className="pedidos-accion pedidos-accion-anular" title="Eliminar pedido" onClick={() => eliminarPedido(orden)}>
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>

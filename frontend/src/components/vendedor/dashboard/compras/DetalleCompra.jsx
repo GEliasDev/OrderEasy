@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import {
   actualizarPedidoProveedor,
   anularOrdenCompra,
+  eliminarPedidoProveedor,
   asignarComprasPedido,
   enviarPedidoProveedor,
   getOrdenCompra,
@@ -202,6 +203,25 @@ function DetalleCompra() {
     }
   };
 
+  const handleEliminar = () => {
+    toast(`¿Eliminar ${nombrePedido(orden)}?`, {
+      description: 'Las compras de los clientes no se borran: quedan sueltas con sus abonos. Lo ya recibido en el inventario y los egresos no se revierten.',
+      action: {
+        label: 'Sí, eliminar',
+        onClick: async () => {
+          try {
+            await eliminarPedidoProveedor(orden.ordenid);
+            toast.success('Pedido eliminado.');
+            navigate('/dashboard/pedidos');
+          } catch (error) {
+            toast.error(error?.response?.data?.mensaje || 'No se pudo eliminar el pedido.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
+    });
+  };
+
   const cambiarProveedor = async (valor) => {
     try {
       setOrden(await actualizarPedidoProveedor(orden.ordenid, { proveedorid: valor || null }));
@@ -345,10 +365,13 @@ function DetalleCompra() {
             </button>
           )}
           {puedeAnular && (
-            <button className="pedidos-btn pedidos-btn-peligro" onClick={handleAnular}>
+            <button className="pedidos-btn pedidos-btn-secundario" onClick={handleAnular}>
               <XCircle size={14} /><span>Anular</span>
             </button>
           )}
+          <button className="pedidos-btn pedidos-btn-peligro" onClick={handleEliminar}>
+            <Trash2 size={14} /><span>Eliminar</span>
+          </button>
         </div>
       </div>
 
