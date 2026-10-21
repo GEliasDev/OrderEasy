@@ -213,6 +213,7 @@ const getSaldoPorCobrar = async (req, res) => {
     let total = 0;
     let abonado = 0;
     const clientes = new Set();
+    const porCliente = {};
     let conSaldo = 0;
     for (const compra of compras) {
       const resumen = resumenPedido(compra.toJSON());
@@ -220,10 +221,13 @@ const getSaldoPorCobrar = async (req, res) => {
       if (resumen.saldo > 0) {
         total += resumen.saldo;
         conSaldo += 1;
-        if (compra.clienteid) clientes.add(compra.clienteid);
+        if (compra.clienteid) {
+          clientes.add(compra.clienteid);
+          porCliente[compra.clienteid] = dos((porCliente[compra.clienteid] || 0) + resumen.saldo);
+        }
       }
     }
-    res.json({ total: dos(total), abonado: dos(abonado), compras: conSaldo, clientes: clientes.size });
+    res.json({ total: dos(total), abonado: dos(abonado), compras: conSaldo, clientes: clientes.size, porCliente });
   } catch {
     res.status(500).json({ mensaje: 'Error al calcular el saldo por cobrar' });
   }
