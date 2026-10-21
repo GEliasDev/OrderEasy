@@ -1241,3 +1241,116 @@
   .pedidos-tabla-wrapper { overflow-x: auto; }
   .pedidos-tabla { min-width: 760px; }
 }
+
+/* ───────── Detalle de pedido y de compra: versión compacta para celular ───────── */
+.pi-lista-acciones { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.5rem 0; }
+.pi-lista-acciones .pi-accion { flex: none; justify-content: flex-start; min-height: 2.9rem; }
+
+@media (max-width: 768px) {
+  /* Acciones del encabezado: lo principal a la vista y el resto en el menú "Más" */
+  .pedido-acciones-compactas { display: flex; gap: 0.5rem; flex-wrap: nowrap; width: 100%; }
+  .detalle-tx-header .pedido-acciones-compactas .pedidos-btn { flex: 1 1 0; min-width: 0; justify-content: center; white-space: nowrap; }
+  .detalle-tx-header .pedido-acciones-compactas .pedido-btn-mas { flex: 0 0 2.75rem; padding: 0; }
+
+  /* Resumen: 2 columnas con tarjetas bajitas */
+  .detalle-ancho .detalle-tx-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.75rem; }
+  .detalle-ancho .detalle-tx-stat { padding: 0.55rem 0.7rem; border-radius: 10px; }
+  .detalle-ancho .detalle-tx-stat-label { font-size: 0.6rem; margin-bottom: 0.15rem; }
+  .detalle-ancho .detalle-tx-stat-value { font-size: 0.95rem; line-height: 1.2; }
+  .detalle-ancho .detalle-tx-stat-value.amount { font-size: 1.1rem; }
+
+  /* Pedido al proveedor: costo y recibido arriba, luego fecha, y el proveedor (selector) a todo el ancho */
+  .detalle-ancho .detalle-tx-summary:has(.compras-select-proveedor) > :nth-child(1) { order: 1; grid-column: 1 / -1; }
+  .detalle-ancho .detalle-tx-summary:has(.compras-select-proveedor) > :nth-child(4) { order: 2; }
+  .detalle-ancho .detalle-tx-summary:has(.compras-select-proveedor) > :nth-child(3) { order: 3; }
+  .detalle-ancho .detalle-tx-summary:has(.compras-select-proveedor) > :nth-child(2) { order: 4; grid-column: 1 / -1; }
+  /* Notas vacías: no ocupan espacio */
+  .detalle-ancho .detalle-tx-description:has(.muted) { display: none; }
+
+  /* Dinero de la compra: 2x2 compacto */
+  .detalle-ancho .pedido-pagos { padding: 0.75rem; border-radius: 12px; }
+  .detalle-ancho .pedido-pagos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem; margin-bottom: 0.6rem; }
+  .detalle-ancho .pedido-pago-stat { padding: 0.45rem 0.6rem; border-radius: 8px; }
+  .detalle-ancho .pedido-pago-stat span { font-size: 0.6rem; }
+  .detalle-ancho .pedido-pago-stat strong { font-size: 0.95rem; }
+  .detalle-ancho .pedido-pagos-header { margin-bottom: 0.4rem; }
+  .detalle-ancho .pedido-pagos-acciones { display: none; } /* en celular el abono está arriba y lo demás en "Más" */
+
+  /* Datos sueltos (entrega, notas, aviso): menos relleno */
+  .detalle-ancho .pedido-datos-extra { gap: 0.4rem; margin-bottom: 0.5rem; }
+  .detalle-ancho .pedido-dato { padding: 0.5rem 0.7rem; border-radius: 10px; }
+  .detalle-ancho .detalle-tx-description { padding: 0.5rem 0.7rem; margin-bottom: 0.5rem; }
+  .detalle-ancho .pedido-alerta-stock { padding: 0.5rem 0.7rem; margin-bottom: 0.5rem; font-size: 0.78rem; }
+  .detalle-ancho .pedido-ordenes-section { padding: 0.75rem; }
+  .compras-seccion-titulo { margin: 0.9rem 0 0.15rem; font-size: 0.9rem; }
+  .compras-seccion-ayuda { margin-bottom: 0.5rem; font-size: 0.72rem; }
+
+  /* Movimientos (abonos) en filas de dos renglones: tipo y monto arriba; fecha, método y nota abajo */
+  .pedido-movimientos tbody tr {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "mov monto recibo" "fecha metodo metodo" "nota nota nota";
+    gap: 0.15rem 0.6rem;
+    align-items: center;
+    padding: 0.55rem 0.7rem !important;
+    margin-bottom: 0.4rem !important;
+  }
+  .pedido-movimientos tbody td { display: block !important; width: auto !important; padding: 0 !important; border: none !important; text-align: left !important; font-size: 0.74rem !important; }
+  .pedido-movimientos tbody td::before { display: none !important; }
+  .pedido-movimientos td[data-label="Movimiento"] { grid-area: mov; }
+  .pedido-movimientos td[data-label="Monto"] { grid-area: monto; font-size: 0.92rem !important; font-weight: 700; text-align: right !important; }
+  .pedido-movimientos td[data-label=""] { grid-area: recibo; }
+  .pedido-movimientos td[data-label="Fecha"] { grid-area: fecha; color: var(--neutral-500, #64748B); }
+  .pedido-movimientos td[data-label="Método"] { grid-area: metodo; color: var(--neutral-500, #64748B); text-align: right !important; }
+  .pedido-movimientos td[data-label="Nota"] { grid-area: nota; color: var(--neutral-500, #64748B); max-width: none; }
+
+  /* Productos de la compra: nombre arriba y tres datos en una fila */
+  .detalle-items-section .items-table.tabla-tarjetas tbody tr {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas: "producto producto producto" "cant entregado llegado" "precio precio subtotal";
+    gap: 0.35rem 0.5rem;
+    padding: 0.65rem 0.7rem !important;
+    margin-bottom: 0.45rem !important;
+  }
+  .detalle-items-section .items-table.tabla-tarjetas tbody td { display: block !important; width: auto !important; padding: 0 !important; border: none !important; text-align: left !important; font-size: 0.8rem !important; min-width: 0; }
+  .detalle-items-section .items-table.tabla-tarjetas tbody td::before { display: block !important; margin-bottom: 0.1rem; font-size: 0.58rem !important; }
+  .detalle-items-section .items-table.tabla-tarjetas td[data-label="Producto"] { grid-area: producto; display: flex !important; flex-wrap: wrap; align-items: center; justify-content: flex-start !important; gap: 0.4rem; font-weight: 700; }
+  .detalle-items-section .items-table.tabla-tarjetas td[data-label="Producto"]::before { display: none !important; }
+  .detalle-items-section .items-table.tabla-tarjetas td[data-label="Cant."] { grid-area: cant; }
+  .detalle-items-section .items-table.tabla-tarjetas td[data-label="Entregado"] { grid-area: entregado; }
+  .detalle-items-section .items-table.tabla-tarjetas td[data-label="Llegado"],
+  .detalle-items-section .items-table.tabla-tarjetas td[data-label="Stock físico"] { grid-area: llegado; }
+  .detalle-items-section .items-table.tabla-tarjetas td[data-label="Precio Unit."] { grid-area: precio; align-self: end; }
+  .detalle-items-section .items-table.tabla-tarjetas td[data-label="Subtotal"] { grid-area: subtotal; text-align: right !important; font-weight: 700; align-self: end; }
+  .detalle-items-section .pedido-compra-estado { display: none; } /* ya se ve en la columna Llegado */
+
+  /* Reparto por cliente (pedido enviado): una línea por cliente, sin bloques grandes */
+  .compras-linea { padding: 0.65rem 0.7rem; margin-bottom: 0.5rem; border-radius: 12px; }
+  .compras-linea .items-table-container { margin-top: 0.4rem; }
+  .compras-tabla-reparto tbody tr {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "cliente situacion situacion" "asignado recibido acciones";
+    gap: 0.2rem 0.6rem;
+    align-items: center;
+    padding: 0.45rem 0.1rem !important;
+    margin: 0 !important;
+    border: none !important;
+    border-bottom: 1px solid var(--neutral-100, #F0F4FA) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+  .compras-tabla-reparto tbody tr:last-child { border-bottom: none !important; }
+  .compras-tabla-reparto tbody td { display: block !important; width: auto !important; padding: 0 !important; border: none !important; font-size: 0.76rem !important; text-align: left !important; }
+  .compras-tabla-reparto tbody td::before { display: inline !important; margin-right: 0.3rem; font-size: 0.6rem !important; }
+  .compras-tabla-reparto td[data-label="Cliente"] { grid-area: cliente; font-size: 0.85rem !important; }
+  .compras-tabla-reparto td[data-label="Cliente"]::before { display: none !important; }
+  .compras-tabla-reparto td[data-label="Situación"] { grid-area: situacion; text-align: right !important; }
+  .compras-tabla-reparto td[data-label="Situación"]::before { display: none !important; }
+  .compras-tabla-reparto td[data-label="Asignado"] { grid-area: asignado; }
+  .compras-tabla-reparto td[data-label="Recibido"] { grid-area: recibido; }
+  .compras-tabla-reparto td[data-label="Acciones"] { grid-area: acciones; text-align: right !important; }
+  .compras-tabla-reparto td[data-label="Acciones"]::before { display: none !important; }
+}

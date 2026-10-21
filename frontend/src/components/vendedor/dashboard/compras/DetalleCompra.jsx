@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Hash, PackageCheck, Pencil, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Hash, MoreHorizontal, PackageCheck, Pencil, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   actualizarPedidoProveedor,
@@ -28,6 +28,10 @@ import {
 } from './comprasUtils';
 import '../balance/vistas/styles/DetalleTransaccion.css';
 import '../pedidos/Pedidos.css';
+import { useEsMovil } from '../../../../hooks/useEsMovil';
+import ListaMovil from '../../../comunes/ListaMovil';
+import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
+import { deletePedido } from '../../../../services/pedidoService';
 import './Compras.css';
 
 const num = (valor) => Number(valor) || 0;
@@ -50,6 +54,9 @@ const resumenProductos = (compra) => (compra.detalles || [])
 
 // Pedido al proveedor: contiene las compras de los clientes (con sus abonos y entregas) y los productos para stock
 function DetalleCompra() {
+  const esMovil = useEsMovil();
+  const [compraSel, setCompraSel] = useState(null);
+  const [lineaSel, setLineaSel] = useState(null);
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -222,6 +229,25 @@ function DetalleCompra() {
     });
   };
 
+  const eliminarCompra = (compra) => {
+    toast(`¿Eliminar la compra de ${compra.cliente?.nombreCliente || 'este cliente'}?`, {
+      description: 'Se borran la compra y sus abonos. Las ventas de entregas ya hechas se conservan. No se puede deshacer.',
+      action: {
+        label: 'Sí, eliminar',
+        onClick: async () => {
+          try {
+            await deletePedido(compra.pedidoid);
+            toast.success('Compra eliminada.');
+            cargar(true);
+          } catch (error) {
+            toast.error(error?.response?.data?.mensaje || 'No se pudo eliminar la compra.');
+          }
+        },
+      },
+      cancel: { label: 'Cancelar', onClick: () => {} },
+    });
+  };
+
   const cambiarProveedor = async (valor) => {
     try {
       setOrden(await actualizarPedidoProveedor(orden.ordenid, { proveedorid: valor || null }));
@@ -342,6 +368,28 @@ function DetalleCompra() {
           </div>
           <div className="detalle-tx-breadcrumb">Pedidos / <span className="active">{orden.nombre ? `${orden.nombre} · #${orden.ordenid}` : `Pedido #${orden.ordenid}`}</span></div>
         </div>
+        {esMovil ? (
+          <div className="pedido-detalle-acciones pedido-acciones-compactas">
+            {abierto && (
+              <>
+                <button className="pedidos-btn pedidos-btn-primary" onClick={() => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}`)}>
+                  <Plus size={14} /><span>Crear compra</span>
+                </button>
+                <button className="pedidos-btn pedidos-btn-verde" onClick={abrirEnviar} disabled={compras.length === 0 && detalles.length === 0}>
+                  <Send size={14} /><span>Enviar</span>
+                </button>
+              </>
+            )}
+            {puedeRecibir && (
+              <button className="pedidos-btn pedidos-btn-verde" onClick={() => abrirRecepcion(orden)}>
+                <PackageCheck size={14} /><span>Registrar recepción</span>
+              </button>
+            )}
+            <button className="pedidos-btn pedidos-btn-secundario pedido-btn-mas" onClick={() => setModal('mas')} aria-label="Más acciones">
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
+        ) : (
         <div className="pedido-detalle-acciones">
           {abierto && (
             <>
@@ -373,6 +421,7 @@ function DetalleCompra() {
             <Trash2 size={14} /><span>Eliminar</span>
           </button>
         </div>
+        )}
       </div>
 
       <div className="detalle-tx-summary">
@@ -419,6 +468,27 @@ function DetalleCompra() {
           <p>Este pedido todavía no tiene compras de clientes.</p>
         </div>
       ) : (
+        esMovil ? (
+          <ListaMovil
+            items={compras}
+            clave={(c) => c.pedidoid}
+            letras={false}
+            onAbrir={setCompraSel}
+            fila={(c) => {
+              const saldo = Number(c.resumen?.saldo || 0);
+              const anulada = c.estado === 'anulado';
+              return {
+                nombre: c.cliente?.nombreCliente,
+                titulo: c.cliente?.nombreCliente || 'Sin cliente',
+                subtitulo: resumenProductos(c),
+                derecha: anulada ? undefined : (saldo > 0 ? formatoMoneda(saldo) : 'Pagado'),
+                derechaSecundaria: anulada ? undefined : (saldo > 0 ? 'por cobrar' : undefined),
+                insignia: anulada ? 'Anulada' : undefined,
+                tono: anulada ? 'peligro' : (saldo > 0 ? 'peligro' : 'ok'),
+              };
+            }}
+          />
+        ) : (
         <div className="items-table-container">
           <table className="tabla-tarjetas items-table compras-tabla">
             <thead>
@@ -461,6 +531,7 @@ function DetalleCompra() {
             </tbody>
           </table>
         </div>
+        )
       )}
 
       {abierto ? (
@@ -472,6 +543,20 @@ function DetalleCompra() {
           {detalles.length === 0 ? (
             <div className="pedido-ordenes-vacio"><p>No hay productos para stock en este pedido.</p></div>
           ) : (
+            esMovil ? (
+              <ListaMovil
+                items={detalles}
+                clave={(d) => d.detalleid}
+                onAbrir={setLineaSel}
+                fila={(d) => ({
+                  nombre: d.productoNombre,
+                  titulo: d.productoNombre,
+                  subtitulo: d.talla ? `Talla ${d.talla}` : 'Sin talla',
+                  derecha: `${cantidad(d.cantidad)} und`,
+                  derechaSecundaria: formatoMoneda(d.subtotal),
+                })}
+              />
+            ) : (
             <div className="items-table-container">
               <table className="tabla-tarjetas items-table compras-tabla">
                 <thead>
@@ -500,6 +585,7 @@ function DetalleCompra() {
                 </tbody>
               </table>
             </div>
+            )
           )}
         </>
       ) : (
@@ -589,6 +675,67 @@ function DetalleCompra() {
           })}
         </>
       )}
+
+      <PanelInferior abierto={modal === 'mas'} onCerrar={() => setModal(null)} titulo="Más acciones" subtitulo={nombrePedido(orden)} nombreAvatar="Pedido">
+        <div className="pi-lista-acciones">
+          {abierto && (
+            <button type="button" className="pi-accion" onClick={() => { setModal(null); navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}&tipo=stock`); }}><Plus size={15} /> Productos para stock</button>
+          )}
+          {abierto && (
+            <button type="button" className="pi-accion" onClick={() => { setModal(null); abrirExistentes(); }}><Users size={15} /> Agregar compra existente</button>
+          )}
+          {!['recibida', 'anulada'].includes(orden.estado) && (
+            <button type="button" className="pi-accion" onClick={() => { setNombreEdicion(orden.nombre || ''); setModal('nombre'); }}><Pencil size={15} /> Cambiar nombre</button>
+          )}
+          {puedeAnular && (
+            <button type="button" className="pi-accion" onClick={() => { setModal(null); handleAnular(); }}><XCircle size={15} /> Anular pedido</button>
+          )}
+          <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { setModal(null); handleEliminar(); }}><Trash2 size={15} /> Eliminar pedido</button>
+        </div>
+      </PanelInferior>
+
+      <PanelInferior
+        abierto={Boolean(compraSel)}
+        onCerrar={() => setCompraSel(null)}
+        titulo={compraSel?.cliente?.nombreCliente || 'Compra'}
+        subtitulo={compraSel ? (ESTADOS_COMPRA_CLIENTE[compraSel.estado] || compraSel.estado) : ''}
+        acciones={compraSel && (
+          <>
+            {compraSel.estado !== 'anulado' && compraSel.estado !== 'entregado' && (
+              <button type="button" className="pi-accion pi-accion-primaria" onClick={() => navigate(`/dashboard/pedido/${compraSel.pedidoid}?accion=abono`)}>Abonar</button>
+            )}
+            <button type="button" className="pi-accion" onClick={() => navigate(`/dashboard/pedido/${compraSel.pedidoid}`)}>Ver detalle</button>
+            <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const c = compraSel; setCompraSel(null); eliminarCompra(c); }}><Trash2 size={15} /> Eliminar</button>
+          </>
+        )}
+      >
+        {compraSel && (
+          <>
+            <DatoPanel etiqueta="Productos" valor={resumenProductos(compraSel)} />
+            <DatoPanel etiqueta="Total" valor={formatoMoneda(compraSel.total)} />
+            <DatoPanel etiqueta="Abonado" valor={formatoMoneda(compraSel.resumen?.abonado)} />
+            <DatoPanel etiqueta="Saldo" valor={compraSel.estado === 'anulado' ? '—' : formatoMoneda(compraSel.resumen?.saldo)} tono={Number(compraSel.resumen?.saldo || 0) > 0 ? 'peligro' : 'ok'} />
+          </>
+        )}
+      </PanelInferior>
+
+      <PanelInferior
+        abierto={Boolean(lineaSel)}
+        onCerrar={() => setLineaSel(null)}
+        titulo={lineaSel?.productoNombre || ''}
+        subtitulo="Para stock"
+        acciones={lineaSel && (
+          <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const d = lineaSel; setLineaSel(null); quitarStock(d); }}><Trash2 size={15} /> Quitar del pedido</button>
+        )}
+      >
+        {lineaSel && (
+          <>
+            <DatoPanel etiqueta="Talla" valor={lineaSel.talla || 'Sin talla'} />
+            <DatoPanel etiqueta="Cantidad" valor={`${cantidad(lineaSel.cantidad)} und`} />
+            <DatoPanel etiqueta="Costo" valor={formatoMoneda(lineaSel.subtotal)} />
+          </>
+        )}
+      </PanelInferior>
 
       {modal === 'nombre' && (
         <div className="pedido-modal-overlay" onClick={() => setModal(null)}>

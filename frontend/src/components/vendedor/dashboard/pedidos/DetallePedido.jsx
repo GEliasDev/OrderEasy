@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, Minus, MessageCircle, Package, Plus, Receipt, RotateCcw, Search, ShoppingBag, Trash2, Truck, User, Wallet, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, Minus, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, Search, ShoppingBag, Trash2, Truck, User, Wallet, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   anularOrdenCompra,
@@ -25,6 +25,8 @@ import ReciboModal from './ReciboModal';
 import { getNegocio } from '../../../../services/negocioService';
 import { abrirWhatsApp, mensajeListoParaEntregar, mensajeRecordatorioSaldo } from '../../../../utils/whatsapp';
 import '../balance/vistas/styles/DetalleTransaccion.css';
+import { useEsMovil } from '../../../../hooks/useEsMovil';
+import PanelInferior from '../../../comunes/PanelInferior';
 import './Pedidos.css';
 
 // Una línea del pedido es "producto + talla"
@@ -373,6 +375,9 @@ function DetallePedido() {
     setAnularForm({ abonos: 'devolver', metodo: 'efectivo' });
     setModal('anular');
   };
+  const esMovil = useEsMovil();
+  const [menuMas, setMenuMas] = useState(false);
+
   const handleAnular = abrirAnular;
 
   // Elimina la compra en cualquier estado (a diferencia de anular, no queda registro de ella)
@@ -573,6 +578,22 @@ function DetallePedido() {
             <span className="active">Compra #{pedido.pedidoid}</span>
           </div>
         </div>
+        {esMovil ? (
+          <div className="pedido-detalle-acciones pedido-acciones-compactas">
+            {pedido.estado === 'pendiente' && !pedido.ordenid && (
+              <button className="pedidos-btn pedidos-btn-primary" onClick={handleConfirmar}><Check size={14} /><span>Confirmar</span></button>
+            )}
+            {puedeConvertir && (
+              <button className="pedidos-btn pedidos-btn-verde" onClick={abrirEntrega}><ShoppingBag size={14} /><span>Entregar</span></button>
+            )}
+            {puedeAbonar && (
+              <button className="pedidos-btn pedidos-btn-primary" onClick={() => abrirPago('abono')}><Plus size={14} /><span>Abonar</span></button>
+            )}
+            <button className="pedidos-btn pedidos-btn-secundario pedido-btn-mas" onClick={() => setMenuMas(true)} aria-label="Más acciones">
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
+        ) : (
         <div className="pedido-detalle-acciones">
           {pedido.estado === 'pendiente' && !pedido.ordenid && (
             <button className="pedidos-btn pedidos-btn-primary" onClick={handleConfirmar}>
@@ -615,7 +636,35 @@ function DetallePedido() {
             <span>Eliminar</span>
           </button>
         </div>
+        )}
       </div>
+
+      <PanelInferior abierto={menuMas} onCerrar={() => setMenuMas(false)} titulo="Más acciones" subtitulo={`Compra #${pedido.pedidoid}`} nombreAvatar={pedido.cliente?.nombreCliente || 'Compra'}>
+        <div className="pi-lista-acciones">
+          {puedeGenerarCompra && (
+            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirOrdenCompra(); }}><Truck size={15} /> Generar compra al proveedor</button>
+          )}
+          {puedeConvertir && pedido.cliente?.telefono && (
+            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); avisarListo(); }}><MessageCircle size={15} /> Avisar por WhatsApp que está listo</button>
+          )}
+          {puedeAbonar && pedido.cliente?.telefono && (
+            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); recordarSaldo(); }}><MessageCircle size={15} /> Recordar saldo por WhatsApp</button>
+          )}
+          {puedeAbonar && saldoFavor.total > 0 && (
+            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); handleUsarSaldo(); }}><Wallet size={15} /> Usar saldo a favor ({formatoMoneda(saldoFavor.total)})</button>
+          )}
+          {resumen.disponibleAbonos > 0 && pedido.estado !== 'anulado' && (
+            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirPago('devolucion'); }}><RotateCcw size={15} /> Devolver dinero</button>
+          )}
+          {puedeEditar && (
+            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirEditar(); }}><Edit2 size={15} /> Editar compra</button>
+          )}
+          {puedeEditar && (
+            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); handleAnular(); }}><XCircle size={15} /> Anular compra</button>
+          )}
+          <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { setMenuMas(false); handleEliminar(); }}><Trash2 size={15} /> Eliminar compra</button>
+        </div>
+      </PanelInferior>
 
       {itemsSinStock.length > 0 && ['confirmado', 'en_compra', 'recibido'].includes(pedido.estado) && (
         <div className="pedido-alerta-stock">
