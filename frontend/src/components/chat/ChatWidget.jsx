@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Bot, X, Send, Trash2, ExternalLink } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useChat } from '../../context/ChatContext';
 import ChatMessage from './ChatMessage';
 import './ChatWidget.css';
@@ -8,6 +8,8 @@ import './ChatWidget.css';
 function ChatWidget() {
   const { messages, isLoading, isOpen, toolStatus, setIsOpen, sendMessage, clearHistory } = useChat();
   const navigate = useNavigate();
+  // En la pantalla completa del asistente el botón flotante sobra (y tapa el campo de escritura)
+  const enPantallaCompleta = useLocation().pathname.includes('/asistente');
   const inputRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -31,6 +33,7 @@ function ChatWidget() {
 
   return (
     <>
+      {!enPantallaCompleta && (
       <button
         className="chat-toggle-btn"
         onClick={() => setIsOpen(o => !o)}
@@ -39,8 +42,9 @@ function ChatWidget() {
       >
         {isOpen ? <X size={22} /> : <Bot size={22} />}
       </button>
+      )}
 
-      {isOpen && (
+      {isOpen && !enPantallaCompleta && (
         <div className="chat-panel">
           <div className="chat-panel-header">
             <div className="chat-panel-header-left">

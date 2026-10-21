@@ -1,7 +1,9 @@
 .chat-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 40px);
+  /* Alto disponible = pantalla - barra superior (56px) - espacios del contenedor, para que la página no se desplace */
+  height: calc(100vh - 56px - 3rem);
+  height: calc(100dvh - 56px - 3rem);
   max-width: 800px;
   margin: 0 auto;
   padding: 20px 20px 0;
@@ -207,3 +209,14 @@
 :root[data-theme="dark"] .chat-suggestion-chip,
 :root[data-theme="dark"] .chat-page-typing { background: var(--surface-2); color: var(--neutral-600); }
 :root[data-theme="dark"] .chat-page-input-area textarea { background: var(--surface-2); color: var(--neutral-900); }
+
+@media (max-width: 560px) {
+  .chat-page-send-text { display: none; }
+  .chat-page-send-btn { padding: 0; width: 42px; justify-content: center; flex-shrink: 0; }
+  .chat-page-input-area { padding: 10px 12px; }
+}
+
+@media (max-width: 480px) {
+  .chat-page { height: calc(100vh - 56px - 1rem - 5.5rem); height: calc(100dvh - 56px - 1rem - 5.5rem); padding: 12px 8px 0; }
+  .chat-page-input-area textarea { min-height: 42px; }
+}

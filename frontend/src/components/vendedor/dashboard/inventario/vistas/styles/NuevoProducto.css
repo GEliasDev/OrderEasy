@@ -249,3 +249,11 @@
 @media (max-width: 850px) {
   .minimal-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Celular: los campos en pareja pasan a una columna y se reducen los espacios */
+@media (max-width: 560px) {
+  .form-row-minimal { grid-template-columns: minmax(0, 1fr); }
+  .form-card-minimal { padding: 16px; }
+  .view-header { gap: 12px; margin-bottom: 20px; }
+  .header-text h1 { font-size: 1.25rem; }
+}

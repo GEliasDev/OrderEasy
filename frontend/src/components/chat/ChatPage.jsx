@@ -17,7 +17,7 @@ function ChatPage() {
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages, isLoading]);
 
   const handleSend = () => {
@@ -106,7 +106,7 @@ function ChatPage() {
           />
           <button className="chat-page-send-btn" onClick={handleSend} disabled={isLoading}>
             <Send size={16} />
-            Enviar
+            <span className="chat-page-send-text">Enviar</span>
           </button>
         </div>
       </div>

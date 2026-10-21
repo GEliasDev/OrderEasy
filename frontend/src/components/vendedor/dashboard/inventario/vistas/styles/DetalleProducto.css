@@ -363,3 +363,12 @@
 
 .detail-talla.agotada { opacity: 0.55; }
 .detail-talla.agotada span { color: var(--color-danger, #DC2626); }
+
+/* Celular: el título y los botones (Editar / Eliminar) no caben en una fila */
+@media (max-width: 560px) {
+  .product-detail-view .view-header { flex-wrap: wrap; gap: 12px; }
+  .product-detail-view .header-text { flex: 1 1 calc(100% - 3.5rem); min-width: 0; }
+  .product-detail-view .header-text h1 { font-size: 1.25rem; overflow-wrap: anywhere; }
+  .product-detail-view .header-actions { margin-left: 0; width: 100%; }
+  .product-detail-view .header-actions .btn-edit-minimal { flex: 1; justify-content: center; }
+}
