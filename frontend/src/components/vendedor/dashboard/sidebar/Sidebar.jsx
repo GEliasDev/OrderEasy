@@ -11,7 +11,6 @@ import {
   Truck,
   Tag,
   Settings,
-  Bot,
   X,
 } from 'lucide-react';
 
@@ -48,12 +47,6 @@ const MENU = [
     items: [
       { to: 'clientes', label: 'Clientes', icon: Users, seccion: 'clientes' },
       { to: 'proveedores', label: 'Proveedores', icon: Truck, seccion: 'proveedores' },
-    ],
-  },
-  {
-    section: 'Asistente',
-    items: [
-      { to: 'asistente', label: 'Asistente IA', icon: Bot, seccion: 'asistente' },
     ],
   },
   {

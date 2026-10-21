@@ -49,6 +49,5 @@
 }
 
 @media (max-width: 480px) {
-  /* Espacio abajo para que el botón flotante del asistente no tape el final del contenido */
-  .main-content { padding: 1rem 0.625rem 5.5rem; }
+  .main-content { padding: 1rem 0.625rem; }
 }

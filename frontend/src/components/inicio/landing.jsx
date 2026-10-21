@@ -1,19 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Sparkles,
-  Bot,
+  ClipboardList,
   Package,
   DollarSign,
   ArrowUpRight,
-  TrendingUp,
   Users,
   ShieldCheck,
-  Truck,
   Clock,
   HeartHandshake,
   ArrowRight,
-  Send,
   Check,
   Sun,
   Moon
@@ -33,53 +30,6 @@ function Landing() {
     return "dark"; // Default to dark for high-tech premium feel
   });
 
-  // AI Chatbot simulator state
-  const [chatMessages, setChatMessages] = useState([
-    {
-      role: "assistant",
-      content: "👋 ¡Hola! Soy el **Asistente Inteligente de OrderEasy**. Estoy aquí para ayudarte a gestionar tu negocio. Haz clic en cualquiera de las consultas rápidas de abajo para ver cómo puedo ayudarte en tiempo real:"
-    }
-  ]);
-  const [isTyping, setIsTyping] = useState(false);
-  const chatEndRef = useRef(null);
-
-  const predefinedQueries = [
-    {
-      id: "ventas",
-      label: "📈 Ventas de hoy",
-      query: "¿Cuáles fueron las ventas de hoy?",
-      reply: "Hoy has registrado **5 ventas** por un total de **$1.850.000 COP**.\n\n📊 *Detalle de transacciones:*\n• **Venta #1024**: $420.000 COP (Cliente: Juan Pérez)\n• **Venta #1025**: $150.000 COP (Consumidor Final)\n• **Venta #1026**: $680.000 COP (Cliente: TechRetail)\n• **Venta #1027**: $320.000 COP (Consumidor Final)\n• **Venta #1028**: $280.000 COP (Cliente: María Gómez)\n\nEl método de pago principal fue **Transferencia Bancaria (60%)**."
-    },
-    {
-      id: "stock",
-      label: "⚠️ Stock bajo",
-      query: "¿Qué productos tienen bajo stock?",
-      reply: "⚠️ **Alerta de Stock Bajo**:\nHe encontrado **3 productos** que están por debajo de su umbral mínimo configurado:\n\n1. 📦 **Arroz Diana 500g**\n   • Disponible: 4 unidades | Mínimo: 15 unidades\n2. 📦 **Aceite Girasol 1L**\n   • Disponible: 2 unidades | Mínimo: 10 unidades\n3. 📦 **Leche Alquería Entera 1L**\n   • Disponible: 5 unidades | Mínimo: 20 unidades\n\n¿Deseas que prepare un reporte para realizar un pedido a sus respectivos proveedores?"
-    },
-    {
-      id: "balance",
-      label: "📊 Balance mensual",
-      query: "¿Cuál es el balance financiero de este mes?",
-      reply: "📊 **Balance Financiero (Mayo 2026)**:\n\n• **Ingresos Totales (Ventas):** $12.450.000 COP\n• **Egresos Totales (Compras/Gastos):** $4.820.000 COP\n• 📉 **Margen Neto:** **$7.630.000 COP**\n• 🎯 **Rentabilidad:** **61.28%**\n\n*Nota:* El balance es sumamente positivo. Los egresos principales corresponden al reabastecimiento de mercancía con el proveedor *GrowthMart*."
-    }
-  ];
-
-  const handleQueryClick = (item) => {
-    if (isTyping) return;
-
-    if (chatMessages[chatMessages.length - 1]?.content === item.query) return;
-
-    // Append user message
-    setChatMessages((prev) => [...prev, { role: "user", content: item.query }]);
-    setIsTyping(true);
-
-    // Simulate typing delay
-    setTimeout(() => {
-      setIsTyping(false);
-      setChatMessages((prev) => [...prev, { role: "assistant", content: item.reply }]);
-    }, 1200);
-  };
-
   const toggleTheme = () => {
     setTheme((prev) => {
       const nextTheme = prev === "dark" ? "light" : "dark";
@@ -87,10 +37,6 @@ function Landing() {
       return nextTheme;
     });
   };
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages, isTyping]);
 
   return (
     <div className={`app theme-${theme}`}>
@@ -105,7 +51,7 @@ function Landing() {
           <div className="logo">
             <Sparkles className="logo-icon animate-pulse-slow" />
             <span className="logo-text">OrderEasy</span>
-            <span className="logo-badge">ERP + IA</span>
+            <span className="logo-badge">Inventario + Pedidos</span>
           </div>
 
           <div className="nav-buttons">
@@ -133,14 +79,14 @@ function Landing() {
         <div className="container hero-grid">
           <div className="hero-content text-left anim-fade-left">
             <div className="promo-badge">
-              <Bot className="promo-icon" />
-              <span>ERP Inteligente con Asistente de IA</span>
+              <ClipboardList className="promo-icon" />
+              <span>Inventario, ventas y pedidos en un solo lugar</span>
             </div>
             <h1 className="hero-title">
-              La gestión de tu negocio, <span className="gradient-text">simplificada e impulsada</span> por IA
+              La gestión de tu negocio, <span className="gradient-text">simple y siempre bajo control</span>
             </h1>
             <p className="subtitle text-left">
-              Controla tu inventario, registra ventas y egresos, y toma decisiones financieras respaldadas por un asistente inteligente en lenguaje natural. <strong>OrderEasy</strong> une potencia y sencillez en una sola interfaz diseñada para crecer contigo.
+              Controla tu inventario, registra ventas y egresos, y lleva tus pedidos al proveedor con las compras, abonos y entregas de cada cliente. <strong>OrderEasy</strong> une potencia y sencillez en una sola interfaz diseñada para crecer contigo.
             </p>
             <div className="button-group">
               <Link
@@ -149,8 +95,8 @@ function Landing() {
               >
                 Comenzar Gratis <ArrowUpRight className="icon" />
               </Link>
-              <a href="#demo-asistente" className="btn-outline btn-lg flex items-center gap-2">
-                Probar Asistente de IA <ArrowRight className="w-4 h-4 text-primary" />
+              <a href="#funciones" className="btn-outline btn-lg flex items-center gap-2">
+                Ver funcionalidades <ArrowRight className="w-4 h-4 text-primary" />
               </a>
             </div>
             <div className="hero-stats">
@@ -169,91 +115,33 @@ function Landing() {
             </div>
           </div>
 
-          {/* Interactive Chatbot Mockup */}
-          <div className="hero-visual anim-fade-right" id="demo-asistente">
-            <div className="chat-simulator-card glass-panel">
-              <div className="chat-header">
-                <div className="chat-user-info">
-                  <div className="chat-avatar-pulse">
-                    <Bot className="chat-avatar-icon" />
-                  </div>
-                  <div>
-                    <h4>Asistente OrderEasy IA</h4>
-                    <span className="chat-status"><span className="status-dot"></span>En línea (Llama-3.1 8B)</span>
-                  </div>
+          {/* Vista previa de un pedido */}
+          <div className="hero-visual anim-fade-right">
+            <div className="mock-pedido glass-panel">
+              <div className="mock-pedido-header">
+                <div>
+                  <h4>Pedido de octubre</h4>
+                  <span>3 compras de clientes</span>
                 </div>
-                <span className="chat-header-badge">Demo Activa</span>
+                <span className="mock-pedido-estado">Abierto</span>
               </div>
-
-              <div className="chat-body-viewport">
-                {chatMessages.map((msg, i) => (
-                  <div key={i} className={`chat-message-bubble ${msg.role} msg-fade-in`}>
-                    {msg.role === "assistant" && (
-                      <div className="assistant-avatar">
-                        <Sparkles className="avatar-spark" />
-                      </div>
-                    )}
-                    <div className="message-content-wrapper">
-                      <p className="message-text">
-                        {msg.content.split("\n").map((line, idx) => {
-                          let formattedLine = line;
-                          const boldRegex = /\*\*(.*?)\*\*/g;
-                          const parts = [];
-                          let lastIndex = 0;
-                          let match;
-
-                          while ((match = boldRegex.exec(line)) !== null) {
-                            parts.push(line.substring(lastIndex, match.index));
-                            parts.push(<strong key={match.index}>{match[1]}</strong>);
-                            lastIndex = boldRegex.lastIndex;
-                          }
-                          parts.push(line.substring(lastIndex));
-
-                          return (
-                            <React.Fragment key={idx}>
-                              {parts.length > 1 ? parts : formattedLine}
-                              {idx < msg.content.split("\n").length - 1 && <br />}
-                            </React.Fragment>
-                          );
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {isTyping && (
-                  <div className="chat-message-bubble assistant msg-fade-in">
-                    <div className="assistant-avatar">
-                      <Sparkles className="avatar-spark animate-spin-slow" />
-                    </div>
-                    <div className="message-content-wrapper typing-container">
-                      <span className="dot"></span>
-                      <span className="dot"></span>
-                      <span className="dot"></span>
-                    </div>
-                  </div>
-                )}
-                <div ref={chatEndRef} />
+              <div className="mock-pedido-lista">
+                <div className="mock-pedido-fila">
+                  <div><strong>Ana Gómez</strong><small>2× Sandalia Camille · 38</small></div>
+                  <div className="mock-pedido-montos"><span>Abonó $40.000</span><strong>Saldo $70.000</strong></div>
+                </div>
+                <div className="mock-pedido-fila">
+                  <div><strong>Luis Pérez</strong><small>1× Sandalia Serena · 39</small></div>
+                  <div className="mock-pedido-montos"><span>Abonó $0</span><strong>Saldo $45.000</strong></div>
+                </div>
+                <div className="mock-pedido-fila">
+                  <div><strong>María Díaz</strong><small>3× Sandalia Alma · 37</small></div>
+                  <div className="mock-pedido-montos"><span className="mock-pagado">Pagado</span><strong>Saldo $0</strong></div>
+                </div>
               </div>
-
-              <div className="chat-input-simulator">
-                <div className="chat-options-pills">
-                  {predefinedQueries.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleQueryClick(item)}
-                      className="option-pill"
-                      disabled={isTyping}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="chat-input-box">
-                  <span className="input-placeholder">Haz clic en un botón de arriba para preguntar...</span>
-                  <div className="send-btn-mock">
-                    <Send className="w-4 h-4 text-slate-500" />
-                  </div>
-                </div>
+              <div className="mock-pedido-pie">
+                <span>Por cobrar a clientes</span>
+                <strong>$115.000</strong>
               </div>
             </div>
           </div>
@@ -261,7 +149,7 @@ function Landing() {
       </section>
 
       {/* Features */}
-      <section className="features">
+      <section className="features" id="funciones">
         <div className="container">
           <div className="section-header text-center anim-fade-up">
             <span className="section-tag">Funcionalidades del Sistema</span>
@@ -273,11 +161,11 @@ function Landing() {
           <div className="features-grid">
             <div className="feature-card glass-panel card-hover-lift anim-fade-up">
               <div className="feature-icon-wrapper purple-glow">
-                <Bot className="feature-icon" />
+                <ClipboardList className="feature-icon" />
               </div>
-              <h3>Asistente de IA Inteligente</h3>
+              <h3>Pedidos al Proveedor</h3>
               <p>
-                Realiza consultas directas de tus ventas, egresos y niveles de stock. Pídele al asistente que modifique precios o elimine productos con confirmaciones dinámicas en pantalla.
+                Arma cada pedido con las compras de tus clientes, registra abonos y pagos, y al llegar la mercancía reparte cada par a quien corresponde. Lleva siempre claro cuánto te debe cada cliente.
               </p>
             </div>
             <div className="feature-card glass-panel card-hover-lift anim-fade-up">
@@ -366,7 +254,7 @@ function Landing() {
           <div className="stats-grid">
             <div className="stat-box anim-fade-up">
               <div className="stat-number gradient-text">24/7</div>
-              <div className="stat-label">Asistencia por IA Activa</div>
+              <div className="stat-label">Acceso desde Cualquier Dispositivo</div>
             </div>
             <div className="stat-box anim-fade-up">
               <div className="stat-number gradient-text">10 Min</div>
@@ -394,7 +282,7 @@ function Landing() {
           <div className="testimonials-grid">
             <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
               <p>
-                \"El asistente de IA es una maravilla. Estoy en la calle y puedo preguntarle al asistente en el celular cuál fue el balance de ventas del día o qué productos tienen stock bajo y me responde al instante en segundos.\"
+                “Con los pedidos al proveedor sé qué le debo a cada cliente, cuánto ha abonado y cuándo llega cada par. Ya no se me pierde ninguna cuenta y todo lo reviso desde el celular.”
               </p>
               <div className="testimonial-author">
                 <img
@@ -409,7 +297,7 @@ function Landing() {
             </div>
             <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
               <p>
-                \"Antes llevaba el control de ventas y egresos en hojas de cálculo. Con OrderEasy tengo el balance del día al instante y sé exactamente cuánto gané.\"
+                “Antes llevaba el control de ventas y egresos en hojas de cálculo. Con OrderEasy tengo el balance del día al instante y sé exactamente cuánto gané.”
               </p>
               <div className="testimonial-author">
                 <img
@@ -424,7 +312,7 @@ function Landing() {
             </div>
             <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
               <p>
-                \"Implementamos OrderEasy por el control de inventario, pero nos quedamos por todo lo demás. El balance financiero mensual y el control de accesos de vendedores nos da una tranquilidad inmensa.\"
+                “Implementamos OrderEasy por el control de inventario, pero nos quedamos por todo lo demás. El balance financiero mensual y el control de accesos de vendedores nos da una tranquilidad inmensa.”
               </p>
               <div className="testimonial-author">
                 <img
@@ -446,7 +334,7 @@ function Landing() {
         <div className="container relative">
           <div className="cta-content glass-panel">
             <h2>Toma el control absoluto de tu negocio hoy mismo</h2>
-            <p>Empieza gratis con OrderEasy, configura tu inventario en minutos y experimenta la gestión impulsada por inteligencia artificial.</p>
+            <p>Empieza gratis con OrderEasy, configura tu inventario en minutos y lleva tus pedidos, abonos y entregas en un solo lugar.</p>
             <div className="cta-buttons">
               <Link to="/registro" className="btn-primary no-underline btn-lg btn-glow">
                 Crear Mi Cuenta Gratis
@@ -469,7 +357,7 @@ function Landing() {
                 <span className="logo-text">OrderEasy</span>
               </div>
               <p>
-                Revolucionando la gestión comercial con tecnología de vanguardia e inteligencia artificial accesible para todos los comercios.
+                Gestión comercial sencilla y accesible para todos los comercios: inventario, ventas, pedidos y balance en un solo lugar.
               </p>
             </div>
             <div className="footer-links">
@@ -481,16 +369,13 @@ function Landing() {
                 <li>
                   <Link to="/registro">Registro Gratuito</Link>
                 </li>
-                <li>
-                  <a href="#demo-asistente">Demostración IA</a>
-                </li>
               </ul>
             </div>
             <div className="footer-links">
               <h3>Funciones</h3>
               <ul>
                 <li>
-                  <a href="#">Asistente Chatbot</a>
+                  <a href="#">Pedidos y Abonos</a>
                 </li>
                 <li>
                   <a href="#">Gestión de Clientes</a>

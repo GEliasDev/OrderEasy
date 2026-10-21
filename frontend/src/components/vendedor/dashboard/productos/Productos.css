@@ -201,7 +201,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem; /* centrada para no quedar bajo el botón flotante del asistente */
+  gap: 1.5rem;
   flex-shrink: 0;
   padding: 0.5rem 0.75rem;
   margin-top: 0.5rem;

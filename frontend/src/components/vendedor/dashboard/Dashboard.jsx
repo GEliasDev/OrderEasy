@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './sidebar/Sidebar';
 import Navbar from './navbar/Navbar';
-import { ChatProvider } from '../../../context/ChatContext';
-import ChatWidget from '../../chat/ChatWidget';
 import { vigilarTablas } from '../../../utils/tablaTarjetas';
 import './Dashboard.css';
 
@@ -14,7 +12,7 @@ function Dashboard() {
   useEffect(() => vigilarTablas(), []);
 
   return (
-    <ChatProvider>
+    <>
       <div className="dashboard-container">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         {sidebarOpen && (
@@ -26,9 +24,8 @@ function Dashboard() {
             <Outlet />
           </main>
         </div>
-        <ChatWidget />
       </div>
-    </ChatProvider>
+    </>
   );
 }
 

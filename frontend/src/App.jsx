@@ -35,7 +35,6 @@ const Categorias = lazy(() => import('./components/vendedor/dashboard/categorias
 const Usuarios = lazy(() => import('./components/vendedor/dashboard/usuarios/Usuario'));
 const Roles = lazy(() => import('./components/vendedor/dashboard/roles/Roles'));
 const Configuracion = lazy(() => import('./components/vendedor/dashboard/configuracion/Configuracion'));
-const ChatPage = lazy(() => import('./components/chat/ChatPage'));
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
@@ -48,7 +47,7 @@ const IndexRedirect = () => {
   const { user } = useAuth();
   if (user?.rol === 'administrador') return <Navigate to="inicio" replace />;
   const secciones = user?.secciones || [];
-  const destino = ['inicio', 'pedidos', 'inventario', 'productos', 'balance', 'clientes', 'proveedores', 'estadisticas', 'categorias', 'asistente']
+  const destino = ['inicio', 'pedidos', 'inventario', 'productos', 'balance', 'clientes', 'proveedores', 'estadisticas', 'categorias']
     .find((s) => secciones.includes(s));
   return <Navigate to={destino || 'inicio'} replace />;
 };
@@ -103,7 +102,6 @@ function App() {
                 {/* Accesibles por todos los roles autenticados */}
                 <Route path="producto/:id" element={<DetalleProducto />} />
                 <Route path="clientes" element={<Clientes />} />
-                <Route path="asistente" element={<ChatPage />} />
               </Route>
 
               <Route path="/admin/*" element={<Navigate to="/dashboard" replace />} />

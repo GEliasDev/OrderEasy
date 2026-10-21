@@ -14,7 +14,6 @@ const SECCIONES_CONFIG = [
   { key: 'estadisticas', label: 'Estadísticas' },
   { key: 'clientes', label: 'Clientes' },
   { key: 'proveedores', label: 'Proveedores' },
-  { key: 'asistente', label: 'Asistente IA' },
 ];
 
 const FORM_VACIO = { nombre: '', secciones: [] };

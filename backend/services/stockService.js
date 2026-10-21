@@ -1,4 +1,4 @@
-// Operaciones de stock compartidas por ventas, pedidos, compras, egresos y el asistente.
+// Operaciones de stock compartidas por ventas, pedidos, compras y egresos.
 //
 // Un producto maneja su stock de dos maneras:
 //  - sin tallas (usaTallas = false): el stock está en el propio producto.

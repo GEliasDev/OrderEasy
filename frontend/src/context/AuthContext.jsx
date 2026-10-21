@@ -31,10 +31,6 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem('user'));
-      if (u?.id) localStorage.removeItem(`chat_history_${u.id}`);
-    } catch {}
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rol');

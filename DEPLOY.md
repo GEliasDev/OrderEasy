@@ -54,7 +54,6 @@ Los valores listos están en `backend/.env.production` (archivo local, **ignorad
 | `JWT_SECRET` | sí | Mínimo 32 caracteres (ya generado, 96) |
 | `CORS_ORIGIN` | sí | URL del frontend, sin barra final. Varias separadas por coma |
 | `CLOUDINARY_*` | recomendado | Sin Cloudinary las imágenes se guardan en disco y **se pierden en cada redeploy** en Render |
-| `OPENROUTER_API_KEY` | no | Asistente de IA |
 | `RUN_MIGRATIONS` | no | `true` por defecto: aplica las migraciones al arrancar |
 | `PORT` | no | Render lo define solo |
 

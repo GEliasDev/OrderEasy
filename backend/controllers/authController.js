@@ -12,7 +12,7 @@ const sequelize = require('../config/database');
 
 const TODAS_LAS_SECCIONES = [
   'inicio', 'inventario', 'productos', 'categorias', 'pedidos',
-  'balance', 'estadisticas', 'clientes', 'proveedores', 'asistente',
+  'balance', 'estadisticas', 'clientes', 'proveedores',
 ];
 
 // ===============================================
