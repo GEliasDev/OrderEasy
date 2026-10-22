@@ -277,6 +277,24 @@
   color: var(--color-danger, #DC2626);
 }
 
+/* Miniatura del producto en el detalle de la compra */
+.pedido-item-icon {
+  position: relative;
+  overflow: hidden;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  padding: 0;
+}
+
+.pedido-item-icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .pedidos-acciones {
   display: flex;
   gap: 5px;

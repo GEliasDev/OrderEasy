@@ -18,6 +18,7 @@ import {
 import { getClientes } from '../../../../services/clienteService';
 import { getProveedores } from '../../../../services/proveedorService';
 import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
+import { imagenUrl } from '../../../../config';
 import ReciboModal from './ReciboModal';
 import { getNegocio } from '../../../../services/negocioService';
 import { abrirWhatsApp, mensajeListoParaEntregar, mensajeRecordatorioSaldo } from '../../../../utils/whatsapp';
@@ -726,7 +727,18 @@ function DetallePedido() {
                 return (
                   <tr key={item.detalleid}>
                     <td className="item-name">
-                      <div className="item-icon"><Package size={13} /></div>
+                      <div className="item-icon pedido-item-icon">
+                        <Package size={13} />
+                        {item.producto?.imagenes?.[0] && (
+                          <img
+                            src={imagenUrl(item.producto.imagenes[0])}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        )}
+                      </div>
                       {item.productoNombre}
                       {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
                       {(Number(item.enCompra) > 0 || Number(item.recibidoCompra) > 0) && (

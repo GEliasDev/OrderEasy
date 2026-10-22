@@ -31,7 +31,7 @@ const includePedido = [
       {
         model: Producto,
         as: 'producto',
-        attributes: ['productoid', 'nombre', 'cantidadDisponible', 'cantidadReservada', 'unidadMedida', 'usaTallas'],
+        attributes: ['productoid', 'nombre', 'cantidadDisponible', 'cantidadReservada', 'unidadMedida', 'usaTallas', 'imagenes'],
         include: [{ model: Variante, as: 'variantes' }],
       },
     ],
