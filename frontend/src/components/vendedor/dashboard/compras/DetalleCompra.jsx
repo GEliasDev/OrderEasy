@@ -341,12 +341,12 @@ function DetalleCompra() {
     const clave = (productoid, varianteid) => `${productoid}:${varianteid || ''}`;
     for (const g of preview.grupos) {
       mapa.set(clave(g.productoid, g.varianteid), {
-        key: g.key, nombre: g.productoNombre, talla: g.talla, precio: g.precioCompra, clientes: g.lineas.filter((l) => l.faltante > 0), cubiertos: g.lineas.filter((l) => l.cubiertoStock > 0), delCliente: g.totalFaltante, deStock: 0,
+        key: g.key, nombre: g.productoNombre, talla: g.talla, imagen: g.imagen, precio: g.precioCompra, clientes: g.lineas.filter((l) => l.faltante > 0), cubiertos: g.lineas.filter((l) => l.cubiertoStock > 0), delCliente: g.totalFaltante, deStock: 0,
       });
     }
     for (const d of orden.detalles || []) {
       const k = clave(d.productoid, d.varianteid);
-      const actual = mapa.get(k) || { key: k, nombre: d.productoNombre, talla: d.talla, precio: num(d.precioUnitario), clientes: [], cubiertos: [], delCliente: 0, deStock: 0 };
+      const actual = mapa.get(k) || { key: k, nombre: d.productoNombre, talla: d.talla, imagen: d.producto?.imagenes?.[0] || null, precio: num(d.precioUnitario), clientes: [], cubiertos: [], delCliente: 0, deStock: 0 };
       actual.deStock += num(d.cantidad);
       mapa.set(k, actual);
     }
@@ -855,20 +855,36 @@ function DetalleCompra() {
                   <div className="compras-recepcion">
                     {lineasEnvio.map((l) => (
                       <div key={l.key} className="compras-recepcion-linea">
-                        <div className="compras-recepcion-cabecera">
-                          <strong>
-                            {l.nombre}
-                            {l.talla && <span className="cart-item-talla">Talla {l.talla}</span>}
-                          </strong>
-                          <span>Pedir {cantidad(l.delCliente + l.deStock)} · {formatoMoneda((l.delCliente + l.deStock) * l.precio)}</span>
+                        <div className="compras-envio-linea">
+                          <span className="compras-producto-miniatura" aria-hidden="true">
+                            <Package size={15} />
+                            {l.imagen && (
+                              <img
+                                src={imagenUrl(l.imagen)}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            )}
+                          </span>
+                          <div className="compras-envio-linea-cuerpo">
+                            <div className="compras-recepcion-cabecera">
+                              <strong>
+                                {l.nombre}
+                                {l.talla && <span className="cart-item-talla">Talla {l.talla}</span>}
+                              </strong>
+                              <span>Pedir {cantidad(l.delCliente + l.deStock)} · {formatoMoneda((l.delCliente + l.deStock) * l.precio)}</span>
+                            </div>
+                            <p className="pedido-ayuda">
+                              {[
+                                ...l.clientes.map((c) => `${c.cliente}: ${cantidad(c.faltante)}`),
+                                l.deStock > 0 ? `Para stock: ${cantidad(l.deStock)}` : null,
+                                l.cubiertos.length > 0 ? `(${l.cubiertos.map((c) => `${c.cliente}: ${cantidad(c.cubiertoStock)}`).join(', ')} se cubre con stock actual)` : null,
+                              ].filter(Boolean).join(' · ')}
+                            </p>
+                          </div>
                         </div>
-                        <p className="pedido-ayuda">
-                          {[
-                            ...l.clientes.map((c) => `${c.cliente}: ${cantidad(c.faltante)}`),
-                            l.deStock > 0 ? `Para stock: ${cantidad(l.deStock)}` : null,
-                            l.cubiertos.length > 0 ? `(${l.cubiertos.map((c) => `${c.cliente}: ${cantidad(c.cubiertoStock)}`).join(', ')} se cubre con stock actual)` : null,
-                          ].filter(Boolean).join(' · ')}
-                        </p>
                       </div>
                     ))}
                   </div>

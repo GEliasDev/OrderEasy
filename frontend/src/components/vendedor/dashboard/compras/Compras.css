@@ -204,6 +204,8 @@
 
 .compras-recepcion-linea { border: 1px solid var(--neutral-200, #E2E8F0); border-radius: 10px; padding: 10px 12px; }
 
+.compras-envio-linea { display: flex; align-items: flex-start; gap: 10px; }
+.compras-envio-linea-cuerpo { flex: 1; min-width: 0; }
 .compras-recepcion-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .compras-recepcion-cabecera strong { font-size: 0.85rem; color: var(--neutral-900, #0F172A); }
 .compras-recepcion-cabecera label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--neutral-500, #64748B); }

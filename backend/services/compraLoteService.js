@@ -121,6 +121,7 @@ const calcularFaltantes = async ({ pedidoids, negocioid, transaction, ignorarSto
       key: clave,
       productoid: producto.productoid,
       productoNombre: producto.nombre,
+      imagen: producto.imagenes?.[0] || null,
       talla: primero.talla || null,
       varianteid: primero.varianteid || null,
       categoriaid: producto.categoriaid,

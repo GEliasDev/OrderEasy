@@ -30,6 +30,10 @@ const includeOrden = [
     model: OrdenCompraDetalle,
     as: 'detalles',
     include: [{
+      model: Producto,
+      as: 'producto',
+      attributes: ['productoid', 'imagenes'],
+    }, {
       model: Asignacion,
       as: 'asignaciones',
       include: [{
