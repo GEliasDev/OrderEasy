@@ -635,74 +635,104 @@ function DetalleCompra() {
             const paraStock = redondear(num(detalle.cantidad) - activas.reduce((s, a) => s + num(a.cantidad), 0));
             return (
               <div key={detalle.detalleid} className="compras-linea">
-                <div className="compras-linea-header">
-                  <strong>
-                    {detalle.productoNombre}
-                    {detalle.talla && <span className="cart-item-talla">Talla {detalle.talla}</span>}
-                  </strong>
-                  <span>
-                    {num(detalle.cantidadRecibida)} de {num(detalle.cantidad)} recibidos · {formatoMoneda(detalle.precioUnitario)} c/u
+                <div className="compras-linea-producto">
+                  <span className="compras-producto-miniatura compras-linea-miniatura" aria-hidden="true">
+                    <Package size={16} />
+                    {detalle.producto?.imagenes?.[0] && (
+                      <img
+                        src={imagenUrl(detalle.producto.imagenes[0])}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                   </span>
+                  <div className="compras-linea-info">
+                    <div className="compras-linea-titulo">
+                      <strong>{detalle.productoNombre}</strong>
+                      {detalle.talla && <span className="cart-item-talla">Talla {detalle.talla}</span>}
+                    </div>
+                    <div className="compras-linea-meta">
+                      <span>{cantidad(detalle.cantidad)} und</span>
+                      <span>{formatoMoneda(detalle.precioUnitario)} c/u</span>
+                      <span>Total {formatoMoneda(detalle.subtotal)}</span>
+                    </div>
+                  </div>
+                  <div className="compras-linea-recibido">
+                    <strong>{num(detalle.cantidadRecibida)} / {cantidad(detalle.cantidad)}</strong>
+                    <span>recibidos</span>
+                  </div>
                 </div>
-                <div className="compras-barra"><div style={{ width: `${Math.min(100, progreso)}%` }} /></div>
 
-                <div className="items-table-container">
-                  <table className="tabla-tarjetas items-table compras-tabla compras-tabla-reparto">
-                    <thead>
-                      <tr>
-                        <th>Cliente</th>
-                        <th className="col-centro">Asignado</th>
-                        <th className="col-centro">Recibido</th>
-                        <th className="col-centro">Situación</th>
-                        <th className="col-num">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(detalle.asignaciones || []).map((asignacion) => {
-                        const compra = asignacion.pedidoDetalle?.pedido;
-                        const activa = asignacionActiva(asignacion);
-                        const recibido = num(asignacion.cantidadRecibida);
-                        const completo = recibido >= num(asignacion.cantidad);
-                        const entregado = num(asignacion.pedidoDetalle?.cantidadEntregada) >= num(asignacion.pedidoDetalle?.cantidad);
-                        let situacion = { texto: 'Esperando al proveedor', clase: 'espera' };
-                        if (!activa) situacion = { texto: 'Compra cancelada', clase: 'cancelado' };
-                        else if (entregado) situacion = { texto: 'Entregado', clase: 'entregado' };
-                        else if (completo) situacion = { texto: 'Listo para entregar', clase: 'listo' };
-                        else if (recibido > 0) situacion = { texto: 'Llegó parte', clase: 'parcial' };
-                        return (
-                          <tr key={asignacion.asignacionid} className={!activa ? 'compras-fila-cancelada' : ''}>
-                            <td className="col-nombre">
-                              <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedido/${compra?.pedidoid}`)}>
-                                {compra?.cliente?.nombreCliente || 'Sin cliente'}
-                              </button>
-                            </td>
-                            <td className="col-centro">{num(asignacion.cantidad)}</td>
-                            <td className="col-centro">{recibido}</td>
-                            <td className="col-centro"><span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span></td>
-                            <td className="col-num">
-                              {activa && !entregado && recibido > 0 && (
-                                <button
-                                  className="pedidos-btn pedidos-btn-verde pedidos-btn-sm"
-                                  onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=entregar`)}
-                                >
-                                  Entregar
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {paraStock > 0 && (
-                        <tr>
-                          <td className="col-nombre">Stock (sin cliente)</td>
-                          <td className="col-centro">{paraStock}</td>
-                          <td className="col-centro">—</td>
-                          <td className="col-centro"><span className="compras-situacion compras-situacion-espera">Va directo al stock</span></td>
-                          <td className="col-num" />
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="compras-linea-progreso">
+                  <div className="compras-barra"><div style={{ width: `${Math.min(100, progreso)}%` }} /></div>
+                </div>
+
+                <div className="compras-reparto">
+                  <div className="compras-reparto-titulo">Reparto por cliente</div>
+                  <div className="compras-reparto-cabecera" aria-hidden="true">
+                    <span>Cliente</span>
+                    <span className="compras-reparto-cabecera-datos"><span>Asignado</span><span>Recibido</span></span>
+                    <span>Situación</span>
+                    <span />
+                  </div>
+                  {(detalle.asignaciones || []).map((asignacion) => {
+                    const compra = asignacion.pedidoDetalle?.pedido;
+                    const activa = asignacionActiva(asignacion);
+                    const recibido = num(asignacion.cantidadRecibida);
+                    const completo = recibido >= num(asignacion.cantidad);
+                    const entregado = num(asignacion.pedidoDetalle?.cantidadEntregada) >= num(asignacion.pedidoDetalle?.cantidad);
+                    let situacion = { texto: 'Esperando al proveedor', clase: 'espera' };
+                    if (!activa) situacion = { texto: 'Compra cancelada', clase: 'cancelado' };
+                    else if (entregado) situacion = { texto: 'Entregado', clase: 'entregado' };
+                    else if (completo) situacion = { texto: 'Listo para entregar', clase: 'listo' };
+                    else if (recibido > 0) situacion = { texto: 'Llegó parte', clase: 'parcial' };
+                    return (
+                      <div key={asignacion.asignacionid} className={`compras-reparto-item${!activa ? ' compras-reparto-cancelada' : ''}`}>
+                        <span className="compras-reparto-cliente">
+                          <button type="button" className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedido/${compra?.pedidoid}`)}>
+                            {compra?.cliente?.nombreCliente || 'Sin cliente'}
+                          </button>
+                          <small>Pedido #{compra?.pedidoid || '—'}</small>
+                        </span>
+                        <span className="compras-reparto-datos">
+                          <span><strong>{num(asignacion.cantidad)}</strong><small>asignado</small></span>
+                          <span><strong>{recibido}</strong><small>recibido</small></span>
+                        </span>
+                        <span className="compras-reparto-estado">
+                          <span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span>
+                        </span>
+                        <span className="compras-reparto-accion">
+                          {activa && !entregado && recibido > 0 && (
+                            <button
+                              type="button"
+                              className="pedidos-btn pedidos-btn-verde pedidos-btn-sm"
+                              onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=entregar`)}
+                            >
+                              Entregar
+                            </button>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {paraStock > 0 && (
+                    <div className="compras-reparto-item compras-reparto-stock">
+                      <span className="compras-reparto-cliente">
+                        <strong>Stock (sin cliente)</strong>
+                        <small>Va directo al inventario</small>
+                      </span>
+                      <span className="compras-reparto-datos">
+                        <span><strong>{paraStock}</strong><small>asignado</small></span>
+                        <span><strong>—</strong><small>recibido</small></span>
+                      </span>
+                      <span className="compras-reparto-estado">
+                        <span className="compras-situacion compras-situacion-espera">Va directo al stock</span>
+                      </span>
+                      <span className="compras-reparto-accion" />
+                    </div>
+                  )}
                 </div>
               </div>
             );
