@@ -525,8 +525,7 @@ function DetalleCompra() {
           <table className="tabla-tarjetas items-table compras-tabla">
             <thead>
               <tr>
-                <th>Cliente</th>
-                <th>Productos</th>
+                <th>Compra de cliente</th>
                 <th className="col-num">Total</th>
                 <th className="col-num">Abonado</th>
                 <th className="col-num">Saldo</th>
@@ -540,8 +539,10 @@ function DetalleCompra() {
                 const estadoCompra = compra.estado || 'pendiente';
                 return (
                   <tr key={compra.pedidoid} className={`compras-fila-link ${anulada ? 'compras-fila-cancelada' : ''}`} onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
-                    <td className="col-nombre">{compra.cliente?.nombreCliente || 'Sin cliente'}</td>
-                    <td className="compras-clientes">{desgloseProductos(compra)}</td>
+                    <td className="compras-compra">
+                      <span className="compras-compra-cliente">{compra.cliente?.nombreCliente || 'Sin cliente'}</span>
+                      {desgloseProductos(compra)}
+                    </td>
                     <td className="col-num">{formatoMoneda(compra.total)}</td>
                     <td className="col-num">{formatoMoneda(compra.resumen?.abonado)}</td>
                     <td className="col-num">{anulada ? '—' : formatoMoneda(compra.resumen?.saldo)}</td>

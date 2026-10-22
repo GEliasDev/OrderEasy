@@ -5,6 +5,20 @@
 
 .compras-clientes { color: var(--neutral-700, #334155); max-width: 16rem; }
 
+/* Compra de cliente: el nombre va como subtítulo y los productos quedan indentados debajo */
+.compras-compra-cliente {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--neutral-500, #64748B);
+}
+
+.compras-compra .compras-productos-desglose {
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--neutral-200, #E2E8F0);
+}
+
 /* Desglose de productos de una compra de cliente: miniatura + cantidad y talla */
 .compras-productos-desglose {
   display: flex;
@@ -241,6 +255,18 @@
 .items-table.compras-tabla td.col-nombre { font-weight: 600; color: var(--neutral-900, #0F172A); }
 .items-table.compras-tabla td.col-num { font-variant-numeric: tabular-nums; }
 .items-table.compras-tabla .compras-clientes { max-width: none; }
+.items-table.compras-tabla td.compras-compra { vertical-align: top; padding-top: 0.8rem; }
+
+/* En tablet la compra se apila como tarjeta: subtítulo a la izquierda y productos debajo */
+@media (max-width: 900px) {
+  .items-table.compras-tabla.tabla-tarjetas td.compras-compra {
+    display: block;
+    text-align: left;
+  }
+  .items-table.compras-tabla.tabla-tarjetas td.compras-compra .compras-productos-desglose {
+    margin-top: 4px;
+  }
+}
 
 /* Reparto por cliente: mismos anchos en todos los bloques para que las columnas queden alineadas entre sí */
 .items-table.compras-tabla-reparto { table-layout: fixed; }
