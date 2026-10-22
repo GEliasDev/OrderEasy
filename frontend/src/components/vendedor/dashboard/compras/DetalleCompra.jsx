@@ -561,11 +561,9 @@ function DetalleCompra() {
                     <td className="compras-compra" data-label="Cliente">
                       <div className="tbl-main-cell">
                         <span className="tbl-avatar" style={{ background: colorAvatar(clienteNombre), opacity: anulada ? 0.5 : 1 }}>{iniciales(clienteNombre)}</span>
-                        <div className="tbl-cell-texts">
-                          <span className="tbl-cell-primary">{clienteNombre}</span>
-                          <span className="tbl-cell-secondary">{resumenProductos(compra)}</span>
-                        </div>
+                        <span className="tbl-cell-primary">{clienteNombre}</span>
                       </div>
+                      {desgloseProductos(compra)}
                     </td>
                     <td className="col-num" data-label="Total">{formatoMoneda(compra.total)}</td>
                     <td className="col-num" data-label="Abonado">{formatoMoneda(compra.resumen?.abonado)}</td>
