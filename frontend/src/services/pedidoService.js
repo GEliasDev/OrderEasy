@@ -43,6 +43,11 @@ export const registrarPagoPedido = async (id, payload) => {
   return data;
 };
 
+export const devolverProductosPedido = async (id, payload) => {
+  const { data } = await axiosInstance.post(`/api/pedidos/${id}/devoluciones`, payload);
+  return data;
+};
+
 export const getSaldoFavor = async (clienteid) => {
   const { data } = await axiosInstance.get(`/api/pedidos/saldo-favor/${clienteid}`);
   return data;

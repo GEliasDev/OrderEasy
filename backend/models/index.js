@@ -17,5 +17,6 @@ require('./ventaPagoModel');
 require('./proveedorModel');
 require('./pedidoModel');
 require('./pedidoPagoModel');
+require('./pedidoDevolucionModel');
 require('./ordenCompraModel');
 require('./ordenCompraAsignacionModel');

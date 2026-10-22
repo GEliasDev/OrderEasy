@@ -28,6 +28,8 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 - Si el payload incluye `items`, el pedido debe estar `pendiente`: se reemplazan/combinan las líneas, se conserva el precio unitario original de los productos ya existentes, se recalcula el total y se exige al menos un producto.
 - Confirmar un pedido reserva `cantidadReservada`; las órdenes de compra cubren únicamente los faltantes. La edición de productos no está permitida después de confirmar.
 
+- `POST /api/pedidos/:id/devoluciones` (`services/pedidoDevolucionService.js`) registra mercancía que el cliente devuelve tras recibirla, con un motivo (`color`, `talla`, `modelo`, `danado`, `no_gusto`, `otro`). Baja `cantidad`/`cantidadEntregada` de la línea y el total del pedido, corrige la venta generada, libera de ella el dinero cobrado de más (vuelve a ser abono disponible) y, opcionalmente, reingresa stock y reembolsa. El historial queda en `pedido_devoluciones` (migración 009).
+
 ## Tallas y unidades de medida
 
 - `productos.usaTallas = true` → el stock vive en `producto_variantes` (una fila por talla, con `cantidadDisponible`/`cantidadReservada`) y `productos.cantidadDisponible/cantidadReservada` guardan el **total** (suma de tallas), así listados y estadísticas no cambian. Sin tallas, el stock sigue en el propio producto.

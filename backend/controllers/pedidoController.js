@@ -7,6 +7,8 @@ const Variante = require('../models/varianteModel');
 const Asignacion = require('../models/ordenCompraAsignacionModel');
 const Venta = require('../models/ventaModel');
 const PedidoPago = require('../models/pedidoPagoModel');
+const PedidoDevolucion = require('../models/pedidoDevolucionModel');
+const { devolverMercancia } = require('../services/pedidoDevolucionService');
 const { crearOrdenDesdePedidos, resumenComprasPorDetalle } = require('../services/compraLoteService');
 const VentaDetalle = require('../models/ventaDetalleModel');
 const Cliente = require('../models/clientModel');
@@ -38,6 +40,7 @@ const includePedido = [
   },
   { model: Cliente, as: 'cliente', attributes: ['clienteid', 'nombreCliente', 'telefono'] },
   { model: PedidoPago, as: 'pagos' },
+  { model: PedidoDevolucion, as: 'devoluciones' },
   { model: Venta, as: 'ventas', attributes: ['ventaid', 'total', 'createdAt'] },
   {
     model: OrdenCompra,
@@ -55,6 +58,7 @@ const includePedido = [
 const conResumen = (pedido) => {
   const json = pedido.toJSON();
   json.pagos = (json.pagos || []).sort((a, b) => a.pagoid - b.pagoid);
+  json.devoluciones = (json.devoluciones || []).sort((a, b) => a.devolucionid - b.devolucionid);
   json.ventas = (json.ventas || []).sort((a, b) => a.ventaid - b.ventaid);
   json.resumen = resumenPedido(json);
   return json;
@@ -575,7 +579,7 @@ const entregarPedido = async (req, res) => {
     // En un pedido al proveedor solo se entrega lo que ya llegó
     const llegado = pedido.ordenid ? await resumenComprasPorDetalle(detalles.map((d) => d.detalleid), t) : null;
     const entregable = (d) => (llegado
-      ? Math.max(0, Math.round(((llegado.get(d.detalleid)?.recibido || 0) - Number(d.cantidadEntregada || 0)) * 1000) / 1000)
+      ? Math.min(pendienteDe(d), Math.max(0, Math.round(((llegado.get(d.detalleid)?.recibido || 0) - Number(d.cantidadEntregada || 0)) * 1000) / 1000))
       : pendienteDe(d));
 
     // Qué líneas (y cuánto de cada una) se entregan ahora
@@ -713,6 +717,34 @@ const registrarPago = async (req, res) => {
   }
 };
 
+// Devolución de mercancía ya entregada. body: { items: [{ detalleid, cantidad }], motivo, nota, reingresarStock, reembolsar, metodo }
+const devolverProductos = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { negocioid, usuarioid } = req.usuario;
+    const { items, motivo, nota, reingresarStock, reembolsar, metodo } = req.body || {};
+
+    const pedido = await Pedido.findOne({ where: { pedidoid: id, negocioid }, transaction: t, lock: true });
+    if (!pedido) throw new ErrorPedido('Pedido no encontrado', 404);
+    const detalles = await PedidoDetalle.findAll({ where: { pedidoid: id }, order: [['detalleid', 'ASC']], transaction: t, lock: true });
+
+    const resultado = await devolverMercancia({
+      pedido, detalles, items, motivo, nota,
+      reingresarStock: reingresarStock !== false,
+      reembolsar: Boolean(reembolsar),
+      metodoReembolso: metodo,
+      usuarioid,
+      transaction: t,
+    });
+    await t.commit();
+    res.status(201).json({ ...resultado, pedido: await cargarPedido(id, negocioid) });
+  } catch (error) {
+    await t.rollback();
+    responderError(res, error, 'Error al registrar la devolución');
+  }
+};
+
 // Saldo a favor del cliente (dinero de abonos de pedidos anulados que se dejó como crédito)
 const getSaldoFavor = async (req, res) => {
   try {
@@ -845,6 +877,7 @@ module.exports = {
   convertirAVenta: entregarPedido,
   entregarPedido,
   registrarPago,
+  devolverProductos,
   getSaldoFavor,
   usarSaldo,
   generarOrdenCompra,

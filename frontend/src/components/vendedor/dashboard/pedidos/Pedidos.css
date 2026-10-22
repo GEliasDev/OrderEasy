@@ -1392,3 +1392,6 @@
   .compras-tabla-reparto td[data-label="Acciones"] { grid-area: acciones; text-align: right !important; }
   .compras-tabla-reparto td[data-label="Acciones"]::before { display: none !important; }
 }
+
+/* Motivos de devolución de mercancía */
+.devolucion-motivos { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }

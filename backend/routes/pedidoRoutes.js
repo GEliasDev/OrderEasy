@@ -10,6 +10,7 @@ const {
   convertirAVenta,
   entregarPedido,
   registrarPago,
+  devolverProductos,
   getSaldoFavor,
   usarSaldo,
   generarOrdenCompra,
@@ -31,6 +32,7 @@ router.post('/:id/anular', verificarToken, anularPedido);
 router.post('/:id/convertir-venta', verificarToken, convertirAVenta);
 router.post('/:id/entregar', verificarToken, entregarPedido);
 router.post('/:id/pagos', verificarToken, registrarPago);
+router.post('/:id/devoluciones', verificarToken, devolverProductos);
 router.post('/:id/usar-saldo', verificarToken, usarSaldo);
 router.post('/:id/orden-compra', verificarToken, generarOrdenCompra);
 

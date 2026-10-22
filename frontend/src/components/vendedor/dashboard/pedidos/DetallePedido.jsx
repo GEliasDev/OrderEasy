@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, ShoppingBag, Trash2, Truck, User, Wallet, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, ShoppingBag, Trash2, Truck, Undo2, User, Wallet, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   anularOrdenCompra,
   deletePedido,
   anularPedido,
   confirmarPedido,
+  devolverProductosPedido,
   entregarPedido,
   getSaldoFavor,
   registrarPagoPedido,
@@ -84,6 +85,17 @@ const TIPO_MOVIMIENTO = {
   traslado: { label: 'Saldo trasladado', clase: 'traslado', signo: '-' },
 };
 
+// Por qué el cliente devuelve la mercancía (las claves las valida el backend)
+const MOTIVOS_DEVOLUCION = [
+  { value: 'color', label: 'No era el color' },
+  { value: 'talla', label: 'No era la talla' },
+  { value: 'modelo', label: 'No era el modelo' },
+  { value: 'danado', label: 'Llegó dañado o con defecto' },
+  { value: 'no_gusto', label: 'No le gustó' },
+  { value: 'otro', label: 'Otro motivo' },
+];
+const etiquetaMotivo = (valor) => MOTIVOS_DEVOLUCION.find((m) => m.value === valor)?.label || valor;
+
 // Lo que falta por entregar de una línea
 const pendienteDe = (detalle) =>
   Math.round((Number(detalle.cantidad) - Number(detalle.cantidadEntregada || 0)) * 1000) / 1000;
@@ -132,6 +144,7 @@ function DetallePedido() {
   const [entregaItems, setEntregaItems] = useState({}); // detalleid -> cantidad a entregar (texto)
   const [entregaPago, setEntregaPago] = useState({ monto: '', metodo: 'efectivo' });
   const [anularForm, setAnularForm] = useState({ abonos: 'devolver', metodo: 'efectivo' });
+  const [devolForm, setDevolForm] = useState({ items: {}, motivo: '', nota: '', reingresar: true, reembolsar: false, metodo: 'efectivo' });
   const [reciboPago, setReciboPago] = useState(null);
   const [negocio, setNegocio] = useState(null);
 
@@ -277,6 +290,52 @@ function DetallePedido() {
       cargarPedido(true);
     } catch (error) {
       toast.error(error?.response?.data?.mensaje || 'No se pudo registrar la entrega.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  // ───── Devolución de mercancía ya entregada ─────
+  const abrirDevolucion = () => {
+    setDevolForm({ items: {}, motivo: '', nota: '', reingresar: true, reembolsar: false, metodo: 'efectivo' });
+    setModal('devolucion');
+  };
+
+  const cambiarMotivoDevolucion = (motivo) => {
+    // Un producto dañado no vuelve al inventario por defecto
+    setDevolForm((prev) => ({ ...prev, motivo, reingresar: motivo !== 'danado' }));
+  };
+
+  const handleDevolver = async (e) => {
+    e.preventDefault();
+    const items = Object.entries(devolForm.items)
+      .map(([detalleid, cantidad]) => ({ detalleid: Number(detalleid), cantidad: Number(cantidad) || 0 }))
+      .filter((item) => item.cantidad > 0);
+    if (items.length === 0) {
+      toast.error('Indica la cantidad de al menos un producto devuelto.');
+      return;
+    }
+    if (!devolForm.motivo) {
+      toast.error('Elige el motivo de la devolución.');
+      return;
+    }
+    try {
+      setGuardando(true);
+      const data = await devolverProductosPedido(pedido.pedidoid, {
+        items,
+        motivo: devolForm.motivo,
+        nota: devolForm.nota,
+        reingresarStock: devolForm.reingresar,
+        reembolsar: devolForm.reembolsar,
+        metodo: devolForm.metodo,
+      });
+      setModal(null);
+      toast.success(data.reembolsado > 0
+        ? `Devolución registrada. Se reembolsaron ${formatoMoneda(data.reembolsado)} al cliente.`
+        : 'Devolución registrada.');
+      cargarPedido(true);
+    } catch (error) {
+      toast.error(error?.response?.data?.mensaje || 'No se pudo registrar la devolución.');
     } finally {
       setGuardando(false);
     }
@@ -442,6 +501,11 @@ function DetallePedido() {
   const hayParaEntregar = (pedido.detalles || []).some((d) => pendienteDe(d) > 0 && stockFisicoDe(d) > 0);
   const puedeConvertir = ['confirmado', 'en_compra', 'recibido'].includes(pedido.estado) && hayParaEntregar;
   const puedeAbonar = pedido.estado !== 'anulado' && resumen.saldo > 0;
+  const lineasDevolvibles = (pedido.detalles || []).filter((d) => Number(d.cantidadEntregada) > 0);
+  const puedeDevolver = pedido.estado !== 'anulado' && lineasDevolvibles.length > 0;
+  const devolValor = lineasDevolvibles.reduce(
+    (sum, d) => sum + (Number(devolForm.items[d.detalleid]) || 0) * Number(d.precioUnitario), 0
+  );
   const entregaValor = (pedido.detalles || []).reduce(
     (sum, d) => sum + (Number(entregaItems[d.detalleid]) || 0) * Number(d.precioUnitario), 0
   );
@@ -512,6 +576,12 @@ function DetallePedido() {
               <span>Entregar</span>
             </button>
           )}
+          {puedeDevolver && (
+            <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirDevolucion} title="El cliente devuelve productos que ya recibió">
+              <Undo2 size={14} />
+              <span>Devolución</span>
+            </button>
+          )}
           {puedeConvertir && pedido.cliente?.telefono && (
             <button className="pedidos-btn pedidos-btn-secundario" onClick={avisarListo} title="Avisar por WhatsApp que ya puede recogerlo">
               <MessageCircle size={14} />
@@ -542,6 +612,9 @@ function DetallePedido() {
         <div className="pi-lista-acciones">
           {puedeGenerarCompra && (
             <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirOrdenCompra(); }}><Truck size={15} /> Generar compra al proveedor</button>
+          )}
+          {puedeDevolver && (
+            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirDevolucion(); }}><Undo2 size={15} /> Registrar devolución de productos</button>
           )}
           {puedeConvertir && pedido.cliente?.telefono && (
             <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); avisarListo(); }}><MessageCircle size={15} /> Avisar por WhatsApp que está listo</button>
@@ -677,6 +750,39 @@ function DetallePedido() {
           </div>
         )}
       </div>
+
+      {(pedido.devoluciones || []).length > 0 && (
+        <div className="detalle-items-section">
+          <div className="detalle-items-header">
+            <Undo2 size={15} /> Devoluciones de productos
+          </div>
+          <div className="items-table-container">
+            <table className="items-table tabla-tarjetas">
+              <thead>
+                <tr><th>Fecha</th><th>Producto</th><th>Cant.</th><th>Motivo</th><th>Nota</th><th>Valor</th></tr>
+              </thead>
+              <tbody>
+                {pedido.devoluciones.map((dev) => (
+                  <tr key={dev.devolucionid}>
+                    <td data-label="Fecha">{formatearFecha(dev.createdAt, true)}</td>
+                    <td data-label="Producto">
+                      <span className="tbl-cell-primary">{dev.productoNombre}</span>
+                      {dev.talla && <span className="cart-item-talla" style={{ marginLeft: '0.4rem' }}>Talla {dev.talla}</span>}
+                    </td>
+                    <td data-label="Cant.">{formatearCantidad(dev.cantidad)}</td>
+                    <td data-label="Motivo">
+                      <span className={`tbl-badge ${dev.motivo === 'danado' ? 'tbl-badge--danger' : 'tbl-badge--warning'}`}>{etiquetaMotivo(dev.motivo)}</span>
+                      {!dev.reingresaStock && <small className="compras-nota-corta">No volvió al inventario</small>}
+                    </td>
+                    <td data-label="Nota" className="pedido-mov-nota">{dev.nota || <span className="tbl-vacio">—</span>}</td>
+                    <td data-label="Valor" className="item-subtotal">{formatoMoneda(Number(dev.cantidad) * Number(dev.precioUnitario))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="pedido-datos-extra">
         <div className="pedido-dato">
@@ -1095,6 +1201,119 @@ function DetallePedido() {
                 <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
                 <button type="submit" className="pedidos-btn pedidos-btn-verde" disabled={guardando || entregaValor <= 0}>
                   {guardando ? 'Registrando...' : 'Registrar entrega'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {modal === 'devolucion' && (
+        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
+          <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
+            <div className="pedido-modal-header">
+              <h3>Devolución de productos</h3>
+              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
+            </div>
+            <form className="pedido-modal-form" onSubmit={handleDevolver}>
+              <p className="pedido-modal-texto">
+                Indica cuánto devuelve el cliente de cada producto que ya recibió.
+              </p>
+              <div className="pedido-entrega-lineas">
+                {lineasDevolvibles.map((detalle) => {
+                  const unidad = detalle.producto?.unidadMedida;
+                  return (
+                    <div key={detalle.detalleid} className="pedido-entrega-linea">
+                      <div className="pedido-entrega-info">
+                        <strong>
+                          {detalle.productoNombre}
+                          {detalle.talla && <span className="cart-item-talla">Talla {detalle.talla}</span>}
+                        </strong>
+                        <small>
+                          Recibió {formatearCantidad(detalle.cantidadEntregada, unidad)} · {formatoMoneda(detalle.precioUnitario)} c/u
+                        </small>
+                      </div>
+                      <input
+                        type="number"
+                        min="0"
+                        max={detalle.cantidadEntregada}
+                        step={stepCantidad(unidad)}
+                        value={devolForm.items[detalle.detalleid] ?? ''}
+                        onChange={(e) => setDevolForm({ ...devolForm, items: { ...devolForm.items, [detalle.detalleid]: e.target.value } })}
+                        aria-label={`Cantidad devuelta de ${detalle.productoNombre}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="pedido-form-group">
+                <label>¿Por qué lo devuelve?</label>
+                <div className="devolucion-motivos">
+                  {MOTIVOS_DEVOLUCION.map((m) => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      className={`tbl-chip${devolForm.motivo === m.value ? ' tbl-chip--activo' : ''}`}
+                      onClick={() => cambiarMotivoDevolucion(m.value)}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pedido-form-group">
+                <label>Nota (opcional)</label>
+                <input
+                  type="text"
+                  maxLength={255}
+                  placeholder="Ej. quería el mismo modelo en negro"
+                  value={devolForm.nota}
+                  onChange={(e) => setDevolForm({ ...devolForm, nota: e.target.value })}
+                />
+              </div>
+
+              <label className="pedido-opcion">
+                <input
+                  type="checkbox"
+                  checked={devolForm.reingresar}
+                  onChange={(e) => setDevolForm({ ...devolForm, reingresar: e.target.checked })}
+                />
+                <span>
+                  <strong>Volver a ponerlo en el inventario</strong>
+                  <small>Desmarca esta opción si el producto no se puede volver a vender.</small>
+                </span>
+              </label>
+
+              <label className="pedido-opcion">
+                <input
+                  type="checkbox"
+                  checked={devolForm.reembolsar}
+                  onChange={(e) => setDevolForm({ ...devolForm, reembolsar: e.target.checked })}
+                />
+                <span>
+                  <strong>Reembolsar el dinero al cliente</strong>
+                  <small>Devuelve lo que ya pagó por estos productos. Si no, queda como abono a favor suyo (por ejemplo, para un cambio).</small>
+                </span>
+              </label>
+              {devolForm.reembolsar && (
+                <div className="pedido-form-group">
+                  <label>Método del reembolso</label>
+                  <select value={devolForm.metodo} onChange={(e) => setDevolForm({ ...devolForm, metodo: e.target.value })}>
+                    {METODOS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <div className="pedido-entrega-resumen">
+                <div><span>Valor devuelto</span><strong>{formatoMoneda(devolValor)}</strong></div>
+              </div>
+
+              <div className="pedido-modal-footer">
+                <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
+                <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={guardando || devolValor <= 0 || !devolForm.motivo}>
+                  {guardando ? 'Registrando...' : 'Registrar devolución'}
                 </button>
               </div>
             </form>
