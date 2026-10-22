@@ -549,7 +549,7 @@ function DetalleCompra() {
                     <td className="col-centro"><span className={`pedido-estado pedido-estado-${estadoCompra.replace('_', '-')}`}>{ESTADOS_COMPRA_CLIENTE[estadoCompra] || estadoCompra}</span></td>
                     <td className="col-num" onClick={(e) => e.stopPropagation()}>
                       <div className="compras-acciones-fila">
-                        {!anulada && compra.estado !== 'entregado' && (
+                        {!anulada && Number(compra.resumen?.saldo || 0) > 0 && (
                           <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=abono`)}>
                             Abonar
                           </button>
@@ -765,7 +765,7 @@ function DetalleCompra() {
         subtitulo={compraSel ? (ESTADOS_COMPRA_CLIENTE[compraSel.estado] || compraSel.estado) : ''}
         acciones={compraSel && (
           <>
-            {compraSel.estado !== 'anulado' && compraSel.estado !== 'entregado' && (
+            {compraSel.estado !== 'anulado' && Number(compraSel.resumen?.saldo || 0) > 0 && (
               <button type="button" className="pi-accion pi-accion-primaria" onClick={() => navigate(`/dashboard/pedido/${compraSel.pedidoid}?accion=abono`)}>Abonar</button>
             )}
             <button type="button" className="pi-accion" onClick={() => navigate(`/dashboard/pedido/${compraSel.pedidoid}`)}>Ver detalle</button>
@@ -950,58 +950,85 @@ function DetalleCompra() {
                   if (!datos) return null;
                   const linea = estadoLinea(detalle);
                   const activas = (detalle.asignaciones || []).filter(asignacionActiva);
+                  const pendienteTotal = restanteDetalle(detalle);
                   return (
                     <div key={detalle.detalleid} className="compras-recepcion-linea">
-                      <div className="compras-recepcion-cabecera">
-                        <strong>
-                          {detalle.productoNombre}
-                          {detalle.talla && <span className="cart-item-talla">Talla {detalle.talla}</span>}
-                        </strong>
-                        <label>
-                          Llegaron
-                          <input
-                            type="number"
-                            min="0"
-                            max={restanteDetalle(detalle)}
-                            step="any"
-                            value={datos.llegaron}
-                            onChange={(e) => cambiarLlegaron(detalle, e.target.value)}
-                          />
-                          <small>de {restanteDetalle(detalle)} pendientes</small>
+                      <div className="compras-recepcion-producto">
+                        <span className="compras-producto-miniatura compras-recepcion-miniatura" aria-hidden="true">
+                          <Package size={15} />
+                          {detalle.producto?.imagenes?.[0] && (
+                            <img
+                              src={imagenUrl(detalle.producto.imagenes[0])}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          )}
+                        </span>
+                        <div className="compras-recepcion-info">
+                          <div className="compras-recepcion-titulo">
+                            <strong>{detalle.productoNombre}</strong>
+                            {detalle.talla && <span className="cart-item-talla">Talla {detalle.talla}</span>}
+                          </div>
+                          <div className="compras-recepcion-meta">
+                            <span>{cantidad(pendienteTotal)} pendientes</span>
+                            <span>{formatoMoneda(detalle.precioUnitario)} c/u</span>
+                          </div>
+                        </div>
+                        <label className="compras-recepcion-llegaron">
+                          <span>Llegaron</span>
+                          <span className="compras-recepcion-llegaron-control">
+                            <input
+                              type="number"
+                              min="0"
+                              max={pendienteTotal}
+                              step="any"
+                              value={datos.llegaron}
+                              onChange={(e) => cambiarLlegaron(detalle, e.target.value)}
+                            />
+                            <small>de {cantidad(pendienteTotal)}</small>
+                          </span>
                         </label>
                       </div>
 
                       {activas.length > 0 && num(datos.llegaron) > 0 && (
-                        <div className="compras-reparto-grid">
+                        <div className="compras-recepcion-reparto">
+                          <div className="compras-recepcion-reparto-titulo">
+                            <span>Asignar a clientes</span>
+                            <span>Asignado {cantidad(linea.asignado)} de {cantidad(linea.llegaron)}</span>
+                          </div>
                           {activas.map((asignacion) => {
                             const pendiente = pendienteAsignacion(asignacion);
                             return (
-                              <label key={asignacion.asignacionid} className={`compras-reparto-fila ${pendiente <= 0 ? 'completo' : ''}`}>
-                                <span>
-                                  {asignacion.pedidoDetalle?.pedido?.cliente?.nombreCliente || 'Sin cliente'}
-                                  <small> · compra #{asignacion.pedidoDetalle?.pedidoid} · pendiente {pendiente}</small>
+                              <label key={asignacion.asignacionid} className={`compras-recepcion-reparto-fila ${pendiente <= 0 ? 'completo' : ''}`}>
+                                <span className="compras-recepcion-cliente">
+                                  <strong>{asignacion.pedidoDetalle?.pedido?.cliente?.nombreCliente || 'Sin cliente'}</strong>
+                                  <small>Pedido #{asignacion.pedidoDetalle?.pedidoid || '—'} · pendiente {cantidad(pendiente)}</small>
                                 </span>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={pendiente}
-                                  step="any"
-                                  disabled={pendiente <= 0}
-                                  value={datos.reparto[asignacion.asignacionid] ?? '0'}
-                                  onChange={(e) => cambiarReparto(detalle.detalleid, asignacion.asignacionid, e.target.value)}
-                                  aria-label={`Cantidad para ${asignacion.pedidoDetalle?.pedido?.cliente?.nombreCliente || 'cliente'}`}
-                                />
+                                <span className="compras-recepcion-reparto-cantidad">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={pendiente}
+                                    step="any"
+                                    disabled={pendiente <= 0}
+                                    value={datos.reparto[asignacion.asignacionid] ?? '0'}
+                                    onChange={(e) => cambiarReparto(detalle.detalleid, asignacion.asignacionid, e.target.value)}
+                                    aria-label={`Cantidad para ${asignacion.pedidoDetalle?.pedido?.cliente?.nombreCliente || 'cliente'}`}
+                                  />
+                                  <small>unid.</small>
+                                </span>
                               </label>
                             );
                           })}
                           {linea.error ? (
                             <p className="compras-reparto-error">{linea.error}</p>
-                          ) : (
-                            <p className="pedido-ayuda">
-                              Asignado {linea.asignado} de {linea.llegaron}.
-                              {linea.libre > 0 && ` Los ${linea.libre} restantes quedan como stock libre.`}
+                          ) : linea.libre > 0 ? (
+                            <p className="compras-recepcion-resumen">
+                              {cantidad(linea.libre)} sin asignar quedan como stock libre.
                             </p>
-                          )}
+                          ) : null}
                         </div>
                       )}
                     </div>

@@ -292,3 +292,6 @@
   .tabla-container .lm-lista { border: none; border-radius: 0; background: transparent; }
   .tabla-container .lm-fila { padding-left: 0.25rem; padding-right: 0.25rem; }
 }
+
+/* Entrega de un pedido aún sin cobrar por completo */
+.por-cobrar-nota { display: block; margin-top: 0.1rem; font-size: 0.68rem; font-weight: 500; color: var(--color-warning, #B45309); white-space: nowrap; }

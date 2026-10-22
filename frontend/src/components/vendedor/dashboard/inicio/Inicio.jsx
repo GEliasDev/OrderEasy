@@ -44,7 +44,8 @@ function Inicio() {
   };
 
   const ventasHoy = ventas.filter(v => localDateStr(v.createdAt) === todayStr);
-  const ingresosHoy = ventasHoy.reduce((s, v) => s + Number(v.total), 0);
+  // Ingresos = dinero cobrado (una entrega de pedido sin pagar todavía no cuenta)
+  const ingresosHoy = ventasHoy.reduce((s, v) => s + Number(v.cobrado ?? v.total), 0);
 
   const now = new Date();
   const mesActual = now.getMonth();

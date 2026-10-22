@@ -114,7 +114,8 @@ function DetalleVenta() {
         <div className="detalle-tx-stat">
           <div className="detalle-tx-stat-label"><TrendingUp size={11} /> Total</div>
           <div className="detalle-tx-stat-value amount income">{formatoMoneda(venta.total)}</div>
-          <span className="detalle-tx-type-badge income"><TrendingUp size={10} /> Ingreso</span>
+          <span className="detalle-tx-type-badge income"><TrendingUp size={10} /> {Number(venta.porCobrar) > 0 ? `Cobrado ${formatoMoneda(venta.cobrado)}` : 'Ingreso'}</span>
+          {Number(venta.porCobrar) > 0 && <span className="detalle-tx-type-badge expense">Por cobrar {formatoMoneda(venta.porCobrar)}</span>}
         </div>
         <div className="detalle-tx-stat">
           <div className="detalle-tx-stat-label"><Calendar size={11} /> Fecha</div>

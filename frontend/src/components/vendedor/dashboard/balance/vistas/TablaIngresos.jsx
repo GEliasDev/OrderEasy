@@ -150,9 +150,9 @@ const TablaIngresos = ({ from = '', to = '' }) => {
               nombre: venta.cliente?.nombreCliente || resumen,
               titulo: resumen,
               subtitulo: `${formatearFecha(venta.createdAt)} · ${venta.cliente?.nombreCliente || 'General'}`,
-              derecha: `$${Number(venta.total).toLocaleString('es-CO')}`,
-              derechaSecundaria: `${totalItems} ${totalItems === 1 ? 'item' : 'items'}`,
-              tono: 'ok',
+              derecha: `$${Number(venta.cobrado ?? venta.total).toLocaleString('es-CO')}`,
+              derechaSecundaria: Number(venta.porCobrar) > 0 ? `por cobrar $${Number(venta.porCobrar).toLocaleString('es-CO')}` : `${totalItems} ${totalItems === 1 ? 'item' : 'items'}`,
+              tono: Number(venta.porCobrar) > 0 ? 'aviso' : 'ok',
             };
           }}
         />
@@ -187,7 +187,10 @@ const TablaIngresos = ({ from = '', to = '' }) => {
                   <td className="text-left" data-label="Descripción">{venta.descripcion || <span style={{ opacity: 0.4 }}>—</span>}</td>
                   <td className="text-left" data-label="Cliente">{venta.cliente?.nombreCliente || <span style={{ opacity: 0.5 }}>General</span>}</td>
                   <td className="text-right" data-label="Items">{totalItems}</td>
-                  <td className="text-right total-cell" data-label="Total">${Number(venta.total).toLocaleString('es-CO')}</td>
+                  <td className="text-right total-cell" data-label="Total">
+                    ${Number(venta.cobrado ?? venta.total).toLocaleString('es-CO')}
+                    {Number(venta.porCobrar) > 0 && <small className="por-cobrar-nota">de ${Number(venta.total).toLocaleString('es-CO')} · por cobrar ${Number(venta.porCobrar).toLocaleString('es-CO')}</small>}
+                  </td>
                 </tr>
               );
             })
