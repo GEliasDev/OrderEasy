@@ -656,15 +656,16 @@ function DetallePedido() {
               <tbody>
                 {pedido.pagos.map((pago) => {
                   const tipo = TIPO_MOVIMIENTO[pago.tipo] || TIPO_MOVIMIENTO.abono;
+                  const badgeMov = tipo.clase === 'abono' ? 'tbl-badge--ok' : tipo.clase === 'devolucion' ? 'tbl-badge--danger' : 'tbl-badge--neutral';
                   return (
                     <tr key={pago.pagoid}>
                       <td>{formatearFecha(pago.createdAt, true)}</td>
-                      <td><span className={`pedido-mov pedido-mov-${tipo.clase}`}>{tipo.label}</span></td>
+                      <td><span className={`tbl-badge ${badgeMov}`}>{tipo.label}</span></td>
                       <td>{metodoLabel(pago.metodo)}</td>
-                      <td className="pedido-mov-nota">{pago.nota || '—'}</td>
+                      <td className="pedido-mov-nota">{pago.nota || <span className="tbl-vacio">—</span>}</td>
                       <td className={`item-subtotal pedido-mov-monto-${tipo.clase}`}>{tipo.signo} {formatoMoneda(pago.monto)}</td>
                       <td>
-                        <button className="pedido-recibo-btn" onClick={() => setReciboPago(pago)} title="Ver o imprimir el recibo" aria-label={`Recibo ${pago.pagoid}`}>
+                        <button className="tbl-icon-btn" style={{ background: 'var(--neutral-100)', color: 'var(--neutral-600)' }} onClick={() => setReciboPago(pago)} title="Ver o imprimir el recibo" aria-label={`Recibo ${pago.pagoid}`}>
                           <Receipt size={14} />
                         </button>
                       </td>
@@ -727,27 +728,34 @@ function DetallePedido() {
                 return (
                   <tr key={item.detalleid}>
                     <td className="item-name">
-                      <div className="item-icon pedido-item-icon">
-                        <Package size={13} />
-                        {item.producto?.imagenes?.[0] && (
-                          <img
-                            src={imagenUrl(item.producto.imagenes[0])}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        )}
-                      </div>
-                      {item.productoNombre}
-                      {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
-                      {(Number(item.enCompra) > 0 || Number(item.recibidoCompra) > 0) && (
-                        <span className="pedido-compra-estado">
-                          {Number(item.enCompra) > 0 && `En compra: ${item.enCompra}`}
-                          {Number(item.enCompra) > 0 && Number(item.recibidoCompra) > 0 && ' · '}
-                          {Number(item.recibidoCompra) > 0 && `Llegó: ${item.recibidoCompra}`}
+                      <div className="tbl-main-cell">
+                        <span className="tbl-avatar" style={{ background: '#6366F1', borderRadius: '10px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+                          <Package size={14} style={{ opacity: item.producto?.imagenes?.[0] ? 0 : 1 }} />
+                          {item.producto?.imagenes?.[0] && (
+                            <img
+                              src={imagenUrl(item.producto.imagenes[0])}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }}
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          )}
                         </span>
-                      )}
+                        <div className="tbl-cell-texts">
+                          <span className="tbl-cell-primary">
+                            {item.productoNombre}
+                            {item.talla && <span className="cart-item-talla" style={{ marginLeft: '0.4rem' }}>Talla {item.talla}</span>}
+                          </span>
+                          {(Number(item.enCompra) > 0 || Number(item.recibidoCompra) > 0) && (
+                            <span className="tbl-cell-secondary">
+                              {Number(item.enCompra) > 0 && `En compra: ${item.enCompra}`}
+                              {Number(item.enCompra) > 0 && Number(item.recibidoCompra) > 0 && ' · '}
+                              {Number(item.recibidoCompra) > 0 && `Llegó: ${item.recibidoCompra}`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="item-qty">{formatearCantidad(item.cantidad, item.producto?.unidadMedida)}</td>
                     <td>

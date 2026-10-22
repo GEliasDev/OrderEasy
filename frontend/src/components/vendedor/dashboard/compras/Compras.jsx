@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Eye, PackageCheck, Plus, Trash2, Truck, X } from 'lucide-react';
+import { ClipboardList, Eye, PackageCheck, Plus, Trash2, Truck, Users, X } from 'lucide-react';
+
+const BADGE_ORDEN = {
+  abierta: 'tbl-badge--warning',
+  borrador: 'tbl-badge--neutral',
+  enviada: 'tbl-badge--primary',
+  recibida_parcial: 'tbl-badge--warning',
+  recibida: 'tbl-badge--ok',
+  anulada: 'tbl-badge--neutral',
+};
+
+const ORDEN_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#06B6D4','#EF4444','#6366F1'];
+const colorOrden = (id) => ORDEN_COLORS[(Number(id) || 0) % ORDEN_COLORS.length];
 import { toast } from 'sonner';
 import { crearPedidoProveedor, eliminarPedidoProveedor, getOrdenesCompra, getSaldoPorCobrar } from '../../../../services/pedidoService';
 import { ESTADOS_COMPRA, formatearFecha, formatoMoneda, nombrePedido } from './comprasUtils';
@@ -210,39 +222,50 @@ function Compras() {
                 <th>Proveedor</th>
                 <th>Clientes</th>
                 <th title="Unidades totales del pedido (compras de clientes y productos para stock)">Productos</th>
-                <th>Fecha</th>
                 <th>Estado</th>
-                <th>Costo al proveedor</th>
+                <th>Costo</th>
                 <th title="Saldo pendiente de las compras de clientes en este pedido">Saldo por cobrar</th>
-                <th>Acciones</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {filtradas.map(({ orden, clientes, productos, saldo }) => {
                 const estado = ESTADOS_COMPRA[orden.estado] || { label: orden.estado, clase: 'anulado' };
                 const abierto = orden.estado === 'abierta';
+                const badgeClase = BADGE_ORDEN[orden.estado] || 'tbl-badge--neutral';
+                const comprasCount = orden.resumenCompras?.cantidad || 0;
                 return (
-                  <tr key={orden.ordenid} onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
-                    <td className="pedido-id">
-                      {nombrePedido(orden)}
-                      <small className="compras-nota-corta">{orden.nombre ? `#${orden.ordenid}` : ''}{orden.nombre && orden.descripcion ? ' · ' : ''}{orden.descripcion}</small>
+                  <tr key={orden.ordenid} data-fila onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
+                    <td data-label="Pedido">
+                      <div className="tbl-main-cell">
+                        <span className="tbl-avatar" style={{ background: colorOrden(orden.ordenid), fontSize: '0.65rem' }}>
+                          #{orden.ordenid}
+                        </span>
+                        <div className="tbl-cell-texts">
+                          <span className="tbl-cell-primary">{nombrePedido(orden)}</span>
+                          <span className="tbl-cell-secondary">{formatearFecha(orden.createdAt)}{orden.descripcion ? ` · ${orden.descripcion}` : ''}</span>
+                        </div>
+                      </div>
                     </td>
-                    <td>{orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial || 'Sin proveedor'}</td>
-                    <td className="compras-clientes">
-                      {clientes.length === 0 ? '—' : `${clientes.slice(0, 2).join(', ')}${clientes.length > 2 ? ` +${clientes.length - 2}` : ''}`}
-                      {(orden.resumenCompras?.cantidad || 0) > 0 && <small className="compras-nota-corta">{orden.resumenCompras.cantidad} compra(s)</small>}
+                    <td data-label="Proveedor">{orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial || <span className="tbl-vacio">—</span>}</td>
+                    <td data-label="Clientes" className="compras-clientes">
+                      {clientes.length === 0 ? <span className="tbl-vacio">—</span> : `${clientes.slice(0, 2).join(', ')}${clientes.length > 2 ? ` +${clientes.length - 2}` : ''}`}
+                      {comprasCount > 0 && <small className="compras-nota-corta">{comprasCount} compra{comprasCount !== 1 ? 's' : ''}</small>}
                     </td>
-                    <td className="pedido-productos">{cantidad(productos)}</td>
-                    <td>{formatearFecha(orden.createdAt)}</td>
-                    <td><span className={`pedido-estado pedido-estado-${estado.clase}`}>{estado.label}</span></td>
-                    <td className="pedido-total">{formatoMoneda(abierto ? orden.costoEstimado : orden.total)}</td>
-                    <td className={`pedido-saldo${saldo > 0 ? ' pedido-saldo-pendiente' : ''}`}>{formatoMoneda(saldo)}</td>
-                    <td>
-                      <div className="pedidos-acciones" onClick={(e) => e.stopPropagation()}>
-                        <button className="pedidos-accion pedidos-accion-ver" title="Abrir pedido" onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
+                    <td data-label="Productos">{cantidad(productos)}</td>
+                    <td data-label="Estado"><span className={`tbl-badge ${badgeClase}`}>{estado.label}</span></td>
+                    <td data-label="Costo" className="pedido-total">{formatoMoneda(abierto ? orden.costoEstimado : orden.total)}</td>
+                    <td data-label="Saldo por cobrar">
+                      {saldo > 0
+                        ? <span className="tbl-badge tbl-badge--danger">{formatoMoneda(saldo)}</span>
+                        : <span className="tbl-vacio">—</span>}
+                    </td>
+                    <td data-label="" onClick={(e) => e.stopPropagation()}>
+                      <div className="tbl-actions">
+                        <button className="tbl-icon-btn tbl-icon-btn--ver" title="Abrir pedido" onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
                           <Eye size={14} />
                         </button>
-                        <button className="pedidos-accion pedidos-accion-anular" title="Eliminar pedido" onClick={() => eliminarPedido(orden)}>
+                        <button className="tbl-icon-btn tbl-icon-btn--borrar" title="Eliminar pedido" onClick={() => eliminarPedido(orden)}>
                           <Trash2 size={14} />
                         </button>
                       </div>

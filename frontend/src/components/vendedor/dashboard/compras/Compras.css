@@ -487,7 +487,7 @@
 .items-table.compras-tabla td.col-nombre { font-weight: 600; color: var(--neutral-900, #0F172A); }
 .items-table.compras-tabla td.col-num { font-variant-numeric: tabular-nums; }
 .items-table.compras-tabla .compras-clientes { max-width: none; }
-.items-table.compras-tabla td.compras-compra { vertical-align: top; padding-top: 0.8rem; }
+.items-table.compras-tabla td.compras-compra { vertical-align: middle; }
 
 /* En tablet la compra se apila como tarjeta: subtítulo a la izquierda y productos debajo */
 @media (max-width: 900px) {

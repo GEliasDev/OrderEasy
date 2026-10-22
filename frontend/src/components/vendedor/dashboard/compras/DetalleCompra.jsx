@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Eye, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { imagenUrl } from '../../../../config';
 import {
@@ -38,6 +38,22 @@ import './Compras.css';
 const num = (valor) => Number(valor) || 0;
 const redondear = (n) => Math.round(n * 1000) / 1000;
 const cantidad = (n) => num(n).toLocaleString('es-CO', { maximumFractionDigits: 3 });
+
+const AVATAR_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#06B6D4','#EF4444','#6366F1'];
+const colorAvatar = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 65) % AVATAR_COLORS.length];
+const iniciales = (name) => {
+  const parts = (name || '?').trim().split(/\s+/);
+  return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : (name || '?').slice(0, 2).toUpperCase();
+};
+
+const BADGE_ESTADO_CLIENTE = {
+  pendiente: 'tbl-badge--warning',
+  confirmado: 'tbl-badge--primary',
+  en_compra: 'tbl-badge--primary',
+  recibido: 'tbl-badge--ok',
+  entregado: 'tbl-badge--ok',
+  anulado: 'tbl-badge--neutral',
+};
 
 const ESTADOS_COMPRA_CLIENTE = {
   pendiente: 'Pendiente',
@@ -525,37 +541,52 @@ function DetalleCompra() {
           <table className="tabla-tarjetas items-table compras-tabla">
             <thead>
               <tr>
-                <th>Compra de cliente</th>
+                <th>Cliente</th>
                 <th className="col-num">Total</th>
                 <th className="col-num">Abonado</th>
                 <th className="col-num">Saldo</th>
                 <th className="col-centro">Estado</th>
-                <th className="col-num">Acciones</th>
+                <th className="col-num"></th>
               </tr>
             </thead>
             <tbody>
               {compras.map((compra) => {
                 const anulada = compra.estado === 'anulado';
                 const estadoCompra = compra.estado || 'pendiente';
+                const badgeClase = BADGE_ESTADO_CLIENTE[estadoCompra] || 'tbl-badge--neutral';
+                const clienteNombre = compra.cliente?.nombreCliente || 'Sin cliente';
+                const saldo = Number(compra.resumen?.saldo || 0);
                 return (
                   <tr key={compra.pedidoid} className={`compras-fila-link ${anulada ? 'compras-fila-cancelada' : ''}`} onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
-                    <td className="compras-compra">
-                      <span className="compras-compra-cliente">{compra.cliente?.nombreCliente || 'Sin cliente'}</span>
-                      {desgloseProductos(compra)}
+                    <td className="compras-compra" data-label="Cliente">
+                      <div className="tbl-main-cell">
+                        <span className="tbl-avatar" style={{ background: colorAvatar(clienteNombre), opacity: anulada ? 0.5 : 1 }}>{iniciales(clienteNombre)}</span>
+                        <div className="tbl-cell-texts">
+                          <span className="tbl-cell-primary">{clienteNombre}</span>
+                          <span className="tbl-cell-secondary">{resumenProductos(compra)}</span>
+                        </div>
+                      </div>
                     </td>
-                    <td className="col-num">{formatoMoneda(compra.total)}</td>
-                    <td className="col-num">{formatoMoneda(compra.resumen?.abonado)}</td>
-                    <td className="col-num">{anulada ? '—' : formatoMoneda(compra.resumen?.saldo)}</td>
-                    <td className="col-centro"><span className={`pedido-estado pedido-estado-${estadoCompra.replace('_', '-')}`}>{ESTADOS_COMPRA_CLIENTE[estadoCompra] || estadoCompra}</span></td>
-                    <td className="col-num" onClick={(e) => e.stopPropagation()}>
-                      <div className="compras-acciones-fila">
-                        {!anulada && Number(compra.resumen?.saldo || 0) > 0 && (
-                          <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=abono`)}>
-                            Abonar
+                    <td className="col-num" data-label="Total">{formatoMoneda(compra.total)}</td>
+                    <td className="col-num" data-label="Abonado">{formatoMoneda(compra.resumen?.abonado)}</td>
+                    <td className="col-num" data-label="Saldo">
+                      {anulada ? <span className="tbl-vacio">—</span>
+                        : saldo > 0
+                          ? <span className="tbl-badge tbl-badge--danger">{formatoMoneda(saldo)}</span>
+                          : <span className="tbl-badge tbl-badge--ok">Pagado</span>}
+                    </td>
+                    <td className="col-centro" data-label="Estado">
+                      <span className={`tbl-badge ${badgeClase}`}>{ESTADOS_COMPRA_CLIENTE[estadoCompra] || estadoCompra}</span>
+                    </td>
+                    <td className="col-num" data-label="" onClick={(e) => e.stopPropagation()}>
+                      <div className="tbl-actions">
+                        {!anulada && saldo > 0 && (
+                          <button className="tbl-icon-btn tbl-icon-btn--ok" title="Registrar abono" style={{ background: '#DCFCE7', color: '#15803D' }} onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=abono`)}>
+                            <Plus size={14} />
                           </button>
                         )}
-                        <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
-                          Detalle
+                        <button className="tbl-icon-btn tbl-icon-btn--ver" title="Ver detalle" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
+                          <Eye size={14} />
                         </button>
                       </div>
                     </td>
