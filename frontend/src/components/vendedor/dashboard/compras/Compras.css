@@ -335,7 +335,7 @@
 }
 
 .compras-reparto-estado { display: flex; justify-content: flex-start; }
-.compras-reparto-accion { display: flex; justify-content: flex-end; }
+.compras-reparto-accion { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 .compras-reparto-cancelada { opacity: 0.55; }
 
 .compras-situacion { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }

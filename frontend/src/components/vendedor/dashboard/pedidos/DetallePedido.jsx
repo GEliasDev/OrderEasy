@@ -296,9 +296,24 @@ function DetallePedido() {
   };
 
   // ───── Devolución de mercancía ya entregada ─────
-  const abrirDevolucion = () => {
-    setDevolForm({ items: {}, motivo: '', nota: '', reingresar: true, reembolsar: false, metodo: 'efectivo' });
+  // `detalleid` (opcional) deja marcada una unidad de esa línea, para devolver un producto en específico
+  const abrirDevolucion = (detalleid) => {
+    const linea = detalleid ? (pedido.detalles || []).find((d) => Number(d.detalleid) === Number(detalleid)) : null;
+    const items = linea && Number(linea.cantidadEntregada) > 0 ? { [linea.detalleid]: '1' } : {};
+    setDevolForm({ items, motivo: '', nota: '', reingresar: true, reembolsar: false, metodo: 'efectivo' });
     setModal('devolucion');
+  };
+
+  // Si la cantidad se pasa de lo entregado, se ajusta al máximo
+  const cambiarCantidadDevuelta = (detalle, valor) => {
+    let nuevo = valor;
+    if (valor !== '') {
+      const n = Number(valor);
+      const maximo = Number(detalle.cantidadEntregada);
+      if (!Number.isFinite(n) || n < 0) nuevo = '0';
+      else if (n > maximo) nuevo = String(maximo);
+    }
+    setDevolForm((prev) => ({ ...prev, items: { ...prev.items, [detalle.detalleid]: nuevo } }));
   };
 
   const cambiarMotivoDevolucion = (motivo) => {
@@ -423,7 +438,9 @@ function DetallePedido() {
   useEffect(() => {
     const accion = searchParams.get('accion');
     if (!accion || !pedido) return;
+    const detalleParam = searchParams.get('detalle');
     setSearchParams({}, { replace: true });
+    if (accion === 'devolver' && pedido.estado !== 'anulado') abrirDevolucion(detalleParam);
     if (accion === 'entregar' && ['confirmado', 'en_compra', 'recibido'].includes(pedido.estado)) abrirEntrega();
     if (accion === 'anular' && !['entregado', 'anulado'].includes(pedido.estado)) abrirAnular();
     if (accion === 'abono' && pedido.estado !== 'anulado' && Number(pedido.resumen?.saldo) > 0) abrirPago('abono');
@@ -577,7 +594,7 @@ function DetallePedido() {
             </button>
           )}
           {puedeDevolver && (
-            <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirDevolucion} title="El cliente devuelve productos que ya recibió">
+            <button className="pedidos-btn pedidos-btn-secundario" onClick={() => abrirDevolucion()} title="El cliente devuelve productos que ya recibió">
               <Undo2 size={14} />
               <span>Devolución</span>
             </button>
@@ -1239,7 +1256,7 @@ function DetallePedido() {
                         max={detalle.cantidadEntregada}
                         step={stepCantidad(unidad)}
                         value={devolForm.items[detalle.detalleid] ?? ''}
-                        onChange={(e) => setDevolForm({ ...devolForm, items: { ...devolForm.items, [detalle.detalleid]: e.target.value } })}
+                        onChange={(e) => cambiarCantidadDevuelta(detalle, e.target.value)}
                         aria-label={`Cantidad devuelta de ${detalle.productoNombre}`}
                       />
                     </div>

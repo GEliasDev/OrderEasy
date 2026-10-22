@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Eye, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, Truck, User, Users, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Eye, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, Truck, Undo2, User, Users, X, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { imagenUrl } from '../../../../config';
 import {
@@ -740,6 +740,16 @@ function DetalleCompra() {
                               onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=entregar`)}
                             >
                               Entregar
+                            </button>
+                          )}
+                          {activa && num(asignacion.pedidoDetalle?.cantidadEntregada) > 0 && (
+                            <button
+                              type="button"
+                              className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm"
+                              title="El cliente devuelve este producto"
+                              onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=devolver&detalle=${asignacion.pedidoDetalle.detalleid}`)}
+                            >
+                              <Undo2 size={13} /><span>Devolución</span>
                             </button>
                           )}
                         </span>
