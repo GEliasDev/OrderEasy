@@ -24,6 +24,12 @@ const VentaPago = sequelize.define('VentaPago', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
   },
+  // Cuándo se recibió el dinero (en las entregas de pedidos puede ser después de la entrega)
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: true, // los pagos anteriores se fechan con la migración 008
+    defaultValue: DataTypes.NOW,
+  },
 }, {
   tableName: 'venta_pagos',
   timestamps: false,

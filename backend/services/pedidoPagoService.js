@@ -88,6 +88,9 @@ const registrarMovimiento = async ({ pedido, detalles, tipo, monto, metodo, nota
     nota: nota ? String(nota).slice(0, 255) : null,
   }, { transaction });
 
+  // Un abono paga primero lo ya entregado y sin cobrar (así entra como ingreso cuando se recibe el dinero)
+  if (tipo === 'abono') await aplicarAbonoAEntregas({ pedidoid: pedido.pedidoid, abono: movimiento, transaction });
+
   // Una devolución o traslado consume los abonos disponibles, más antiguos primero
   if (tipo !== 'abono') {
     let restante = importe;
@@ -102,6 +105,24 @@ const registrarMovimiento = async ({ pedido, detalles, tipo, monto, metodo, nota
   }
 
   return movimiento;
+};
+
+// Un abono nuevo paga primero lo que ya se entregó y no se ha cobrado (entregas más antiguas primero).
+// Lo que sobre queda como anticipo para lo que falta entregar.
+const aplicarAbonoAEntregas = async ({ pedidoid, abono, transaction }) => {
+  const Venta = require('../models/ventaModel');
+  const ventas = await Venta.findAll({ where: { pedidoid }, order: [['ventaid', 'ASC']], transaction, lock: true });
+  let libre = dos(Number(abono.monto) - Number(abono.montoAplicado) - Number(abono.montoDevuelto));
+  for (const venta of ventas) {
+    if (libre <= 0) break;
+    const pagado = dos((await VentaPago.findAll({ where: { ventaid: venta.ventaid }, attributes: ['monto'], transaction })).reduce((s, p) => s + Number(p.monto), 0));
+    const pendiente = dos(Number(venta.total) - pagado);
+    if (pendiente <= 0) continue;
+    const tomar = Math.min(libre, pendiente);
+    await VentaPago.create({ ventaid: venta.ventaid, metodo: abono.metodo, monto: tomar }, { transaction });
+    await abono.update({ montoAplicado: dos(Number(abono.montoAplicado) + tomar) }, { transaction });
+    libre = dos(libre - tomar);
+  }
 };
 
 // Cobra una venta con los abonos disponibles del pedido (más antiguos primero). Devuelve lo cubierto.
@@ -196,6 +217,7 @@ module.exports = {
   resumenPedido,
   registrarMovimiento,
   aplicarAbonosAVenta,
+  aplicarAbonoAEntregas,
   anticiposDeClientes,
   saldoAFavorDeCliente,
   usarSaldoAFavor,

@@ -1,6 +1,6 @@
-const Venta = require('../models/ventaModel');
 const Egreso = require('../models/egresoModel');
 const { anticiposDeClientes } = require('../services/pedidoPagoService');
+const { movimientosDeIngreso, totalIngresos: sumarIngresos } = require('../services/ingresosService');
 const { Op } = require('sequelize');
 
 const getPeriodRange = (period) => {
@@ -45,13 +45,14 @@ const getBalanceSummary = async (req, res) => {
       whereBase.createdAt = { [Op.between]: [range.from, range.to] };
     }
 
-    const [ventas, egresos, anticiposClientes] = await Promise.all([
-      Venta.findAll({ where: whereBase, attributes: ['total'] }),
+    // Ingresos = dinero cobrado (las entregas de pedidos solo cuentan lo que ya se pagó)
+    const [movimientos, egresos, anticiposClientes] = await Promise.all([
+      movimientosDeIngreso({ negocioid, from: range?.from, to: range?.to }),
       Egreso.findAll({ where: whereBase, attributes: ['total'] }),
       anticiposDeClientes(negocioid), // abonos de pedidos aún sin entregar (no es utilidad, se muestra aparte)
     ]);
 
-    const totalIngresos = ventas.reduce((sum, v) => sum + Number(v.total), 0);
+    const totalIngresos = sumarIngresos(movimientos);
     const totalEgresos = egresos.reduce((sum, e) => sum + Number(e.total), 0);
     const balance = totalIngresos - totalEgresos;
     const margen = totalIngresos > 0

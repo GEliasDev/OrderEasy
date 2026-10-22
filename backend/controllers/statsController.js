@@ -3,6 +3,7 @@ const VentaDetalle = require('../models/ventaDetalleModel');
 const Egreso = require('../models/egresoModel');
 const Categoria = require('../models/categoryModel');
 const { Op, fn, col } = require('sequelize');
+const { movimientosDeIngreso } = require('../services/ingresosService');
 
 /**
  * Obtiene las estadísticas detalladas para el dashboard
@@ -31,7 +32,9 @@ const getDashboardStats = async (req, res) => {
       }
     });
 
-    const totalIngresos = ventasAnio.reduce((sum, v) => sum + Number(v.total), 0);
+    // Ingresos = dinero cobrado (las entregas de pedidos cuentan lo pagado, en la fecha del pago)
+    const movimientos = await movimientosDeIngreso({ negocioid, from: startYear, to: endYear });
+    const totalIngresos = movimientos.reduce((sum, m) => sum + m.monto, 0);
     const totalEgresos = egresosAnio.reduce((sum, e) => sum + Number(e.total), 0);
     const balance = totalIngresos - totalEgresos;
     const totalVentasCount = ventasAnio.length;
@@ -43,9 +46,9 @@ const getDashboardStats = async (req, res) => {
       Gastos: 0
     }));
 
-    ventasAnio.forEach(v => {
-      const month = new Date(v.createdAt).getMonth();
-      monthlyFlow[month].Ingresos += Number(v.total);
+    movimientos.forEach(m => {
+      const month = new Date(m.fecha).getMonth();
+      monthlyFlow[month].Ingresos += m.monto;
     });
 
     egresosAnio.forEach(e => {

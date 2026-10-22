@@ -1,6 +1,7 @@
 const Venta = require('../models/ventaModel');
 const VentaDetalle = require('../models/ventaDetalleModel');
 const VentaPago = require('../models/ventaPagoModel');
+const { cobradoDeVentas } = require('../services/ingresosService');
 const Producto = require('../models/productModel');
 const Pedido = require('../models/pedidoModel');
 const sequelize = require('../config/database');
@@ -176,7 +177,8 @@ const getVentas = async (req, res) => {
       ],
       order: [['createdAt', 'DESC']]
     });
-    res.json(ventas);
+    const estado = await cobradoDeVentas(ventas);
+    res.json(ventas.map((v) => ({ ...v.toJSON(), ...estado(v) })));
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener las ventas' });
   }
@@ -199,7 +201,8 @@ const getVentaById = async (req, res) => {
     });
 
     if (!venta) return res.status(404).json({ mensaje: 'Venta no encontrada' });
-    res.json(venta);
+    const estado = await cobradoDeVentas([venta]);
+    res.json({ ...venta.toJSON(), ...estado(venta) });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener la venta' });
   }

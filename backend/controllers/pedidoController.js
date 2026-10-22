@@ -819,7 +819,7 @@ const deletePedido = async (req, res) => {
 
     // Referencias que apuntan a la compra
     await OrdenCompra.update({ pedidoid: null }, { where: { pedidoid: id }, transaction: t });
-    await Venta.update({ pedidoid: null }, { where: { pedidoid: id }, transaction: t });
+    // Las ventas de las entregas se conservan y siguen marcadas como venta de pedido (solo cuenta lo cobrado de ellas)
     await pedido.update({ ventaid: null }, { transaction: t });
     if (detalleids.length) await Asignacion.destroy({ where: { pedidodetalleid: detalleids }, transaction: t });
     await PedidoPago.destroy({ where: { pedidoid: id }, transaction: t });
