@@ -11,6 +11,13 @@ import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
 import './clientes.css';
 import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 
+const AVATAR_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#06B6D4','#EF4444','#6366F1'];
+const colorAvatar = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 65) % AVATAR_COLORS.length];
+const iniciales = (name) => {
+  const parts = (name || '?').trim().split(/\s+/);
+  return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : (name || '?').slice(0, 2).toUpperCase();
+};
+
 const SkeletonRow = () => (
   <tr>
     {[60, 30, 50, 40, 20].map((w, i) => (
@@ -155,14 +162,13 @@ function Clientes() {
       <style>{`@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
 
       <div className="clientes-header">
-        <div className="clientes-header-left">
-          <Users size={18} className="clientes-header-icon" />
-          <h2 className="clientes-titulo">Clientes</h2>
-          <span className="clientes-badge">{clientes.length}</span>
+        <div>
+          <h1 className="clientes-titulo">Clientes <span className="mod-count-badge">{clientes.length}</span></h1>
+          <p className="clientes-subtitle">Gestiona tus clientes y su saldo por cobrar</p>
         </div>
         <button className="clientes-btn-nuevo" onClick={abrirCrear}>
           <Plus size={14} />
-          <span>Nuevo Cliente</span>
+          <span>Nuevo cliente</span>
         </button>
       </div>
 
@@ -221,13 +227,34 @@ function Clientes() {
               Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
             ) : pagina.length > 0 ? pagina.map((c) => (
               <tr key={c.clienteid} data-fila>
-                <td className="clientes-td-nombre" data-label="Nombre">{c.nombreCliente}</td>
-                <td data-label="Teléfono">{c.telefono}</td>
-                <td data-label="Correo" title={c.correo}>{c.correo}</td>
-                <td data-label="Dirección" title={c.direccion}>{c.direccion}</td>
-                <td className="clientes-td-acciones" data-label="Acciones">
-                  <button className="clientes-btn-edit" onClick={() => abrirEditar(c)}><Edit2 size={13} /></button>
-                  <button className="clientes-btn-del" onClick={() => handleEliminar(c.clienteid, c.nombreCliente)}><Trash2 size={13} /></button>
+                <td className="clientes-td-nombre" data-label="Nombre">
+                  <div className="tbl-main-cell">
+                    <span className="tbl-avatar" style={{ background: colorAvatar(c.nombreCliente) }}>{iniciales(c.nombreCliente)}</span>
+                    <div className="tbl-cell-texts">
+                      <span className="tbl-cell-primary">{c.nombreCliente}</span>
+                      {Number(saldos[c.clienteid] || 0) > 0 && (
+                        <span className="tbl-badge tbl-badge--danger">{formatoMoneda(saldos[c.clienteid])} por cobrar</span>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Teléfono">{c.telefono || <span className="tbl-vacio">—</span>}</td>
+                <td data-label="Correo" title={c.correo}>{c.correo || <span className="tbl-vacio">—</span>}</td>
+                <td data-label="Dirección" title={c.direccion}>{c.direccion || <span className="tbl-vacio">—</span>}</td>
+                <td className="clientes-td-acciones" data-label="">
+                  <div className="tbl-actions">
+                    {c.telefono && (
+                      <button className="tbl-icon-btn tbl-icon-btn--wa" title="WhatsApp" onClick={(e) => { e.stopPropagation(); abrirWhatsApp(c.telefono); }}>
+                        <MessageCircle size={14} />
+                      </button>
+                    )}
+                    <button className="tbl-icon-btn tbl-icon-btn--editar" title="Editar" onClick={(e) => { e.stopPropagation(); abrirEditar(c); }}>
+                      <Edit2 size={14} />
+                    </button>
+                    <button className="tbl-icon-btn tbl-icon-btn--borrar" title="Eliminar" onClick={(e) => { e.stopPropagation(); handleEliminar(c.clienteid, c.nombreCliente); }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             )) : (

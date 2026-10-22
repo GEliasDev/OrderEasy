@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, FileSpreadsheet, Eye } from 'lucide-react';
+import { ShoppingCart, Search, FileSpreadsheet, Eye, Package } from 'lucide-react';
+
+const CAT_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#06B6D4','#EF4444','#6366F1','#14B8A6','#F97316'];
+const colorCategoria = (cat) => CAT_COLORS[Math.abs((cat || '').split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0)) % CAT_COLORS.length];
 import { getAllProducts } from '../../../../services/productServices';
 import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 import { formatearCantidad } from '../../../../utils/unidades';
@@ -103,10 +106,9 @@ const Productos = () => {
   return (
     <div className="productos-main">
       <div className="productos-header">
-        <div className="productos-header-left">
-          <ShoppingCart size={18} className="productos-header-icon" />
-          <h2 className="productos-titulo">Productos</h2>
-          <span className="productos-badge">{productos.length}</span>
+        <div>
+          <h1 className="productos-titulo">Productos <span className="mod-count-badge">{productos.length}</span></h1>
+          <p className="productos-subtitle">Inventario de productos, precios y existencias por categoría</p>
         </div>
         <div className="productos-header-right">
           <select
@@ -178,36 +180,52 @@ const Productos = () => {
         <table className={`productos-table${paginaLlena ? ' productos-table-llena' : ''}`}>
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Nombre</th>
-              <th>Descripción</th>
-              <th>Categoría</th>
-              <th>Cód. Barras</th>
-              <th>IVA</th>
+              <th>Producto</th>
               <th>Stock</th>
-              <th>Compra</th>
-              <th>Venta</th>
+              <th>Precio compra</th>
+              <th>Precio venta</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {pagina.length > 0 ? pagina.map((p) => (
-              <tr key={p.productoid} data-fila>
-                <td data-label="Fecha">{formatFecha(p.createdat)}</td>
-                <td className="productos-td-nombre" data-label="Nombre">{p.nombre}</td>
-                <td className="productos-td-descripcion" data-label="Descripción" title={p.descripcion}>{p.descripcion}</td>
-                <td data-label="Categoría">{p.categoriaNombre}</td>
-                <td className="productos-td-barcode" data-label="Cód. Barras">{p.codigoBarras || <span className="productos-td-empty">—</span>}</td>
-                <td data-label="IVA">{p.tasaIva ?? 0}%</td>
-                <td data-label="Stock" title={p.usaTallas ? (p.variantes || []).map((v) => `${v.talla}: ${v.cantidadDisponible}`).join(' · ') : undefined}>
-                  {formatearCantidad(p.cantidadDisponible, p.unidadMedida)}
-                  {p.usaTallas && <span className="productos-tallas"> · {p.variantes?.length || 0} tallas</span>}
+            {pagina.length > 0 ? pagina.map((p) => {
+              const stock = Number(p.cantidadDisponible);
+              const stockTono = stock <= 0 ? 'tbl-badge--danger' : stock < 5 ? 'tbl-badge--warning' : 'tbl-badge--ok';
+              const stockLabel = `${formatearCantidad(p.cantidadDisponible, p.unidadMedida)}${p.usaTallas ? ` · ${p.variantes?.length || 0} tallas` : ''}`;
+              return (
+              <tr key={p.productoid} data-fila onClick={() => navigate(`/dashboard/producto/${p.productoid}`)}>
+                <td className="productos-td-producto" data-label="Producto">
+                  <div className="tbl-main-cell">
+                    {p.imagenes?.[0] ? (
+                      <img src={imagenUrl(p.imagenes[0])} className="prod-img-mini" alt={p.nombre} />
+                    ) : (
+                      <span className="tbl-avatar" style={{ background: colorCategoria(p.categoriaNombre), borderRadius: '10px' }}>
+                        <Package size={14} />
+                      </span>
+                    )}
+                    <div className="tbl-cell-texts">
+                      <span className="tbl-cell-primary">{p.nombre}</span>
+                      <span className="tbl-cell-secondary">{p.categoriaNombre || 'Sin categoría'}</span>
+                    </div>
+                  </div>
                 </td>
-                <td data-label="Compra">${Number(p.precioCompra).toLocaleString('es-CO')}</td>
-                <td data-label="Venta">${Number(p.precioVenta).toLocaleString('es-CO')}</td>
+                <td data-label="Stock" title={p.usaTallas ? (p.variantes || []).map((v) => `${v.talla}: ${v.cantidadDisponible}`).join(' · ') : undefined}>
+                  <span className={`tbl-badge ${stockTono}`}>{stockLabel}</span>
+                </td>
+                <td data-label="Precio compra">${Number(p.precioCompra).toLocaleString('es-CO')}</td>
+                <td data-label="Precio venta" style={{ fontWeight: 600 }}>${Number(p.precioVenta).toLocaleString('es-CO')}</td>
+                <td className="productos-td-acciones" data-label="">
+                  <div className="tbl-actions">
+                    <button className="tbl-icon-btn tbl-icon-btn--ver" title="Ver detalle" onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/producto/${p.productoid}`); }}>
+                      <Eye size={14} />
+                    </button>
+                  </div>
+                </td>
               </tr>
-            )) : (
+              );
+            }) : (
               <tr>
-                <td colSpan="9" className="productos-empty">
+                <td colSpan="5" className="productos-empty">
                   <ShoppingCart size={28} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
                   <p>No se encontraron productos</p>
                 </td>

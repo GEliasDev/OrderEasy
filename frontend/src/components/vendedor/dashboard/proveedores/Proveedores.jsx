@@ -20,6 +20,13 @@ const formInicial = {
   tipoCuenta: '', categoriaSuministro: [], estado: 'Activo',
 };
 
+const AVATAR_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#06B6D4','#EF4444','#6366F1'];
+const colorAvatar = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 65) % AVATAR_COLORS.length];
+const iniciales = (name) => {
+  const parts = (name || '?').trim().split(/\s+/);
+  return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : (name || '?').slice(0, 2).toUpperCase();
+};
+
 const SkeletonRow = () => (
   <tr>
     {[55, 40, 25, 30, 30, 15, 15].map((w, i) => (
@@ -166,14 +173,13 @@ function Proveedores() {
       <style>{`@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
 
       <div className="proveedores-header">
-        <div className="proveedores-header-left">
-          <Truck size={18} className="proveedores-header-icon" />
-          <h2 className="proveedores-titulo">Proveedores</h2>
-          <span className="proveedores-badge">{proveedores.length}</span>
+        <div>
+          <h1 className="proveedores-titulo">Proveedores <span className="mod-count-badge">{proveedores.length}</span></h1>
+          <p className="proveedores-subtitle">Empresas y contactos a quienes les haces pedidos</p>
         </div>
         <button className="proveedores-btn-nuevo" onClick={abrirCrear}>
           <Plus size={14} />
-          <span>Nuevo Proveedor</span>
+          <span>Nuevo proveedor</span>
         </button>
       </div>
 
@@ -216,13 +222,12 @@ function Proveedores() {
         <table className={`proveedores-table${paginaLlena ? ' proveedores-table-llena' : ''}`}>
           <thead>
             <tr>
-              <th>Razón Social</th>
-              <th>Nombre Contacto</th>
+              <th>Proveedor</th>
               <th>NIT</th>
               <th>Teléfono</th>
               <th>Banco</th>
               <th>Estado</th>
-              <th>Acciones</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -230,22 +235,42 @@ function Proveedores() {
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : pagina.length > 0 ? pagina.map((p) => (
               <tr key={p.proveedorid} data-fila>
-                <td className="proveedores-td-razon" data-label="Razón Social">{p.razonSocial}</td>
-                <td data-label="Nombre Contacto">{p.nombreProveedor}</td>
-                <td data-label="NIT">{p.nit}</td>
-                <td data-label="Teléfono">{p.telefono}</td>
-                <td data-label="Banco">{p.banco}</td>
-                <td data-label="Estado">
-                  <span className={`proveedores-estado ${p.estado === 'Activo' ? 'activo' : 'inactivo'}`}>{p.estado}</span>
+                <td className="proveedores-td-razon" data-label="Proveedor">
+                  <div className="tbl-main-cell">
+                    <span className="tbl-avatar" style={{ background: colorAvatar(p.razonSocial) }}>{iniciales(p.razonSocial)}</span>
+                    <div className="tbl-cell-texts">
+                      <span className="tbl-cell-primary">{p.razonSocial}</span>
+                      {p.nombreProveedor && p.nombreProveedor !== p.razonSocial && (
+                        <span className="tbl-cell-secondary">{p.nombreProveedor}</span>
+                      )}
+                    </div>
+                  </div>
                 </td>
-                <td className="proveedores-td-acciones" data-label="Acciones">
-                  <button className="proveedores-btn-edit" onClick={() => abrirEditar(p)}><Edit2 size={13} /></button>
-                  <button className="proveedores-btn-del" onClick={() => handleEliminar(p.proveedorid, p.razonSocial)}><Trash2 size={13} /></button>
+                <td data-label="NIT">{p.nit || <span className="tbl-vacio">—</span>}</td>
+                <td data-label="Teléfono">{p.telefono || <span className="tbl-vacio">—</span>}</td>
+                <td data-label="Banco">{p.banco || <span className="tbl-vacio">—</span>}</td>
+                <td data-label="Estado">
+                  <span className={`tbl-badge ${p.estado === 'Activo' ? 'tbl-badge--ok' : 'tbl-badge--neutral'}`}>{p.estado}</span>
+                </td>
+                <td className="proveedores-td-acciones" data-label="">
+                  <div className="tbl-actions">
+                    {p.telefono && (
+                      <button className="tbl-icon-btn tbl-icon-btn--wa" title="WhatsApp" onClick={(e) => { e.stopPropagation(); if (!abrirWhatsApp(p.telefono, `Hola ${p.nombreProveedor || p.razonSocial}`)) toast.error('El teléfono no parece válido para WhatsApp.'); }}>
+                        <MessageCircle size={14} />
+                      </button>
+                    )}
+                    <button className="tbl-icon-btn tbl-icon-btn--editar" title="Editar" onClick={(e) => { e.stopPropagation(); abrirEditar(p); }}>
+                      <Edit2 size={14} />
+                    </button>
+                    <button className="tbl-icon-btn tbl-icon-btn--borrar" title="Eliminar" onClick={(e) => { e.stopPropagation(); handleEliminar(p.proveedorid, p.razonSocial); }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             )) : (
               <tr>
-                <td colSpan="7" className="proveedores-empty">
+                <td colSpan="6" className="proveedores-empty">
                   <Truck size={28} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
                   <p>No se encontraron proveedores</p>
                 </td>

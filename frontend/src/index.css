@@ -214,3 +214,144 @@ div { padding: 0; }
   text-transform: none;
   letter-spacing: 0;
 }
+
+/* ── Utilidades de módulo para desktop ──────────────────────────────────── */
+
+/* Cabecera estándar de módulo (título + subtítulo + acciones) */
+.mod-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.mod-page-title {
+  margin: 0 0 3px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mod-page-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--neutral-500);
+}
+.mod-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.55rem;
+  border-radius: 9999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  vertical-align: middle;
+  line-height: 1.5;
+}
+.mod-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* Avatar/iniciales en celdas de tabla */
+.tbl-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Celda principal con avatar + texto primario + secundario */
+.tbl-main-cell { display: flex; align-items: center; gap: 0.7rem; }
+.tbl-cell-texts { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.tbl-cell-primary { font-weight: 600; color: var(--neutral-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.tbl-cell-secondary { font-size: 0.73rem; color: var(--neutral-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Botones icono en tablas */
+.tbl-actions { display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem; }
+.tbl-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.tbl-icon-btn--ver { background: var(--color-primary-soft); color: var(--color-primary); }
+.tbl-icon-btn--ver:hover { background: #dbeafe; }
+.tbl-icon-btn--editar { background: #EDE9FE; color: #7C3AED; }
+.tbl-icon-btn--editar:hover { background: #ddd6fe; }
+.tbl-icon-btn--borrar { background: var(--color-danger-soft); color: var(--color-danger); }
+.tbl-icon-btn--borrar:hover { background: #fecaca; }
+.tbl-icon-btn--wa { background: #DCFCE7; color: #15803D; }
+.tbl-icon-btn--wa:hover { background: #bbf7d0; }
+
+/* Badges de estado/monto en celdas */
+.tbl-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.67rem;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.tbl-badge--ok { background: var(--color-success-soft); color: #047857; }
+.tbl-badge--danger { background: var(--color-danger-soft); color: var(--color-danger); }
+.tbl-badge--warning { background: var(--color-warning-soft); color: #92400E; }
+.tbl-badge--neutral { background: var(--neutral-100); color: var(--neutral-600); }
+.tbl-badge--primary { background: var(--color-primary-soft); color: var(--color-primary); }
+
+/* Chips de filtro para desktop (en barra de búsqueda) */
+.tbl-chips { display: flex; gap: 0.4rem; flex-wrap: nowrap; align-items: center; margin-bottom: 0.75rem; overflow-x: auto; scrollbar-width: none; }
+.tbl-chips::-webkit-scrollbar { display: none; }
+.tbl-chip {
+  flex-shrink: 0;
+  padding: 0.3rem 0.8rem;
+  border-radius: 9999px;
+  border: 1px solid var(--neutral-200);
+  background: var(--surface);
+  color: var(--neutral-600);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.tbl-chip:hover { border-color: var(--neutral-300); background: var(--neutral-50); }
+.tbl-chip--activo { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.tbl-chip--activo:hover { background: var(--color-primary-dark); border-color: var(--color-primary-dark); }
+
+/* Muted placeholder en celdas vacías */
+.tbl-vacio { color: var(--neutral-400); }
+
+/* ── Modo oscuro ── */
+:root[data-theme="dark"] .tbl-icon-btn--editar { background: #2A2147; color: #C4B5FD; }
+:root[data-theme="dark"] .tbl-icon-btn--editar:hover { background: #3A3257; }
+:root[data-theme="dark"] .tbl-badge--ok { background: var(--color-success-soft); color: var(--color-success); }
+:root[data-theme="dark"] .tbl-badge--danger { background: var(--color-danger-soft); color: var(--color-danger); }
+:root[data-theme="dark"] .tbl-badge--warning { background: var(--color-warning-soft); color: var(--color-warning); }
+:root[data-theme="dark"] .tbl-badge--neutral { background: var(--neutral-200); color: var(--neutral-700); }
+:root[data-theme="dark"] .mod-count-badge { background: var(--color-primary-soft); color: var(--color-primary); }
+:root[data-theme="dark"] .tbl-chip { background: var(--surface-2); border-color: var(--neutral-200); }
