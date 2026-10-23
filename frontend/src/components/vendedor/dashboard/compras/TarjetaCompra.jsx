@@ -84,6 +84,8 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
   const telefono = compra.cliente?.telefono;
   const resumen = compra.resumen || {};
   const saldo = num(resumen.saldo);
+  // Dinero del cliente que sobra una vez cubierto lo que falta por entregar (p. ej. tras devolver mercancía ya pagada)
+  const aFavorCliente = Math.max(0, num(resumen.disponibleAbonos) - num(resumen.porEntregar));
   const detalles = compra.detalles || [];
   const pagos = compra.pagos || [];
   // Las devoluciones se muestran como estado de cada línea (con su motivo), no como una sección aparte
@@ -162,6 +164,12 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
               : saldo > 0 ? <strong className="compras-saldo-pendiente">{formatoMoneda(saldo)}</strong>
                 : <span className="tbl-badge tbl-badge--ok">Pagado</span>}
           </span>
+          {aFavorCliente > 0.009 && (
+            <span title="Dinero que el cliente pagó de más. Devuélvelo con «Devolver dinero» o úsalo en otra compra.">
+              <small>A favor del cliente</small>
+              <strong className="compras-a-favor">{formatoMoneda(aFavorCliente)}</strong>
+            </span>
+          )}
         </div>
         <div className="tbl-actions">
           {puedeAbonar && (

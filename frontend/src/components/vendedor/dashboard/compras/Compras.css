@@ -579,6 +579,7 @@
 .compras-cliente-dinero small { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--neutral-400, #94A3B8); }
 .compras-cliente-dinero strong { font-size: 0.88rem; color: var(--neutral-900, #0F172A); font-variant-numeric: tabular-nums; }
 .compras-cliente-dinero .compras-saldo-pendiente { color: var(--color-danger, #DC2626); }
+.compras-cliente-dinero .compras-a-favor { color: var(--color-warning, #B45309); }
 
 .compras-cliente-lineas { padding: 0.35rem 0.6rem 0.6rem; }
 .compras-cliente-linea {
