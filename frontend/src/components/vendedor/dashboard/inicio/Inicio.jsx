@@ -1,13 +1,58 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
-  TrendingUp, TrendingDown, Package, AlertTriangle,
-  ShoppingBag, Clock, ChevronRight
+  TrendingUp, TrendingDown, Package, AlertTriangle, ShoppingBag, Wallet,
+  ChevronRight, Plus, ClipboardList, Receipt, CalendarDays,
 } from 'lucide-react';
 import { getVentas } from '../../../../services/ventaService';
 import { getEgresos } from '../../../../services/egresoService';
 import { getAllProducts } from '../../../../services/productServices';
+import { getSaldoPorCobrar } from '../../../../services/pedidoService';
 import './inicio.css';
+
+const STOCK_BAJO = 5;
+const DIAS_GRAFICA = 7;
+const MONEDA = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+const COMPACTO = new Intl.NumberFormat('es-CO', { notation: 'compact', maximumFractionDigits: 1 });
+const fmt = (n) => MONEDA.format(Number(n) || 0);
+const fmtCompacto = (n) => `$${COMPACTO.format(Number(n) || 0)}`;
+
+// Ingreso = dinero cobrado (una entrega de pedido sin pagar todavía no cuenta)
+const cobradoDe = (v) => Number(v.cobrado ?? v.total);
+
+const claveDia = (fecha) => {
+  const d = new Date(fecha);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const prefiereMenosMovimiento = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+function Tarjeta({ etiqueta, valor, nota, icono: Icono, tono, alerta }) {
+  return (
+    <article className={`ini-kpi ini-kpi--${tono}${alerta ? ' ini-kpi--alerta' : ''}`}>
+      <span className="ini-kpi-icono"><Icono size={18} aria-hidden="true" /></span>
+      <div>
+        <h3>{etiqueta}</h3>
+        <p className="ini-kpi-valor">{valor}</p>
+        {nota && <span className="ini-kpi-nota">{nota}</span>}
+      </div>
+    </article>
+  );
+}
+
+function TooltipDia({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const { etiquetaLarga, total, ventas } = payload[0].payload;
+  return (
+    <div className="ini-tooltip">
+      <strong>{etiquetaLarga}</strong>
+      <span>{fmt(total)}</span>
+      <small>{ventas} {ventas === 1 ? 'venta' : 'ventas'}</small>
+    </div>
+  );
+}
 
 function Inicio() {
   const navigate = useNavigate();
@@ -15,7 +60,9 @@ function Inicio() {
   const [ventas, setVentas] = useState([]);
   const [egresos, setEgresos] = useState([]);
   const [productos, setProductos] = useState([]);
+  const [porCobrar, setPorCobrar] = useState(null);
   const [user, setUser] = useState(null);
+  const reducido = useMemo(prefiereMenosMovimiento, []);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -23,210 +70,232 @@ function Inicio() {
       try { setUser(JSON.parse(userData)); } catch { localStorage.removeItem('user'); }
     }
 
-    Promise.all([getVentas(), getEgresos(), getAllProducts()])
-      .then(([v, e, p]) => {
+    Promise.all([getVentas(), getEgresos(), getAllProducts(), getSaldoPorCobrar().catch(() => null)])
+      .then(([v, e, p, saldo]) => {
         setVentas(v);
         setEgresos(e);
         setProductos(p);
+        setPorCobrar(saldo);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const todayStr = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  })();
+  const datos = useMemo(() => {
+    const ahora = new Date();
+    const hoy = claveDia(ahora);
+    const mes = ahora.getMonth();
+    const anio = ahora.getFullYear();
+    const delMes = (f) => { const d = new Date(f); return d.getMonth() === mes && d.getFullYear() === anio; };
 
-  const localDateStr = (iso) => {
-    const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  };
+    const ventasHoy = ventas.filter((v) => claveDia(v.createdAt) === hoy);
+    const ingresosMes = ventas.filter((v) => delMes(v.createdAt)).reduce((s, v) => s + cobradoDe(v), 0);
+    const egresosMes = egresos.filter((e) => delMes(e.createdAt)).reduce((s, e) => s + Number(e.total), 0);
 
-  const ventasHoy = ventas.filter(v => localDateStr(v.createdAt) === todayStr);
-  // Ingresos = dinero cobrado (una entrega de pedido sin pagar todavía no cuenta)
-  const ingresosHoy = ventasHoy.reduce((s, v) => s + Number(v.cobrado ?? v.total), 0);
+    const dias = Array.from({ length: DIAS_GRAFICA }, (_, i) => {
+      const d = new Date(ahora);
+      d.setDate(ahora.getDate() - (DIAS_GRAFICA - 1 - i));
+      return {
+        clave: claveDia(d),
+        etiqueta: d.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', ''),
+        etiquetaLarga: d.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }),
+        total: 0,
+        ventas: 0,
+      };
+    });
+    const porDia = new Map(dias.map((d) => [d.clave, d]));
+    ventas.forEach((v) => {
+      const dia = porDia.get(claveDia(v.createdAt));
+      if (dia) { dia.total += cobradoDe(v); dia.ventas += 1; }
+    });
 
-  const now = new Date();
-  const mesActual = now.getMonth();
-  const anioActual = now.getFullYear();
-
-  const ingresosMes = ventas
-    .filter(v => { const d = new Date(v.createdAt); return d.getMonth() === mesActual && d.getFullYear() === anioActual; })
-    .reduce((s, v) => s + Number(v.total), 0);
-
-  const egresosMes = egresos
-    .filter(e => { const d = new Date(e.createdAt); return d.getMonth() === mesActual && d.getFullYear() === anioActual; })
-    .reduce((s, e) => s + Number(e.total), 0);
-
-  const balanceMes = ingresosMes - egresosMes;
-
-  const stockCritico = productos.filter(p => Number(p.cantidadDisponible) < 5);
-
-  const ultimasVentas = [...ventas]
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, 5);
-
-  const fmt = (n) => `$${Number(n).toLocaleString('es-CO')}`;
-
-  const formatFecha = (iso) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
-  };
+    const vigentes = productos.filter((p) => p.activo !== false);
+    return {
+      ahora,
+      ventasHoy,
+      ingresosHoy: ventasHoy.reduce((s, v) => s + cobradoDe(v), 0),
+      ingresosMes,
+      egresosMes,
+      balanceMes: ingresosMes - egresosMes,
+      dias,
+      totalSemana: dias.reduce((s, d) => s + d.total, 0),
+      stockCritico: vigentes
+        .filter((p) => Number(p.cantidadDisponible) < STOCK_BAJO)
+        .sort((a, b) => Number(a.cantidadDisponible) - Number(b.cantidadDisponible)),
+      totalProductos: vigentes.length,
+      ultimasVentas: [...ventas].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 6),
+    };
+  }, [ventas, egresos, productos]);
 
   const nombreUsuario = user?.primerNombre || 'usuario';
+  const { ahora, ventasHoy, balanceMes, stockCritico } = datos;
+  const saldoPorCobrar = Number(porCobrar?.total || 0);
 
   if (loading) {
     return (
-      <div className="inicio-loader">
-        <div className="inicio-spinner"></div>
-        <p>Cargando...</p>
+      <div className="ini-pagina" role="status" aria-label="Cargando inicio">
+        <div className="ini-esq ini-esq--titulo" />
+        <div className="ini-kpis">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="ini-esq ini-esq--kpi" />)}</div>
+        <div className="ini-fila"><div className="ini-esq ini-esq--panel" /><div className="ini-esq ini-esq--panel" /></div>
       </div>
     );
   }
 
   return (
-    <div className="inicio-view">
-      {/* Header */}
-      <div className="inicio-header">
+    <div className="ini-pagina">
+      <header className="ini-encabezado">
         <div>
-          <h1 className="inicio-welcome">Hola, {nombreUsuario}</h1>
-          <p className="inicio-fecha">
-            <Clock size={13} />
-            {now.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          <h1>Hola, {nombreUsuario}</h1>
+          <p>
+            <CalendarDays size={14} aria-hidden="true" />
+            <span className="ini-fecha">{ahora.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </p>
         </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="inicio-kpi-grid">
-        <div className="inicio-kpi-card">
-          <div className="inicio-kpi-icon success">
-            <TrendingUp size={20} />
-          </div>
-          <div className="inicio-kpi-body">
-            <span className="inicio-kpi-label">Ventas hoy</span>
-            <span className="inicio-kpi-value">{fmt(ingresosHoy)}</span>
-            <span className="inicio-kpi-sub">{ventasHoy.length} {ventasHoy.length === 1 ? 'transacción' : 'transacciones'}</span>
-          </div>
+        <div className="ini-accesos">
+          <button type="button" className="ini-btn ini-btn--primario" onClick={() => navigate('/dashboard/nueva-venta')}>
+            <Plus size={16} aria-hidden="true" /><span>Registrar venta</span>
+          </button>
+          <button type="button" className="ini-btn" onClick={() => navigate('/dashboard/pedidos/nuevo')}>
+            <ClipboardList size={16} aria-hidden="true" /><span>Nuevo pedido</span>
+          </button>
+          <button type="button" className="ini-btn" onClick={() => navigate('/dashboard/nuevo-egreso')}>
+            <Receipt size={16} aria-hidden="true" /><span>Registrar egreso</span>
+          </button>
         </div>
+      </header>
 
-        <div className="inicio-kpi-card">
-          <div className={`inicio-kpi-icon ${balanceMes >= 0 ? 'primary' : 'danger'}`}>
-            {balanceMes >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-          </div>
-          <div className="inicio-kpi-body">
-            <span className="inicio-kpi-label">Balance del mes</span>
-            <span className={`inicio-kpi-value ${balanceMes < 0 ? 'text-danger' : ''}`}>{fmt(balanceMes)}</span>
-            <span className="inicio-kpi-sub">{fmt(ingresosMes)} ingresos · {fmt(egresosMes)} egresos</span>
-          </div>
-        </div>
+      <section className="ini-kpis" aria-label="Resumen del día y del mes">
+        <Tarjeta
+          etiqueta="Ventas hoy"
+          valor={fmt(datos.ingresosHoy)}
+          nota={`${ventasHoy.length} ${ventasHoy.length === 1 ? 'venta' : 'ventas'}`}
+          icono={TrendingUp}
+          tono="ok"
+        />
+        <Tarjeta
+          etiqueta="Balance del mes"
+          valor={fmt(balanceMes)}
+          nota={`${fmtCompacto(datos.ingresosMes)} ingresos · ${fmtCompacto(datos.egresosMes)} egresos`}
+          icono={balanceMes >= 0 ? TrendingUp : TrendingDown}
+          tono={balanceMes >= 0 ? 'primario' : 'peligro'}
+        />
+        <Tarjeta
+          etiqueta="Por cobrar"
+          valor={fmt(saldoPorCobrar)}
+          nota={porCobrar ? `${porCobrar.clientes || 0} ${porCobrar.clientes === 1 ? 'cliente' : 'clientes'} con saldo` : 'Saldo de tus clientes'}
+          icono={Wallet}
+          tono={saldoPorCobrar > 0 ? 'aviso' : 'ok'}
+        />
+        <Tarjeta etiqueta="Productos" valor={datos.totalProductos} nota="activos en inventario" icono={Package} tono="primario" />
+        <Tarjeta
+          etiqueta="Stock crítico"
+          valor={stockCritico.length}
+          nota={stockCritico.length === 0 ? 'Sin alertas' : `menos de ${STOCK_BAJO} unidades`}
+          icono={AlertTriangle}
+          tono={stockCritico.length > 0 ? 'aviso' : 'ok'}
+          alerta={stockCritico.length > 0}
+        />
+      </section>
 
-        <div className="inicio-kpi-card">
-          <div className="inicio-kpi-icon primary">
-            <Package size={20} />
-          </div>
-          <div className="inicio-kpi-body">
-            <span className="inicio-kpi-label">Productos</span>
-            <span className="inicio-kpi-value">{productos.length}</span>
-            <span className="inicio-kpi-sub">en inventario</span>
-          </div>
-        </div>
-
-        <div className={`inicio-kpi-card ${stockCritico.length > 0 ? 'kpi-warning' : ''}`}>
-          <div className={`inicio-kpi-icon ${stockCritico.length > 0 ? 'warning' : 'success'}`}>
-            <AlertTriangle size={20} />
-          </div>
-          <div className="inicio-kpi-body">
-            <span className="inicio-kpi-label">Stock crítico</span>
-            <span className="inicio-kpi-value">{stockCritico.length}</span>
-            <span className="inicio-kpi-sub">{stockCritico.length === 0 ? 'Sin alertas' : 'productos con menos de 5 und.'}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom panels */}
-      <div className="inicio-panels">
-        {/* Últimas ventas */}
-        <div className="inicio-panel">
-          <div className="inicio-panel-header">
-            <div className="inicio-panel-title">
-              <ShoppingBag size={16} />
-              <span>Últimas ventas</span>
+      <div className="ini-fila">
+        <section className="ini-panel ini-panel--ancho" aria-labelledby="ini-semana">
+          <header className="ini-panel-cabecera">
+            <div>
+              <h2 id="ini-semana">Ventas de los últimos {DIAS_GRAFICA} días</h2>
+              <p>{fmt(datos.totalSemana)} cobrados en la semana</p>
             </div>
-            <button className="inicio-ver-mas" onClick={() => navigate('/dashboard/balance')}>
-              Ver todas <ChevronRight size={13} />
+            <button type="button" className="ini-ver" onClick={() => navigate('/dashboard/estadisticas')}>
+              Ver estadísticas <ChevronRight size={14} aria-hidden="true" />
             </button>
+          </header>
+          <div
+            className="ini-grafica"
+            role="img"
+            aria-label={`Ventas por día: ${datos.dias.map((d) => `${d.etiquetaLarga} ${fmt(d.total)}`).join('; ')}`}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={datos.dias} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="var(--neutral-200)" strokeDasharray="3 4" />
+                <XAxis dataKey="etiqueta" axisLine={false} tickLine={false} tick={{ fill: 'var(--neutral-500)', fontSize: 12 }} dy={6} />
+                <YAxis axisLine={false} tickLine={false} width={52} tick={{ fill: 'var(--neutral-500)', fontSize: 12 }} tickFormatter={fmtCompacto} />
+                <Tooltip content={<TooltipDia />} cursor={{ fill: 'var(--neutral-100)' }} />
+                <Bar dataKey="total" fill="var(--color-primary)" radius={[6, 6, 0, 0]} maxBarSize={44} isAnimationActive={!reducido} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
+        </section>
 
-          {ultimasVentas.length === 0 ? (
-            <div className="inicio-empty">
-              <TrendingUp size={28} style={{ opacity: 0.2 }} />
-              <p>Aún no hay ventas registradas</p>
+        <section className="ini-panel" aria-labelledby="ini-stock">
+          <header className="ini-panel-cabecera">
+            <div>
+              <h2 id="ini-stock">Stock crítico</h2>
+              <p>{stockCritico.length === 0 ? 'Todo en orden' : `${stockCritico.length} ${stockCritico.length === 1 ? 'producto' : 'productos'} por reponer`}</p>
             </div>
-          ) : (
-            <ul className="inicio-venta-list">
-              {ultimasVentas.map((v) => {
-                const resumen = v.detalles?.length > 1
-                  ? `${v.detalles[0].productoNombre} (+${v.detalles.length - 1})`
-                  : v.detalles?.[0]?.productoNombre || 'Venta';
-                return (
-                  <li key={v.ventaid} className="inicio-venta-item"
-                    onClick={() => navigate(`/dashboard/venta/${v.ventaid}`, { state: { venta: v } })}>
-                    <div className="inicio-venta-info">
-                      <span className="inicio-venta-producto">{resumen}</span>
-                      <span className="inicio-venta-cliente">
-                        {v.cliente?.nombreCliente || <span style={{ opacity: 0.5 }}>General</span>}
-                      </span>
-                    </div>
-                    <div className="inicio-venta-right">
-                      <span className="inicio-venta-total">{fmt(v.total)}</span>
-                      <span className="inicio-venta-fecha">{formatFecha(v.createdAt)}</span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-
-        {/* Stock crítico */}
-        <div className="inicio-panel">
-          <div className="inicio-panel-header">
-            <div className="inicio-panel-title">
-              <AlertTriangle size={16} />
-              <span>Stock crítico</span>
-            </div>
-            <button className="inicio-ver-mas" onClick={() => navigate('/dashboard/inventario')}>
-              Ver inventario <ChevronRight size={13} />
+            <button type="button" className="ini-ver" onClick={() => navigate('/dashboard/productos')}>
+              Ver productos <ChevronRight size={14} aria-hidden="true" />
             </button>
-          </div>
+          </header>
 
           {stockCritico.length === 0 ? (
-            <div className="inicio-empty">
-              <Package size={28} style={{ opacity: 0.2 }} />
-              <p>Todos los productos tienen stock suficiente</p>
-            </div>
+            <div className="ini-vacio"><Package size={28} aria-hidden="true" /><p>Todos los productos tienen stock suficiente</p></div>
           ) : (
-            <ul className="inicio-stock-list">
+            <ul className="ini-lista">
               {stockCritico.slice(0, 6).map((p) => (
-                <li key={p.productoid} className="inicio-stock-item">
-                  <div className="inicio-stock-info">
-                    <span className="inicio-stock-nombre">{p.nombre}</span>
-                    <span className="inicio-stock-precio">{fmt(p.precioVenta)}</span>
-                  </div>
-                  <span className={`inicio-stock-badge ${p.cantidadDisponible === 0 ? 'badge-out' : 'badge-low'}`}>
-                    {p.cantidadDisponible === 0 ? 'Sin stock' : `${p.cantidadDisponible} und.`}
-                  </span>
+                <li key={p.productoid}>
+                  <button type="button" className="ini-fila-item" onClick={() => navigate(`/dashboard/producto/${p.productoid}`)}>
+                    <span className="ini-item-textos">
+                      <strong>{p.nombre}</strong>
+                      <small>{fmt(p.precioVenta)}</small>
+                    </span>
+                    <span className={`tbl-badge ${Number(p.cantidadDisponible) <= 0 ? 'tbl-badge--danger' : 'tbl-badge--warning'}`}>
+                      {Number(p.cantidadDisponible) <= 0 ? 'Sin stock' : `${p.cantidadDisponible} und.`}
+                    </span>
+                  </button>
                 </li>
               ))}
-              {stockCritico.length > 6 && (
-                <li className="inicio-stock-more">+{stockCritico.length - 6} productos más con stock bajo</li>
-              )}
+              {stockCritico.length > 6 && <li className="ini-mas">+{stockCritico.length - 6} productos más con stock bajo</li>}
             </ul>
           )}
-        </div>
+        </section>
       </div>
+
+      <section className="ini-panel" aria-labelledby="ini-ventas">
+        <header className="ini-panel-cabecera">
+          <div>
+            <h2 id="ini-ventas">Últimas ventas</h2>
+            <p>Los movimientos más recientes de tu negocio</p>
+          </div>
+          <button type="button" className="ini-ver" onClick={() => navigate('/dashboard/balance')}>
+            Ver todas <ChevronRight size={14} aria-hidden="true" />
+          </button>
+        </header>
+
+        {datos.ultimasVentas.length === 0 ? (
+          <div className="ini-vacio"><ShoppingBag size={28} aria-hidden="true" /><p>Aún no hay ventas registradas</p></div>
+        ) : (
+          <ul className="ini-lista">
+            {datos.ultimasVentas.map((v) => {
+              const resumen = v.detalles?.length > 1
+                ? `${v.detalles[0].productoNombre} (+${v.detalles.length - 1})`
+                : v.detalles?.[0]?.productoNombre || 'Venta';
+              return (
+                <li key={v.ventaid}>
+                  <button type="button" className="ini-fila-item" onClick={() => navigate(`/dashboard/venta/${v.ventaid}`, { state: { venta: v } })}>
+                    <span className="ini-item-textos">
+                      <strong>{resumen}</strong>
+                      <small>{v.cliente?.nombreCliente || 'General'}</small>
+                    </span>
+                    <span className="ini-item-derecha">
+                      <strong className="ini-monto">{fmt(cobradoDe(v))}</strong>
+                      <small>{new Date(v.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</small>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
