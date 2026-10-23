@@ -70,6 +70,32 @@ const resumenProductos = (compra) => (compra.detalles || [])
   .map((d) => `${cantidad(d.cantidad)}× ${d.productoNombre}${d.talla ? ` · ${d.talla}` : ''}`)
   .join(', ');
 
+const miniaturaProducto = (ruta) => (
+  <span className="compras-producto-miniatura" aria-hidden="true">
+    <Package size={15} />
+    {ruta && (
+      <img
+        src={imagenUrl(ruta)}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+      />
+    )}
+  </span>
+);
+
+// En qué punto va lo que un cliente pidió de un producto: esperando al proveedor, llegó, entregado...
+const situacionDe = (asignacion) => {
+  if (!asignacionActiva(asignacion)) return { texto: 'Compra cancelada', clase: 'cancelado' };
+  const recibido = num(asignacion.cantidadRecibida);
+  const entregado = num(asignacion.pedidoDetalle?.cantidadEntregada) >= num(asignacion.pedidoDetalle?.cantidad);
+  if (entregado) return { texto: 'Entregado', clase: 'entregado' };
+  if (recibido >= num(asignacion.cantidad)) return { texto: 'Listo para entregar', clase: 'listo' };
+  if (recibido > 0) return { texto: 'Llegó parte', clase: 'parcial' };
+  return { texto: 'Esperando al proveedor', clase: 'espera' };
+};
+
 // Desglose de productos de una compra de cliente, con una miniatura de cada producto
 const desgloseProductos = (compra) => (
   <div className="compras-productos-desglose">
@@ -425,6 +451,21 @@ function DetalleCompra() {
   const puedeCambiarProveedor = !['recibida', 'anulada'].includes(orden.estado);
   const resumen = orden.resumenCompras || { cantidad: 0, total: 0, abonado: 0, saldo: 0 };
 
+  // Lo pedido al proveedor, repartido por compra de cliente; lo que no tiene cliente va al stock
+  const lineasPorCompra = new Map();
+  const lineasStock = [];
+  for (const detalle of detalles) {
+    const activas = (detalle.asignaciones || []).filter(asignacionActiva);
+    for (const asignacion of detalle.asignaciones || []) {
+      const compraid = asignacion.pedidoDetalle?.pedido?.pedidoid;
+      if (!compraid) continue;
+      if (!lineasPorCompra.has(compraid)) lineasPorCompra.set(compraid, []);
+      lineasPorCompra.get(compraid).push({ detalle, asignacion });
+    }
+    const paraStock = redondear(num(detalle.cantidad) - activas.reduce((s, a) => s + num(a.cantidad), 0));
+    if (paraStock > 0) lineasStock.push({ detalle, cantidad: paraStock });
+  }
+
   return (
     <div className="detalle-tx-view detalle-ancho">
       {!modal && (<>
@@ -541,6 +582,7 @@ function DetalleCompra() {
         <div className="compras-nota-bloque"><FileText size={14} /><span>{orden.descripcion}</span></div>
       )}
 
+      {abierto && (<>
       <div className="mod-seccion">
         <span className="mod-seccion-icono"><Users size={16} /></span>
         <div className="mod-seccion-textos">
@@ -645,6 +687,7 @@ function DetalleCompra() {
         </div>
         )
       )}
+      </>)}
 
       {abierto ? (
         <>
@@ -706,147 +749,162 @@ function DetalleCompra() {
       ) : (
         <>
           <div className="mod-seccion">
-            <span className="mod-seccion-icono"><Truck size={16} /></span>
+            <span className="mod-seccion-icono"><Users size={16} /></span>
             <div className="mod-seccion-textos">
-              <h2>Lo pedido al proveedor y su reparto <span className="mod-count-badge">{detalles.length}</span></h2>
-              <p>Cada par está destinado a un cliente; lo que no tiene cliente va al stock. Al registrar la recepción eliges a quién corresponde lo que llegó.</p>
+              <h2>Clientes y lo pedido al proveedor <span className="mod-count-badge">{resumen.cantidad}</span></h2>
+              <p>Cada compra de cliente con sus productos: lo que pediste al proveedor, cuánto ha llegado y qué ya puedes entregar. Lo que no tiene cliente va al stock. Al registrar la recepción eliges a quién corresponde lo que llegó.</p>
             </div>
-            {pedidos > 0 && (
-              <div className="mod-seccion-chips">
+            <div className="mod-seccion-chips">
+              {pedidos > 0 && (
                 <span className={`tbl-badge ${recibidos >= pedidos ? 'tbl-badge--ok' : recibidos > 0 ? 'tbl-badge--warning' : 'tbl-badge--neutral'}`}>
                   Recibido {cantidad(recibidos)} / {cantidad(pedidos)}
                 </span>
-              </div>
-            )}
+              )}
+              {resumen.cantidad > 0 && (
+                <>
+                  <span className="tbl-badge tbl-badge--ok">Abonado {formatoMoneda(resumen.abonado)}</span>
+                  <span className={`tbl-badge ${resumen.saldo > 0 ? 'tbl-badge--danger' : 'tbl-badge--neutral'}`}>Por cobrar {formatoMoneda(resumen.saldo)}</span>
+                </>
+              )}
+            </div>
           </div>
 
-          {detalles.map((detalle) => {
-            const progreso = num(detalle.cantidad) === 0 ? 0 : (num(detalle.cantidadRecibida) / num(detalle.cantidad)) * 100;
-            const estadoLinea = progreso >= 100
-              ? { texto: 'Completo', clase: 'tbl-badge--ok' }
-              : progreso > 0 ? { texto: 'Llegó parte', clase: 'tbl-badge--warning' } : { texto: 'Sin recibir', clase: 'tbl-badge--neutral' };
-            const activas = (detalle.asignaciones || []).filter(asignacionActiva);
-            const paraStock = redondear(num(detalle.cantidad) - activas.reduce((s, a) => s + num(a.cantidad), 0));
+          {compras.length === 0 && lineasStock.length === 0 && (
+            <div className="pedido-ordenes-vacio">
+              <Users size={32} />
+              <p>Este pedido no tiene compras de clientes ni productos.</p>
+            </div>
+          )}
+
+          {compras.map((compra) => {
+            const anulada = compra.estado === 'anulado';
+            const estadoCompra = compra.estado || 'pendiente';
+            const clienteNombre = compra.cliente?.nombreCliente || 'Sin cliente';
+            const saldo = Number(compra.resumen?.saldo || 0);
+            const lineas = lineasPorCompra.get(compra.pedidoid) || [];
             return (
-              <div key={detalle.detalleid} className="compras-linea">
-                <div className="compras-linea-producto">
-                  <span className="compras-producto-miniatura compras-linea-miniatura" aria-hidden="true">
-                    <Package size={16} />
-                    {detalle.producto?.imagenes?.[0] && (
-                      <img
-                        src={imagenUrl(detalle.producto.imagenes[0])}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                      />
+              <div key={compra.pedidoid} className={`compras-cliente${anulada ? ' compras-cliente-anulada' : ''}`}>
+                <div className="compras-cliente-cabecera">
+                  <div className="tbl-main-cell compras-cliente-id">
+                    <span className="tbl-avatar" style={{ background: colorAvatar(clienteNombre), opacity: anulada ? 0.5 : 1 }}>{iniciales(clienteNombre)}</span>
+                    <div className="tbl-cell-texts">
+                      <button type="button" className="pedido-link-venta compras-cliente-nombre" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>{clienteNombre}</button>
+                      <span className="tbl-cell-secondary">
+                        Compra #{compra.pedidoid} · <span className={`tbl-badge ${BADGE_ESTADO_CLIENTE[estadoCompra] || 'tbl-badge--neutral'}`}>{ESTADOS_COMPRA_CLIENTE[estadoCompra] || estadoCompra}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="compras-cliente-dinero">
+                    <span><small>Total</small><strong>{formatoMoneda(compra.total)}</strong></span>
+                    <span><small>Abonado</small><strong>{formatoMoneda(compra.resumen?.abonado)}</strong></span>
+                    <span><small>Saldo</small>
+                      {anulada ? <strong className="tbl-vacio">—</strong>
+                        : saldo > 0 ? <strong className="compras-saldo-pendiente">{formatoMoneda(saldo)}</strong>
+                          : <span className="tbl-badge tbl-badge--ok">Pagado</span>}
+                    </span>
+                  </div>
+                  <div className="tbl-actions">
+                    {!anulada && saldo > 0 && (
+                      <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=abono`)}>
+                        <Plus size={13} /><span>Abonar</span>
+                      </button>
                     )}
-                  </span>
-                  <div className="compras-linea-info">
-                    <div className="compras-linea-titulo">
-                      <strong>{detalle.productoNombre}</strong>
-                      {detalle.talla && <span className="cart-item-talla">Talla {detalle.talla}</span>}
-                    </div>
-                    <div className="compras-linea-meta">
-                      <span className="compras-chip">{cantidad(detalle.cantidad)} und</span>
-                      <span className="compras-chip">{formatoMoneda(detalle.precioUnitario)} c/u</span>
-                      <span className="compras-chip compras-chip-fuerte">Total {formatoMoneda(detalle.subtotal)}</span>
-                    </div>
-                  </div>
-                  <div className="compras-linea-recibido">
-                    <strong>{num(detalle.cantidadRecibida)} / {cantidad(detalle.cantidad)}</strong>
-                    <span className={`tbl-badge ${estadoLinea.clase}`}>{estadoLinea.texto}</span>
+                    <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
+                      <Eye size={13} /><span>Detalle</span>
+                    </button>
                   </div>
                 </div>
 
-                <div className="compras-linea-progreso">
-                  <div className={`compras-barra${progreso < 100 ? ' compras-barra-parcial' : ''}`}><div style={{ width: `${Math.min(100, progreso)}%` }} /></div>
-                </div>
-
-                <div className="compras-reparto">
-                  <div className="compras-reparto-titulo">Reparto por cliente</div>
-                  <div className="compras-reparto-cabecera" aria-hidden="true">
-                    <span>Cliente</span>
-                    <span className="compras-reparto-cabecera-datos"><span>Asignado</span><span>Recibido</span></span>
-                    <span>Situación</span>
-                    <span />
-                  </div>
-                  {(detalle.asignaciones || []).map((asignacion) => {
-                    const compra = asignacion.pedidoDetalle?.pedido;
-                    const activa = asignacionActiva(asignacion);
-                    const recibido = num(asignacion.cantidadRecibida);
-                    const completo = recibido >= num(asignacion.cantidad);
-                    const entregado = num(asignacion.pedidoDetalle?.cantidadEntregada) >= num(asignacion.pedidoDetalle?.cantidad);
-                    let situacion = { texto: 'Esperando al proveedor', clase: 'espera' };
-                    if (!activa) situacion = { texto: 'Compra cancelada', clase: 'cancelado' };
-                    else if (entregado) situacion = { texto: 'Entregado', clase: 'entregado' };
-                    else if (completo) situacion = { texto: 'Listo para entregar', clase: 'listo' };
-                    else if (recibido > 0) situacion = { texto: 'Llegó parte', clase: 'parcial' };
-                    return (
-                      <div key={asignacion.asignacionid} className={`compras-reparto-item${!activa ? ' compras-reparto-cancelada' : ''}`}>
-                        <span className="compras-reparto-cliente">
-                          <span className="tbl-avatar compras-reparto-avatar" style={{ background: colorAvatar(compra?.cliente?.nombreCliente) }}>{iniciales(compra?.cliente?.nombreCliente)}</span>
-                          <span className="compras-reparto-cliente-texto">
-                            <button type="button" className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedido/${compra?.pedidoid}`)}>
-                              {compra?.cliente?.nombreCliente || 'Sin cliente'}
-                            </button>
-                            <small>Compra #{compra?.pedidoid || '—'}</small>
+                {lineas.length === 0 ? (
+                  <div className="compras-cliente-lineas">{desgloseProductos(compra)}</div>
+                ) : (
+                  <div className="compras-cliente-lineas">
+                    <div className="compras-cliente-linea compras-cliente-linea-cabecera" aria-hidden="true">
+                      <span>Producto</span><span>Asignado</span><span>Recibido</span><span>Situación</span><span />
+                    </div>
+                    {lineas.map(({ detalle, asignacion }) => {
+                      const activa = asignacionActiva(asignacion);
+                      const recibido = num(asignacion.cantidad) > 0 ? num(asignacion.cantidadRecibida) : 0;
+                      const entregada = num(asignacion.pedidoDetalle?.cantidadEntregada);
+                      const situacion = situacionDe(asignacion);
+                      return (
+                        <div key={asignacion.asignacionid} className={`compras-cliente-linea${!activa ? ' compras-reparto-cancelada' : ''}`}>
+                          <span className="compras-cliente-producto">
+                            {miniaturaProducto(detalle.producto?.imagenes?.[0])}
+                            <span className="compras-producto-info">
+                              <span className="compras-producto-nombre">
+                                {detalle.productoNombre}
+                                {detalle.talla && <span className="cart-item-talla" style={{ marginLeft: '0.4rem' }}>Talla {detalle.talla}</span>}
+                              </span>
+                              <span className="compras-producto-meta">{formatoMoneda(detalle.precioUnitario)} c/u al proveedor</span>
+                            </span>
                           </span>
-                        </span>
-                        <span className="compras-reparto-datos">
-                          <span><strong>{num(asignacion.cantidad)}</strong><small>asignado</small></span>
-                          <span><strong>{recibido}</strong><small>recibido</small></span>
-                        </span>
-                        <span className="compras-reparto-estado">
-                          <span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span>
-                        </span>
-                        <span className="compras-reparto-accion">
-                          {activa && !entregado && recibido > 0 && (
-                            <button
-                              type="button"
-                              className="pedidos-btn pedidos-btn-verde pedidos-btn-sm"
-                              onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=entregar`)}
-                            >
-                              Entregar
-                            </button>
-                          )}
-                          {activa && num(asignacion.pedidoDetalle?.cantidadEntregada) > 0 && (
-                            <button
-                              type="button"
-                              className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm"
-                              title="El cliente devuelve este producto"
-                              onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=devolver&detalle=${asignacion.pedidoDetalle.detalleid}`)}
-                            >
-                              <Undo2 size={13} /><span>Devolución</span>
-                            </button>
-                          )}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {paraStock > 0 && (
-                    <div className="compras-reparto-item compras-reparto-stock">
-                      <span className="compras-reparto-cliente">
-                        <span className="tbl-avatar compras-reparto-avatar compras-reparto-avatar-stock"><Package size={14} /></span>
-                        <span className="compras-reparto-cliente-texto">
-                          <strong>Stock (sin cliente)</strong>
-                          <small>Va directo al inventario</small>
-                        </span>
-                      </span>
-                      <span className="compras-reparto-datos">
-                        <span><strong>{paraStock}</strong><small>asignado</small></span>
-                        <span><strong>—</strong><small>recibido</small></span>
-                      </span>
-                      <span className="compras-reparto-estado">
-                        <span className="compras-situacion compras-situacion-espera">Va directo al stock</span>
-                      </span>
-                      <span className="compras-reparto-accion" />
-                    </div>
-                  )}
-                </div>
+                          <span className="compras-cliente-cifra" data-etiqueta="Asignado"><strong>{num(asignacion.cantidad)}</strong></span>
+                          <span className="compras-cliente-cifra" data-etiqueta="Recibido"><strong>{recibido}</strong></span>
+                          <span className="compras-reparto-estado">
+                            <span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span>
+                          </span>
+                          <span className="compras-reparto-accion">
+                            {activa && entregada < num(asignacion.pedidoDetalle?.cantidad) && recibido > 0 && (
+                              <button type="button" className="pedidos-btn pedidos-btn-verde pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=entregar`)}>
+                                Entregar
+                              </button>
+                            )}
+                            {activa && entregada > 0 && (
+                              <button
+                                type="button"
+                                className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm"
+                                title="El cliente devuelve este producto"
+                                onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=devolver&detalle=${asignacion.pedidoDetalle.detalleid}`)}
+                              >
+                                <Undo2 size={13} /><span>Devolución</span>
+                              </button>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
+
+          {lineasStock.length > 0 && (
+            <div className="compras-cliente">
+              <div className="compras-cliente-cabecera">
+                <div className="tbl-main-cell compras-cliente-id">
+                  <span className="tbl-avatar compras-reparto-avatar-stock"><Package size={15} /></span>
+                  <div className="tbl-cell-texts">
+                    <span className="tbl-cell-primary">Stock (sin cliente)</span>
+                    <span className="tbl-cell-secondary">Lo que no tiene cliente va directo al inventario</span>
+                  </div>
+                </div>
+              </div>
+              <div className="compras-cliente-lineas">
+                {lineasStock.map(({ detalle, cantidad: paraStock }) => (
+                  <div key={detalle.detalleid} className="compras-cliente-linea">
+                    <span className="compras-cliente-producto">
+                      {miniaturaProducto(detalle.producto?.imagenes?.[0])}
+                      <span className="compras-producto-info">
+                        <span className="compras-producto-nombre">
+                          {detalle.productoNombre}
+                          {detalle.talla && <span className="cart-item-talla" style={{ marginLeft: '0.4rem' }}>Talla {detalle.talla}</span>}
+                        </span>
+                        <span className="compras-producto-meta">{formatoMoneda(detalle.precioUnitario)} c/u al proveedor</span>
+                      </span>
+                    </span>
+                    <span className="compras-cliente-cifra" data-etiqueta="Asignado"><strong>{paraStock}</strong></span>
+                    <span className="compras-cliente-cifra" data-etiqueta="Recibido"><strong>—</strong></span>
+                    <span className="compras-reparto-estado">
+                      <span className="compras-situacion compras-situacion-espera">Va directo al stock</span>
+                    </span>
+                    <span className="compras-reparto-accion" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
 
