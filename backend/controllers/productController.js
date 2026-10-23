@@ -258,6 +258,7 @@ const updateProduct = async (req, res) => {
       imagenes: nuevasImagenes,
       unidadMedida,
       usaTallas,
+      activo: req.body.activo !== undefined ? aBooleano(req.body.activo) : producto.activo,
     };
 
     const existentes = await Variante.findAll({ where: { productoid: producto.productoid }, transaction: t, lock: true });

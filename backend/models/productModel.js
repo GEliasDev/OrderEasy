@@ -91,6 +91,12 @@ const Producto = sequelize.define('Producto', {
     allowNull: false,
     defaultValue: false,
   },
+  // false = producto inactivo: sigue en el inventario pero no se ofrece para vender ni pedir
+  activo: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  },
 }, {
   timestamps: false,
   tableName: 'productos',
