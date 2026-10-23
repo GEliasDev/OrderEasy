@@ -38,3 +38,6 @@ backend/uploads/
 # Carpetas viejas Lumxis-* (repos independientes desvinculados, no deben commitearse)
 /Lumxis-Backend/
 /Lumxis-Frontend/
+
+# Capturas de revisión de diseño (scripts/capturas.cjs)
+capturas/
