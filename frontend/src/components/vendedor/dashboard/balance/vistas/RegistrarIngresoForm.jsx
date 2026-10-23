@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { X, Search, ShoppingCart, Trash2, Plus, Minus, AlertCircle, CheckCircle2, ArrowLeft, FileText } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { ShoppingCart } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
@@ -7,12 +7,8 @@ import { getAllProducts } from "../../../../../services/productServices";
 import { createVentaBatch } from "../../../../../services/ventaService";
 import { getClientes } from "../../../../../services/clienteService";
 import { useEsMovil } from '../../../../../hooks/useEsMovil';
-import BarraCarrito from '../../../../comunes/BarraCarrito';
-import { useCarrito, pasoDe, minimoDe } from "../../../../../hooks/useCarrito";
-import { stepCantidad, formatearCantidad } from "../../../../../utils/unidades";
-import SelectorTalla from "./SelectorTalla";
-import "./styles/CartStyles.css";
-import { API_URL } from '../../../../../config';
+import { useCarrito } from "../../../../../hooks/useCarrito";
+import CarritoPantalla from '../../../../comunes/CarritoPantalla';
 
 const RegistrarIngresoForm = () => {
   const navigate = useNavigate();
@@ -87,234 +83,53 @@ const RegistrarIngresoForm = () => {
     }
   };
 
-  const formatoMoneda = (valor) =>
-    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(valor);
+  const cerrarCarrito = useCallback(() => setCarritoAbierto(false), []);
 
   return (
-    <div className="cart-page-container">
-      <div className="cart-modal-container full-page">
-        <div className="cart-modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button className="back-button" onClick={() => navigate("/dashboard/balance")}>
-              <ArrowLeft size={20} />
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <ShoppingCart size={24} style={{ color: 'var(--color-primary)' }} />
-              <h2>Nueva Venta</h2>
-            </div>
-          </div>
-        </div>
-
-        <div className="cart-main-content">
-          {/* LEFT: Product selection */}
-          <div className="product-selection-panel">
-            <div className="search-filter-bar">
-              <div className="search-input-wrapper">
-                <Search className="search-icon" size={18} />
-                <input
-                  type="text"
-                  placeholder="Buscar producto..."
-                  value={busqueda}
-                  onChange={e => setBusqueda(e.target.value)}
-                />
-              </div>
-              <select
-                className="category-select"
-                value={categoriaSeleccionada}
-                onChange={e => setCategoriaSeleccionada(e.target.value)}
-              >
-                <option value="">Todas las categorías</option>
-                {categorias.map(cat => (
-                  <option key={cat.categoriaid} value={cat.categoriaid}>{cat.nombre}</option>
-                ))}
-              </select>
-            </div>
-
-            {cargando ? (
-              <div className="empty-cart-state">
-                <div className="loader-spinner" style={{ borderTopColor: 'var(--color-primary)' }}></div>
-                <p>Cargando productos...</p>
-              </div>
-            ) : productosFiltrados.length > 0 ? (
-              <div className="productos-container-cart">
-                {productosFiltrados.map(p => {
-                  const agotado = p.stockDisponible <= 0;
-                  return (
-                    <div
-                      key={p.productoid}
-                      className={`producto-card ${agotado ? 'producto-card-agotado' : ''}`}
-                      onClick={() => !agotado && elegirProducto(p)}
-                    >
-                      <div className="producto-imagen-container">
-                        <img
-                          src={p.imagenes && p.imagenes.length > 0
-                            ? (p.imagenes[0].startsWith("http") ? p.imagenes[0] : `${API_URL}/uploads/${p.imagenes[0]}`)
-                            : "/images/default-product.png"}
-                          alt={p.nombre}
-                          className="producto-imagen"
-                          onError={(e) => e.target.src = "/images/default-product.png"}
-                        />
-                        {agotado ? (
-                          <div className="stock-badge-cart stock-out-cart">Agotado</div>
-                        ) : (
-                          <div className={`stock-badge-cart ${p.stockDisponible < 5 ? 'stock-low-cart' : ''}`}>
-                            Stock: {formatearCantidad(p.stockDisponible, p.unidadMedida)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="product-info">
-                        <h3 className="producto-nombre">{p.nombre}</h3>
-                        {p.categoriaNombre && <span className="product-category">{p.categoriaNombre}</span>}
-                        <span className="producto-precio-cart">{formatoMoneda(p.precioVenta)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="empty-cart-state">
-                <AlertCircle size={48} />
-                <p>No se encontraron productos</p>
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT: Cart summary */}
-          <div className={`cart-summary-panel${esMovil ? ' cart-sheet' : ''}${carritoAbierto ? ' abierto' : ''}`}>
-            <div className="cart-title">
-              <ShoppingCart size={20} />
-              Carrito de Venta
-              {esMovil && (
-                <button type="button" className="cart-sheet-cerrar" onClick={() => setCarritoAbierto(false)} aria-label="Cerrar carrito"><X size={16} /></button>
-              )}
-            </div>
-
-            <div className="client-selection-cart">
-              <label>Cliente (Opcional)</label>
-              <select
-                value={clienteId}
-                onChange={(e) => setClienteId(e.target.value)}
-                className="cart-select-input"
-              >
-                <option value="">Consumidor Final / General</option>
-                {clientes.map(c => (
-                  <option key={c.clienteid} value={c.clienteid}>{c.nombreCliente}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="cart-notes-section">
-              <label><FileText size={11} /> Notas (Opcional)</label>
-              <textarea
-                className="cart-notes-input"
-                placeholder="Descripción o referencia de la venta..."
-                value={descripcion}
-                onChange={e => setDescripcion(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="cart-items-list">
-              {carrito.length === 0 ? (
-                <div className="empty-cart-state">
-                  <ShoppingCart size={40} strokeWidth={1.5} />
-                  <p>El carrito está vacío.<br />Selecciona productos a la izquierda.</p>
-                </div>
-              ) : (
-                carrito.map(item => (
-                  <div key={item.clave} className="cart-item">
-                    <img
-                      src={item.imagenes && item.imagenes.length > 0
-                        ? (item.imagenes[0].startsWith("http") ? item.imagenes[0] : `${API_URL}/uploads/${item.imagenes[0]}`)
-                        : "/images/default-product.png"}
-                      className="cart-item-image"
-                      alt={item.nombre}
-                    />
-                    <div className="cart-item-details">
-                      <span className="cart-item-name">
-                        {item.nombre}
-                        {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
-                      </span>
-                      <span className="cart-item-price">{formatoMoneda(item.precioVenta * item.cantidad)}</span>
-                    </div>
-                    <div className="cart-item-actions">
-                      <Trash2
-                        size={16}
-                        className="remove-item"
-                        onClick={() => eliminarDelCarrito(item.clave)}
-                      />
-                      <div className="quantity-controls">
-                        <button
-                          className="qty-btn"
-                          onClick={() => actualizarCantidad(item.clave, -1)}
-                          disabled={item.cantidad - pasoDe(item) < minimoDe(item)}
-                        >
-                          <Minus size={12} />
-                        </button>
-                        <input
-                          className="qty-input"
-                          type="number"
-                          min={minimoDe(item)}
-                          step={stepCantidad(item.unidadMedida)}
-                          max={item.stockDisponible}
-                          value={item.cantidad}
-                          onChange={e => setCantidadDirecta(item.clave, e.target.value)}
-                        />
-                        <button
-                          className="qty-btn"
-                          onClick={() => actualizarCantidad(item.clave, 1)}
-                          disabled={item.cantidad + pasoDe(item) > item.stockDisponible}
-                        >
-                          <Plus size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="cart-footer">
-              <div className="cart-total-row">
-                <span className="total-label">Total a pagar</span>
-                <span className="total-amount">{formatoMoneda(totalCarrito)}</span>
-              </div>
-              <button
-                className={`checkout-button ${procesando ? 'loading' : ''}`}
-                disabled={carrito.length === 0 || procesando}
-                onClick={finalizarVenta}
-              >
-                {procesando ? (
-                  <>
-                    <div className="loader-spinner"></div>
-                    <span>Procesando...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 size={20} />
-                    <span>Registrar Venta</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {esMovil && carritoAbierto && <div className="cart-sheet-fondo" onClick={() => setCarritoAbierto(false)} />}
-      {esMovil && !carritoAbierto && (
-        <BarraCarrito cantidad={carrito.length} total={formatoMoneda(totalCarrito)} etiqueta="Cobrar" tono="venta" onAbrir={() => setCarritoAbierto(true)} />
-      )}
-
-      {productoParaTalla && (
-        <SelectorTalla
-          producto={productoParaTalla}
-          modo="venta"
-          onSelect={elegirTalla}
-          onClose={cerrarSelectorTalla}
-        />
-      )}
-    </div>
+    <CarritoPantalla
+      tono="venta"
+      modoTalla="venta"
+      titulo="Registrar venta"
+      subtitulo="Toca los productos que vendes y cobra desde el carrito."
+      icono={ShoppingCart}
+      onVolver={() => navigate("/dashboard/balance")}
+      tituloCarrito="Carrito de venta"
+      textoBoton="Registrar venta"
+      etiquetaBarra="Cobrar"
+      textoTotal="Total a cobrar"
+      mostrarStock
+      precioDe={(p) => Number(p.precioVenta)}
+      productos={productosFiltrados}
+      cargando={cargando}
+      busqueda={busqueda}
+      onBusqueda={setBusqueda}
+      categorias={categorias}
+      categoriaSeleccionada={categoriaSeleccionada}
+      onCategoria={setCategoriaSeleccionada}
+      contactoEtiqueta="Cliente"
+      contactoVacio="Consumidor final / general"
+      contactos={clientes.map((c) => ({ id: c.clienteid, nombre: c.nombreCliente }))}
+      contactoId={clienteId}
+      onContacto={setClienteId}
+      notas={descripcion}
+      onNotas={setDescripcion}
+      notasPlaceholder="Descripción o referencia de la venta..."
+      carrito={carrito}
+      totalCarrito={totalCarrito}
+      onAgregar={elegirProducto}
+      onCantidad={actualizarCantidad}
+      onCantidadDirecta={setCantidadDirecta}
+      onEliminar={eliminarDelCarrito}
+      procesando={procesando}
+      onFinalizar={finalizarVenta}
+      esMovil={esMovil}
+      abierto={carritoAbierto}
+      onAbrir={() => setCarritoAbierto(true)}
+      onCerrar={cerrarCarrito}
+      productoParaTalla={productoParaTalla}
+      onElegirTalla={elegirTalla}
+      onCerrarTalla={cerrarSelectorTalla}
+    />
   );
 };
 

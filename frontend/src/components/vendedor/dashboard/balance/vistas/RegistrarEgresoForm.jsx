@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { X, Search, ShoppingCart, Trash2, Plus, Minus, AlertCircle, CheckCircle2, ArrowLeft, FileText, TrendingDown } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { TrendingDown } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { getCategoriesByUser } from "../../../../../services/categoryServices";
@@ -7,12 +7,8 @@ import { getAllProducts } from "../../../../../services/productServices";
 import { createEgresoBatch } from "../../../../../services/egresoService";
 import { getProveedores } from "../../../../../services/proveedorService";
 import { useEsMovil } from '../../../../../hooks/useEsMovil';
-import BarraCarrito from '../../../../comunes/BarraCarrito';
-import { useCarrito, pasoDe, minimoDe } from "../../../../../hooks/useCarrito";
-import { stepCantidad, formatearCantidad } from "../../../../../utils/unidades";
-import SelectorTalla from "./SelectorTalla";
-import "./styles/CartStyles.css";
-import { API_URL } from '../../../../../config';
+import { useCarrito } from "../../../../../hooks/useCarrito";
+import CarritoPantalla from '../../../../comunes/CarritoPantalla';
 
 const RegistrarEgresoForm = () => {
   const navigate = useNavigate();
@@ -82,221 +78,52 @@ const RegistrarEgresoForm = () => {
     }
   };
 
-  const formatoMoneda = (valor) =>
-    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(valor);
+  const cerrarCarrito = useCallback(() => setCarritoAbierto(false), []);
 
   return (
-    <div className="cart-page-container">
-      <div className="cart-modal-container full-page">
-        <div className="cart-modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button className="back-button" onClick={() => navigate("/dashboard/balance")}>
-              <ArrowLeft size={20} />
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <TrendingDown size={24} style={{ color: 'var(--color-danger)' }} />
-              <h2>Nuevo Egreso (Compra)</h2>
-            </div>
-          </div>
-        </div>
-
-        <div className="cart-main-content">
-          {/* LEFT: Product selection */}
-          <div className="product-selection-panel">
-            <div className="search-filter-bar">
-              <div className="search-input-wrapper">
-                <Search className="search-icon" size={18} />
-                <input
-                  type="text"
-                  placeholder="Buscar producto..."
-                  value={busqueda}
-                  onChange={e => setBusqueda(e.target.value)}
-                />
-              </div>
-              <select
-                className="category-select"
-                value={categoriaSeleccionada}
-                onChange={e => setCategoriaSeleccionada(e.target.value)}
-              >
-                <option value="">Todas las categorías</option>
-                {categorias.map(cat => (
-                  <option key={cat.categoriaid} value={cat.categoriaid}>{cat.nombre}</option>
-                ))}
-              </select>
-            </div>
-
-            {cargando ? (
-              <div className="empty-cart-state">
-                <div className="loader-spinner" style={{ borderTopColor: 'var(--color-danger)' }}></div>
-                <p>Cargando productos...</p>
-              </div>
-            ) : productosFiltrados.length > 0 ? (
-              <div className="productos-container-cart">
-                {productosFiltrados.map(p => (
-                  <div key={p.productoid} className="producto-card" onClick={() => elegirProducto(p)}>
-                    <div className="producto-imagen-container">
-                      <img
-                        src={p.imagenes && p.imagenes.length > 0
-                          ? (p.imagenes[0].startsWith("http") ? p.imagenes[0] : `${API_URL}/uploads/${p.imagenes[0]}`)
-                          : "/images/default-product.png"}
-                        alt={p.nombre}
-                        className="producto-imagen"
-                        onError={(e) => e.target.src = "/images/default-product.png"}
-                      />
-                      <div className="stock-badge-cart">
-                        Stock: {formatearCantidad(p.cantidadDisponible, p.unidadMedida)}
-                      </div>
-                    </div>
-                    <div className="product-info">
-                      <h3 className="producto-nombre">{p.nombre}</h3>
-                      {p.categoriaNombre && <span className="product-category">{p.categoriaNombre}</span>}
-                      <span className="producto-precio-cart egreso-precio">{formatoMoneda(p.precioCompra)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-cart-state">
-                <AlertCircle size={48} />
-                <p>No se encontraron productos</p>
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT: Cart summary */}
-          <div className={`cart-summary-panel${esMovil ? ' cart-sheet' : ''}${carritoAbierto ? ' abierto' : ''}`}>
-            <div className="cart-title">
-              <TrendingDown size={20} style={{ color: 'var(--color-danger)' }} />
-              Lista de Compra
-              {esMovil && (
-                <button type="button" className="cart-sheet-cerrar" onClick={() => setCarritoAbierto(false)} aria-label="Cerrar carrito"><X size={16} /></button>
-              )}
-            </div>
-
-            <div className="client-selection-cart">
-              <label>Proveedor (Opcional)</label>
-              <select
-                value={proveedorId}
-                onChange={(e) => setProveedorId(e.target.value)}
-                className="cart-select-input"
-              >
-                <option value="">Proveedor Genérico / Otros</option>
-                {proveedores.map(p => (
-                  <option key={p.proveedorid} value={p.proveedorid}>{p.nombreProveedor}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="cart-notes-section">
-              <label><FileText size={11} /> Notas (Opcional)</label>
-              <textarea
-                className="cart-notes-input"
-                placeholder="Descripción o referencia del egreso..."
-                value={descripcion}
-                onChange={e => setDescripcion(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="cart-items-list">
-              {carrito.length === 0 ? (
-                <div className="empty-cart-state">
-                  <ShoppingCart size={40} strokeWidth={1.5} />
-                  <p>La lista está vacía.<br />Selecciona productos a la izquierda.</p>
-                </div>
-              ) : (
-                carrito.map(item => (
-                  <div key={item.clave} className="cart-item">
-                    <img
-                      src={item.imagenes && item.imagenes.length > 0
-                        ? (item.imagenes[0].startsWith("http") ? item.imagenes[0] : `${API_URL}/uploads/${item.imagenes[0]}`)
-                        : "/images/default-product.png"}
-                      className="cart-item-image"
-                      alt={item.nombre}
-                    />
-                    <div className="cart-item-details">
-                      <span className="cart-item-name">
-                        {item.nombre}
-                        {item.talla && <span className="cart-item-talla">Talla {item.talla}</span>}
-                      </span>
-                      <span className="cart-item-price egreso-precio">{formatoMoneda(Number(item.precioCompra) * item.cantidad)}</span>
-                    </div>
-                    <div className="cart-item-actions">
-                      <Trash2
-                        size={16}
-                        className="remove-item"
-                        onClick={() => eliminarDelCarrito(item.clave)}
-                      />
-                      <div className="quantity-controls">
-                        <button
-                          className="qty-btn"
-                          onClick={() => actualizarCantidad(item.clave, -1)}
-                          disabled={item.cantidad - pasoDe(item) < minimoDe(item)}
-                        >
-                          <Minus size={12} />
-                        </button>
-                        <input
-                          className="qty-input"
-                          type="number"
-                          min={minimoDe(item)}
-                          step={stepCantidad(item.unidadMedida)}
-                          value={item.cantidad}
-                          onChange={e => setCantidadDirecta(item.clave, e.target.value)}
-                        />
-                        <button
-                          className="qty-btn"
-                          onClick={() => actualizarCantidad(item.clave, 1)}
-                        >
-                          <Plus size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="cart-footer">
-              <div className="cart-total-row">
-                <span className="total-label">Inversión Total</span>
-                <span className="total-amount egreso-precio">{formatoMoneda(totalCarrito)}</span>
-              </div>
-              <button
-                className={`checkout-button egreso-btn ${procesando ? 'loading' : ''}`}
-                disabled={carrito.length === 0 || procesando}
-                onClick={finalizarEgreso}
-              >
-                {procesando ? (
-                  <>
-                    <div className="loader-spinner"></div>
-                    <span>Procesando...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 size={20} />
-                    <span>Registrar Egreso</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {esMovil && carritoAbierto && <div className="cart-sheet-fondo" onClick={() => setCarritoAbierto(false)} />}
-      {esMovil && !carritoAbierto && (
-        <BarraCarrito cantidad={carrito.length} total={formatoMoneda(totalCarrito)} etiqueta="Registrar" tono="egreso" onAbrir={() => setCarritoAbierto(true)} />
-      )}
-
-      {productoParaTalla && (
-        <SelectorTalla
-          producto={productoParaTalla}
-          modo="compra"
-          onSelect={elegirTalla}
-          onClose={cerrarSelectorTalla}
-        />
-      )}
-    </div>
+    <CarritoPantalla
+      tono="egreso"
+      modoTalla="compra"
+      titulo="Registrar egreso"
+      subtitulo="Agrega la mercancía que compraste: el stock sube y el gasto queda en el balance."
+      icono={TrendingDown}
+      onVolver={() => navigate("/dashboard/balance")}
+      tituloCarrito="Carrito de compra"
+      textoBoton="Registrar egreso"
+      etiquetaBarra="Registrar"
+      textoTotal="Total del egreso"
+      precioDe={(p) => Number(p.precioCompra)}
+      productos={productosFiltrados}
+      cargando={cargando}
+      busqueda={busqueda}
+      onBusqueda={setBusqueda}
+      categorias={categorias}
+      categoriaSeleccionada={categoriaSeleccionada}
+      onCategoria={setCategoriaSeleccionada}
+      contactoEtiqueta="Proveedor"
+      contactoVacio="Proveedor genérico / otros"
+      contactos={proveedores.map((p) => ({ id: p.proveedorid, nombre: p.razonSocial || p.nombreProveedor }))}
+      contactoId={proveedorId}
+      onContacto={setProveedorId}
+      notas={descripcion}
+      onNotas={setDescripcion}
+      notasPlaceholder="Descripción o referencia del egreso..."
+      carrito={carrito}
+      totalCarrito={totalCarrito}
+      onAgregar={elegirProducto}
+      onCantidad={actualizarCantidad}
+      onCantidadDirecta={setCantidadDirecta}
+      onEliminar={eliminarDelCarrito}
+      procesando={procesando}
+      onFinalizar={finalizarEgreso}
+      esMovil={esMovil}
+      abierto={carritoAbierto}
+      onAbrir={() => setCarritoAbierto(true)}
+      onCerrar={cerrarCarrito}
+      productoParaTalla={productoParaTalla}
+      onElegirTalla={elegirTalla}
+      onCerrarTalla={cerrarSelectorTalla}
+    />
   );
 };
 
