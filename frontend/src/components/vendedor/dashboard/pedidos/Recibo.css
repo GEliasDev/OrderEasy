@@ -5,7 +5,7 @@
 /* La hoja del recibo se muestra como un papel centrado */
 .recibo-contenedor {
   width: 100%;
-  max-width: 560px;
+  max-width: 600px;
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: 12px;
   box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.1));
@@ -14,71 +14,78 @@
 
 /* La hoja siempre es clara (como el papel), incluso en modo oscuro */
 .recibo-hoja {
-  padding: 20px 22px;
+  --recibo-tinta: #0F172A;
+  --recibo-acento: #0F766E;
+  --recibo-acento-suave: #ECF6F4;
+  --recibo-gris: #475569;
+  --recibo-linea: #E2E8F0;
+  padding: 28px 30px 24px;
   overflow-y: auto;
   background: #fff;
-  color: #0F172A;
+  color: var(--recibo-tinta);
+  border-top: 6px solid var(--recibo-acento);
   font-size: 0.8rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
 }
 
-.recibo-encabezado {
+/* Cabecera: marca a la izquierda, identificación del documento a la derecha */
+.recibo-cabecera {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: -20px -22px 14px;
-  padding: 16px 22px;
-  background: #0F172A;
-  color: #fff;
-}
-.recibo-logo {
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-  object-fit: contain;
-  padding: 4px;
-  border-radius: 10px;
-  background: #fff;
-}
-.recibo-negocio { min-width: 0; }
-.recibo-negocio h2 { margin: 0 0 2px; font-size: 1.15rem; line-height: 1.2; letter-spacing: 0.01em; }
-.recibo-negocio p { margin: 1px 0 0; font-size: 0.72rem; color: #CBD5E1; }
-
-.recibo-titulo {
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 0 8px;
-  margin-bottom: 8px;
-  border-bottom: 2px solid #0F172A;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--recibo-tinta);
 }
-.recibo-numero { padding: 2px 10px; border-radius: 999px; background: #F1F5F9; font-size: 0.75rem; font-weight: 700; letter-spacing: 0; }
+.recibo-marca { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1 1 220px; }
+.recibo-logo { width: 62px; height: 62px; flex-shrink: 0; object-fit: contain; }
+.recibo-negocio { min-width: 0; }
+.recibo-negocio h2 { margin: 0 0 3px; font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; text-wrap: balance; }
+.recibo-negocio p { margin: 0; font-size: 0.72rem; color: var(--recibo-gris); }
 
-.recibo-datos { margin: 0 0 12px; padding: 8px 10px; border-radius: 8px; background: #F8FAFC; border: 1px solid #E2E8F0; }
-.recibo-datos > div { display: flex; gap: 8px; padding: 2px 0; }
-.recibo-datos dt { width: 4.5rem; flex-shrink: 0; color: #64748B; }
-.recibo-datos dd { margin: 0; font-weight: 600; }
+.recibo-doc { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; flex-shrink: 0; margin-left: auto; }
+.recibo-doc-tipo { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--recibo-acento); }
+.recibo-doc-numero { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+.recibo-doc-fecha { font-size: 0.7rem; color: var(--recibo-gris); }
 
-.recibo-importe { margin-bottom: 12px; padding: 10px; border: 1px solid #0F172A; border-radius: 10px; text-align: center; }
-.recibo-concepto { margin: 0 0 2px; color: #475569; }
-.recibo-monto { margin: 0; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.01em; }
+/* Partes: etiqueta pequeña sobre el dato */
+.recibo-partes { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px 20px; margin: 16px 0; }
+.recibo-partes > div { min-width: 0; }
+.recibo-partes dt { margin-bottom: 1px; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--recibo-gris); }
+.recibo-partes dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 
-.recibo-productos { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 0.72rem; }
-.recibo-productos th { text-align: left; padding: 5px 6px; background: #F1F5F9; color: #475569; font-weight: 700; }
-.recibo-productos td { padding: 4px 6px; border-bottom: 1px solid #E2E8F0; }
-.recibo-productos th:nth-child(n+2), .recibo-productos td:nth-child(n+2) { text-align: right; }
+/* Importe: el dato principal del recibo */
+.recibo-importe { margin-bottom: 18px; padding: 14px 16px; border-radius: 10px; background: var(--recibo-acento-suave); }
+.recibo-concepto { margin: 0; color: var(--recibo-gris); }
+.recibo-concepto strong { color: var(--recibo-tinta); }
+.recibo-monto { margin: 2px 0 4px; font-size: 2.1rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; color: var(--recibo-acento); }
+.recibo-letras { margin: 0; font-size: 0.72rem; font-style: italic; color: var(--recibo-gris); }
 
-.recibo-resumen { padding: 8px 10px; border-radius: 8px; background: #F1F5F9; }
-.recibo-resumen > div { display: flex; justify-content: space-between; padding: 2px 0; }
-.recibo-resumen > div:last-child { margin-top: 2px; padding-top: 4px; border-top: 1px solid #CBD5E1; font-size: 0.9rem; }
+.recibo-productos { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 0.75rem; }
+.recibo-productos th { padding: 0 0 6px; border-bottom: 1px solid var(--recibo-tinta); text-align: left; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--recibo-gris); }
+.recibo-productos td { padding: 6px 0; border-bottom: 1px solid var(--recibo-linea); vertical-align: top; }
+.recibo-productos th:nth-child(n+2), .recibo-productos td:nth-child(n+2) { padding-left: 14px; text-align: right; white-space: nowrap; }
+.recibo-talla { color: var(--recibo-gris); }
 
-.recibo-firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 34px; }
-.recibo-firmas > div { padding-top: 4px; border-top: 1px solid #0F172A; text-align: center; font-size: 0.7rem; color: #475569; }
+/* Resumen alineado a la derecha, con el saldo como cierre */
+.recibo-resumen { width: min(100%, 250px); margin-left: auto; }
+.recibo-resumen > div { display: flex; justify-content: space-between; gap: 16px; padding: 3px 0; }
+.recibo-resumen > div > span { color: var(--recibo-gris); }
+.recibo-resumen .recibo-resumen-saldo { margin-top: 4px; padding-top: 7px; border-top: 1px solid var(--recibo-tinta); font-size: 0.95rem; }
+.recibo-resumen .recibo-resumen-saldo > span { color: var(--recibo-tinta); font-weight: 700; }
 
-.recibo-pie { margin: 16px 0 0; padding-top: 8px; border-top: 1px dashed #CBD5E1; text-align: center; font-size: 0.7rem; color: #64748B; }
+.recibo-firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 44px; }
+.recibo-firmas > div { padding-top: 5px; border-top: 1px solid var(--recibo-tinta); text-align: center; font-size: 0.68rem; color: var(--recibo-gris); }
+
+.recibo-pie { margin: 18px 0 0; padding-top: 10px; border-top: 1px solid var(--recibo-linea); text-align: center; font-size: 0.7rem; color: var(--recibo-gris); }
+
+@media (max-width: 480px) {
+  .recibo-hoja { padding: 20px 16px 18px; }
+  .recibo-partes { grid-template-columns: 1fr; }
+  .recibo-doc { align-items: flex-start; text-align: left; margin-left: 0; }
+}
 
 /* Al imprimir solo sale la hoja del recibo */
 @media print {
@@ -86,7 +93,7 @@
   .recibo-contenedor, .recibo-contenedor * { visibility: visible !important; }
   .recibo-contenedor { position: absolute !important; left: 0; top: 0; width: 100%; max-width: none !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; }
   .recibo-hoja { max-width: 160mm; margin: 0 auto; padding: 12mm 14mm !important; }
-  .recibo-encabezado { margin: -12mm -14mm 6mm !important; padding: 8mm 14mm !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .recibo-datos, .recibo-resumen, .recibo-numero, .recibo-productos th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .recibo-hoja, .recibo-hoja * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .recibo-productos tr { break-inside: avoid; }
   .no-imprimir { display: none !important; }
 }

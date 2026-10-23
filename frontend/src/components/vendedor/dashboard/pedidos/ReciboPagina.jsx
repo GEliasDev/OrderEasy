@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { exportarRecibo } from '../../../../utils/exportarRecibo';
 import { abrirWhatsApp, mensajeRecibo } from '../../../../utils/whatsapp';
 import { imagenUrl } from '../../../../config';
+import { pesosEnLetras } from '../../../../utils/numeroALetras';
 import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import './Pedidos.css';
 import './Recibo.css';
@@ -88,44 +89,45 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
 
       <div className="recibo-contenedor">
         <article className="recibo-hoja" ref={hojaRef}>
-          <header className="recibo-encabezado">
-            {negocio?.logo && (
-              <img className="recibo-logo" src={imagenUrl(negocio.logo)} alt={`Logo de ${nombreNegocio}`} crossOrigin="anonymous" />
-            )}
-            <div className="recibo-negocio">
-              <h2>{nombreNegocio || 'OrderEasy'}</h2>
-              {negocio?.nit && <p>NIT {negocio.nit}</p>}
-              {negocio?.direccion && <p>{negocio.direccion}</p>}
-              {negocio?.telefono && <p>Tel. {negocio.telefono}</p>}
+          <header className="recibo-cabecera">
+            <div className="recibo-marca">
+              {negocio?.logo && (
+                <img className="recibo-logo" src={imagenUrl(negocio.logo)} alt={`Logo de ${nombreNegocio}`} crossOrigin="anonymous" />
+              )}
+              <div className="recibo-negocio">
+                <h2>{nombreNegocio || 'OrderEasy'}</h2>
+                {(negocio?.nit || negocio?.telefono) && (
+                  <p>{[negocio?.nit && `NIT ${negocio.nit}`, negocio?.telefono && `Tel. ${negocio.telefono}`].filter(Boolean).join(' · ')}</p>
+                )}
+                {negocio?.direccion && <p>{negocio.direccion}</p>}
+              </div>
+            </div>
+            <div className="recibo-doc">
+              <span className="recibo-doc-tipo">{tipo.titulo}</span>
+              <strong className="recibo-doc-numero">N° {String(pago.pagoid).padStart(5, '0')}</strong>
+              <span className="recibo-doc-fecha">{fecha}</span>
             </div>
           </header>
 
-          <div className="recibo-titulo">
-            <strong>{tipo.titulo}</strong>
-            <span className="recibo-numero">N° {String(pago.pagoid).padStart(5, '0')}</span>
-          </div>
-
-          <dl className="recibo-datos">
-            <div><dt>Fecha</dt><dd>{fecha}</dd></div>
+          <dl className="recibo-partes">
             <div><dt>Cliente</dt><dd>{cliente}{pedido.cliente?.telefono ? ` · ${pedido.cliente.telefono}` : ''}</dd></div>
             <div><dt>Pedido</dt><dd>#{pedido.pedidoid}</dd></div>
-            <div><dt>Método</dt><dd>{METODOS[pago.metodo] || pago.metodo}</dd></div>
+            <div><dt>Método de pago</dt><dd>{METODOS[pago.metodo] || pago.metodo}</dd></div>
             {pago.nota && <div><dt>Nota</dt><dd>{pago.nota}</dd></div>}
           </dl>
 
-          <div className="recibo-importe">
-            <p className="recibo-concepto">
-              {tipo.verbo} <strong>{cliente}</strong> la suma de
-            </p>
+          <section className="recibo-importe">
+            <p className="recibo-concepto">{tipo.verbo} <strong>{cliente}</strong> la suma de</p>
             <p className="recibo-monto">{formatoMoneda(pago.monto)}</p>
-          </div>
+            {pesosEnLetras(pago.monto) && <p className="recibo-letras">Son: {pesosEnLetras(pago.monto)} M/CTE.</p>}
+          </section>
 
           <table className="recibo-productos">
             <thead><tr><th>Producto del pedido</th><th>Cant.</th><th>Valor</th></tr></thead>
             <tbody>
               {(pedido.detalles || []).map((d) => (
                 <tr key={d.detalleid}>
-                  <td>{d.productoNombre}{d.talla ? ` (talla ${d.talla})` : ''}</td>
+                  <td>{d.productoNombre}{d.talla ? <span className="recibo-talla"> · talla {d.talla}</span> : ''}</td>
                   <td>{d.cantidad}</td>
                   <td>{formatoMoneda(d.subtotal)}</td>
                 </tr>
@@ -135,7 +137,8 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
 
           <div className="recibo-resumen">
             <div><span>Total del pedido</span><strong>{formatoMoneda(pedido.total)}</strong></div>
-            <div><span>Saldo pendiente</span><strong>{saldo > 0 ? formatoMoneda(saldo) : 'Pagado'}</strong></div>
+            <div><span>Pagado a la fecha</span><strong>{formatoMoneda(Math.max(0, Number(pedido.total) - saldo))}</strong></div>
+            <div className="recibo-resumen-saldo"><span>Saldo pendiente</span><strong>{saldo > 0 ? formatoMoneda(saldo) : 'Pagado'}</strong></div>
           </div>
 
           <div className="recibo-firmas">
