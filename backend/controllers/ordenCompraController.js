@@ -12,6 +12,8 @@ const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 const { resolverStockDeDetalle, guardarStock } = require('../services/stockService');
 const PedidoPago = require('../models/pedidoPagoModel');
+const PedidoDevolucion = require('../models/pedidoDevolucionModel');
+const Venta = require('../models/ventaModel');
 const { resumenPedido } = require('../services/pedidoPagoService');
 const {
   calcularFaltantes, crearOrdenDesdePedidos, repartirRecepcion, sincronizarEstadoPedido, pedidoidsDeOrden,
@@ -96,12 +98,17 @@ const comprasDeOrdenes = async (ordenids) => {
         include: [{ model: Producto, as: 'producto', attributes: ['productoid', 'imagenes'] }],
       },
       { model: PedidoPago, as: 'pagos' },
+      { model: PedidoDevolucion, as: 'devoluciones' },
+      { model: Venta, as: 'ventas', attributes: ['ventaid', 'total', 'createdAt'] },
       { model: Cliente, as: 'cliente', attributes: ['clienteid', 'nombreCliente', 'telefono'] },
     ],
     order: [['pedidoid', 'ASC']],
   });
   const jsons = compras.map((c) => {
     const json = c.toJSON();
+    json.pagos = (json.pagos || []).sort((a, b) => a.pagoid - b.pagoid);
+    json.devoluciones = (json.devoluciones || []).sort((a, b) => a.devolucionid - b.devolucionid);
+    json.ventas = (json.ventas || []).sort((a, b) => a.ventaid - b.ventaid);
     json.resumen = resumenPedido(json);
     return json;
   });
