@@ -35,6 +35,7 @@ const DetalleProducto = lazy(() => import('./components/vendedor/dashboard/inven
 const NuevoProducto = lazy(() => import('./components/vendedor/dashboard/inventario/vistas/NuevoProducto'));
 const EditarProducto = lazy(() => import('./components/vendedor/dashboard/inventario/vistas/EditarProducto'));
 const Categorias = lazy(() => import('./components/vendedor/dashboard/categorias/Categorias'));
+const CategoriaForm = lazy(() => import('./components/vendedor/dashboard/categorias/CategoriaForm'));
 const Usuarios = lazy(() => import('./components/vendedor/dashboard/usuarios/Usuario'));
 const Roles = lazy(() => import('./components/vendedor/dashboard/roles/Roles'));
 const UsuarioForm = lazy(() => import('./components/vendedor/dashboard/usuarios/UsuarioForm'));
@@ -86,6 +87,8 @@ function App() {
                 <Route path="inventario" element={<SeccionRoute seccion="inventario"><Inventario /></SeccionRoute>} />
                 <Route path="productos" element={<SeccionRoute seccion="productos"><Productos /></SeccionRoute>} />
                 <Route path="categorias" element={<SeccionRoute seccion="categorias"><Categorias /></SeccionRoute>} />
+                <Route path="categorias/nueva" element={<SeccionRoute seccion="categorias"><CategoriaForm /></SeccionRoute>} />
+                <Route path="categorias/:id/editar" element={<SeccionRoute seccion="categorias"><CategoriaForm /></SeccionRoute>} />
                 <Route path="pedidos" element={<SeccionRoute seccion="pedidos"><Compras /></SeccionRoute>} />
                 <Route path="pedidos/nuevo" element={<SeccionRoute seccion="pedidos"><CrearPedidoProveedor /></SeccionRoute>} />
                 <Route path="pedidos/:id/:vista?" element={<SeccionRoute seccion="pedidos"><DetalleCompra /></SeccionRoute>} />
