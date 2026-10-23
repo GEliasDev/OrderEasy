@@ -28,6 +28,11 @@ Monorepo de gestión de inventario y punto de venta. `backend/` (Node + Express 
 - Formularios y acciones van como rutas completas, no como modales. El carrito usa panel derecho fijo.
 - Estado del producto: `productos.activo` (por defecto `true`). Los inactivos siguen en el inventario pero no se ofrecen en pedidos ni ingresos.
 
+## Rediseño de interfaz
+
+- Todo rediseño es responsive, usa el ancho completo y los tokens de `index.css` (claro y oscuro). Reglas completas y estado por módulo en `REDISENO.md`; actualizarlo al terminar cada módulo.
+- Antes de darlo por terminado, revisar con `node scripts/capturas.cjs dashboard/<ruta>` (Playwright: 1920, 1440, 820, 375 y modo oscuro; avisa de desbordes). Imágenes en `capturas/` (ignorada por git).
+
 ## Git
 
 - Un commit por cambio, mensajes en español (`feat(area): ...`, `fix(area): ...`).
