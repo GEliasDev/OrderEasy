@@ -589,4 +589,14 @@
 
 @media (min-width: 769px) {
   .cart-sheet-cerrar { display: none; }
+
+  /* La pantalla ocupa exactamente el alto disponible del dashboard (sin pasarse por la barra superior ni el padding),
+     así el panel derecho queda fijo y su total y botón siempre se ven sin hacer scroll */
+  .cart-page-container,
+  .cart-modal-container.full-page { height: 100%; min-height: 0; }
+  .cart-main-content { height: auto; min-height: 0; }
+  .cart-summary-panel { overflow-y: auto; min-height: 0; }
+  .cart-summary-panel .cart-title { position: sticky; top: 0; z-index: 2; }
+  .cart-summary-panel .cart-items-list { flex: 1 0 auto; overflow: visible; }
+  .cart-summary-panel .cart-footer { position: sticky; bottom: 0; z-index: 2; margin-top: auto; }
 }
