@@ -30,6 +30,8 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 
 - `POST /api/pedidos/:id/devoluciones` (`services/pedidoDevolucionService.js`) registra mercancía que el cliente devuelve tras recibirla, con un motivo (`color`, `talla`, `modelo`, `danado`, `no_gusto`, `otro`). Baja `cantidad`/`cantidadEntregada` de la línea y el total del pedido, corrige la venta generada, libera de ella el dinero cobrado de más (vuelve a ser abono disponible) y, opcionalmente, reingresa stock y reembolsa. El historial queda en `pedido_devoluciones` (migración 009).
 
+- `GET/PUT /api/usuarios/me` (cualquier usuario autenticado) lee y edita el perfil propio: nombres, correo (único) y teléfono; no cambia rol ni negocio y devuelve un token nuevo porque el JWT lleva el correo. La información de la empresa (`PUT /api/negocio`) también la puede editar cualquier usuario.
+
 ## Tallas y unidades de medida
 
 - `productos.usaTallas = true` → el stock vive en `producto_variantes` (una fila por talla, con `cantidadDisponible`/`cantidadReservada`) y `productos.cantidadDisponible/cantidadReservada` guardan el **total** (suma de tallas), así listados y estadísticas no cambian. Sin tallas, el stock sigue en el propio producto.

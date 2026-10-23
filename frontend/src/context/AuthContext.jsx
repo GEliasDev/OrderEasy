@@ -40,10 +40,23 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
+  // Refresca los datos del usuario guardados (nombre, correo...) cuando edita su perfil; el token nuevo reemplaza al anterior
+  const actualizarUsuario = useCallback((parcial, nuevoToken) => {
+    setUser((previo) => {
+      const siguiente = { ...(previo || {}), ...parcial };
+      localStorage.setItem('user', JSON.stringify(siguiente));
+      return siguiente;
+    });
+    if (nuevoToken) {
+      localStorage.setItem('token', nuevoToken);
+      setToken(nuevoToken);
+    }
+  }, []);
+
   const isAuthenticated = !!token && isTokenValid(token);
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated, login, logout, actualizarUsuario }}>
       {children}
     </AuthContext.Provider>
   );

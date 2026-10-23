@@ -1,0 +1,40 @@
+.perfil-view { width: 100%; max-width: 1100px; }
+
+.perfil-resumen {
+  display: flex; align-items: center; gap: 1rem;
+  margin-bottom: 1.25rem; padding: 1rem 1.25rem;
+  background: var(--surface); border: 1px solid var(--neutral-200); border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.perfil-avatar { width: 52px; height: 52px; font-size: 1rem; }
+.perfil-resumen-nombre { font-size: 1.05rem; font-weight: 700; color: var(--neutral-900); }
+.perfil-resumen-meta { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-top: 2px; font-size: 0.82rem; color: var(--neutral-500); }
+
+.perfil-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.25rem; align-items: start; }
+
+.perfil-card {
+  display: flex; flex-direction: column; gap: 0.9rem;
+  padding: 1.25rem 1.4rem;
+  background: var(--surface); border: 1px solid var(--neutral-200); border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.perfil-card-titulo { margin: 0 0 0.25rem; }
+
+.perfil-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+.perfil-campo { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.perfil-campo label { font-size: 0.75rem; font-weight: 600; color: var(--neutral-700); }
+.perfil-campo input {
+  padding: 0.55rem 0.7rem; border: 1px solid var(--neutral-200); border-radius: 8px;
+  font-size: 0.85rem; color: var(--neutral-900); background: var(--surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.perfil-campo input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-soft); }
+
+.perfil-acciones { display: flex; justify-content: flex-end; margin-top: 0.25rem; padding-top: 0.9rem; border-top: 1px solid var(--neutral-100); }
+
+@media (max-width: 640px) {
+  .perfil-grid { grid-template-columns: 1fr; }
+  .perfil-fila { grid-template-columns: 1fr; }
+  .perfil-card { padding: 1rem; }
+  .perfil-acciones .pedidos-btn { width: 100%; justify-content: center; }
+}

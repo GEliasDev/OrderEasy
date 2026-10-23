@@ -2,6 +2,7 @@ const Usuario = require('../models/userModel');
 const Rol = require('../models/rolModel');
 const RolSeccion = require('../models/roleSeccionModel');
 const bcrypt = require('bcrypt');
+const { generarToken } = require('../utils/jwt');
 
 const getAllUsers = async (req, res) => {
   try {
@@ -131,4 +132,74 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getAllUsers, createUser, updateUser, deleteUser };
+// ===============================================
+// 👤 PERFIL PROPIO: cualquier usuario ve y edita sus datos (no cambia su rol ni su negocio)
+// ===============================================
+const perfilDe = (usuario) => ({
+  id: usuario.usuarioid,
+  primerNombre: usuario.primer_nombre,
+  segundoNombre: usuario.segundo_nombre || '',
+  primerApellido: usuario.primer_apellido,
+  segundoApellido: usuario.segundo_apellido || '',
+  correo: usuario.correo,
+  telefono: usuario.telefono || '',
+  rol: usuario.rol,
+});
+
+const getMiPerfil = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.usuario.usuarioid);
+    if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+    res.status(200).json({ perfil: perfilDe(usuario) });
+  } catch (error) {
+    console.error('Error al obtener el perfil:', error);
+    res.status(500).json({ mensaje: 'Error al obtener el perfil.' });
+  }
+};
+
+const updateMiPerfil = async (req, res) => {
+  try {
+    const usuario = await Usuario.findByPk(req.usuario.usuarioid);
+    if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+
+    const limpio = (valor) => (typeof valor === 'string' ? valor.trim() : '');
+    const primerNombre = limpio(req.body.primerNombre);
+    const primerApellido = limpio(req.body.primerApellido);
+    const correo = limpio(req.body.correo).toLowerCase();
+    const telefono = limpio(req.body.telefono).replace(/[\s-]/g, '');
+
+    if (primerNombre.length < 2) return res.status(400).json({ mensaje: 'El primer nombre debe tener al menos 2 caracteres.' });
+    if (primerApellido.length < 2) return res.status(400).json({ mensaje: 'El primer apellido debe tener al menos 2 caracteres.' });
+    if (!/^\S+@\S+\.\S+$/.test(correo)) return res.status(400).json({ mensaje: 'Ingresa un correo válido.' });
+    if (telefono && !/^\+?[1-9]\d{1,14}$/.test(telefono)) return res.status(400).json({ mensaje: 'El teléfono no es válido (solo números, con indicativo opcional).' });
+
+    const existente = await Usuario.findOne({ where: { correo } });
+    if (existente && existente.usuarioid !== usuario.usuarioid) {
+      return res.status(409).json({ mensaje: 'Ese correo ya está registrado por otro usuario.' });
+    }
+
+    await usuario.update({
+      primer_nombre: primerNombre,
+      segundo_nombre: limpio(req.body.segundoNombre) || null,
+      primer_apellido: primerApellido,
+      segundo_apellido: limpio(req.body.segundoApellido) || null,
+      correo,
+      telefono: telefono || null,
+    });
+
+    // El token lleva el correo: se emite uno nuevo para que quede al día
+    const token = generarToken({
+      usuarioid: usuario.usuarioid,
+      negocioid: usuario.negocioid,
+      rol: usuario.rol,
+      correo: usuario.correo,
+    });
+
+    res.status(200).json({ mensaje: 'Perfil actualizado correctamente.', perfil: perfilDe(usuario), token });
+  } catch (error) {
+    console.error('Error al actualizar el perfil:', error);
+    res.status(500).json({ mensaje: 'Error al actualizar el perfil.' });
+  }
+};
+
+module.exports = { getAllUsers, createUser, updateUser, deleteUser, getMiPerfil, updateMiPerfil };

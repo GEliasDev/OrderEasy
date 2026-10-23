@@ -35,6 +35,7 @@ const EditarProducto = lazy(() => import('./components/vendedor/dashboard/invent
 const Categorias = lazy(() => import('./components/vendedor/dashboard/categorias/Categorias'));
 const Usuarios = lazy(() => import('./components/vendedor/dashboard/usuarios/Usuario'));
 const Roles = lazy(() => import('./components/vendedor/dashboard/roles/Roles'));
+const Perfil = lazy(() => import('./components/vendedor/dashboard/perfil/Perfil'));
 const Configuracion = lazy(() => import('./components/vendedor/dashboard/configuracion/Configuracion'));
 
 const PageLoader = () => (
@@ -104,6 +105,7 @@ function App() {
                 {/* Accesibles por todos los roles autenticados */}
                 <Route path="producto/:id" element={<DetalleProducto />} />
                 <Route path="clientes" element={<Clientes />} />
+                <Route path="perfil" element={<Perfil />} />
               </Route>
 
               <Route path="/admin/*" element={<Navigate to="/dashboard" replace />} />

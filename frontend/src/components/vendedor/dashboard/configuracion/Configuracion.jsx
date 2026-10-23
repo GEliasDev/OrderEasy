@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings, Users, ShieldCheck, ChevronRight, Building2, Edit2 } from 'lucide-react';
-import { toast } from 'sonner';
 import axiosInstance from '../../../../api/axiosConfig';
 import './configuracion.css';
 
 const Configuracion = () => {
   const navigate = useNavigate();
   const [negocio, setNegocio] = useState(null);
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [guardando, setGuardando] = useState(false);
-  const [form, setForm] = useState({ nombre: '', nit: '', telefono: '', direccion: '' });
 
   useEffect(() => {
     axiosInstance
@@ -18,35 +14,6 @@ const Configuracion = () => {
       .then((res) => setNegocio(res.data.negocio))
       .catch(() => {});
   }, []);
-
-  const abrirEditar = () => {
-    setForm({
-      nombre: negocio?.nombre || '',
-      nit: negocio?.nit || '',
-      telefono: negocio?.telefono || '',
-      direccion: negocio?.direccion || '',
-    });
-    setMostrarModal(true);
-  };
-
-  const cerrarModal = () => setMostrarModal(false);
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setGuardando(true);
-    try {
-      const res = await axiosInstance.put('/api/negocio', form);
-      setNegocio(res.data.negocio);
-      cerrarModal();
-      toast.success('Negocio actualizado correctamente.');
-    } catch {
-      toast.error('No se pudo actualizar el negocio.');
-    } finally {
-      setGuardando(false);
-    }
-  };
 
   return (
     <div className="config-view">
@@ -74,7 +41,7 @@ const Configuracion = () => {
             {negocio?.direccion && <span>{negocio.direccion}</span>}
           </div>
         </div>
-        <button className="config-negocio-btn" onClick={abrirEditar}>
+        <button className="config-negocio-btn" onClick={() => navigate('/dashboard/perfil')}>
           <Edit2 size={13} />
           <span>Editar</span>
         </button>
@@ -117,44 +84,6 @@ const Configuracion = () => {
         </div>
 
       </div>
-
-      {/* ── Modal editar negocio ── */}
-      {mostrarModal && (
-        <div className="config-overlay" onClick={cerrarModal}>
-          <div className="config-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="config-modal-header">
-              <h3>Editar negocio</h3>
-              <button className="config-modal-close" onClick={cerrarModal}>✕</button>
-            </div>
-            <form onSubmit={handleSubmit} className="config-form">
-              <div className="config-form-group">
-                <label>Nombre del negocio *</label>
-                <input name="nombre" value={form.nombre} onChange={handleChange} required placeholder="Mi Negocio" />
-              </div>
-              <div className="config-form-row">
-                <div className="config-form-group">
-                  <label>NIT</label>
-                  <input name="nit" value={form.nit} onChange={handleChange} placeholder="900123456-7" />
-                </div>
-                <div className="config-form-group">
-                  <label>Teléfono</label>
-                  <input name="telefono" value={form.telefono} onChange={handleChange} placeholder="3001234567" />
-                </div>
-              </div>
-              <div className="config-form-group">
-                <label>Dirección</label>
-                <input name="direccion" value={form.direccion} onChange={handleChange} placeholder="Calle 123 #45-67" />
-              </div>
-              <div className="config-form-actions">
-                <button type="button" className="config-btn-cancelar" onClick={cerrarModal}>Cancelar</button>
-                <button type="submit" className="config-btn-guardar" disabled={guardando}>
-                  {guardando ? 'Guardando...' : 'Guardar cambios'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

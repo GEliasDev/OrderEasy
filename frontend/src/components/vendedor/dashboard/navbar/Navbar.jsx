@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Moon, Sun, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, Moon, Sun, Settings, LogOut, ChevronDown, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../../../context/AuthContext';
 import { useTheme } from '../../../../context/ThemeContext';
@@ -43,6 +43,11 @@ function Navbar({ onToggleSidebar }) {
       cancel: { label: 'Cancelar', onClick: () => {} },
       duration: 5000,
     });
+  };
+
+  const irAPerfil = () => {
+    setMenuAbierto(false);
+    navigate('/dashboard/perfil');
   };
 
   const irAConfiguracion = () => {
@@ -90,6 +95,11 @@ function Navbar({ onToggleSidebar }) {
               </div>
 
               <div className="navbar-menu-divider" />
+
+              <button className="navbar-menu-item" onClick={irAPerfil}>
+                <UserRound size={16} />
+                <span>Mi perfil</span>
+              </button>
 
               {esAdmin && (
                 <button className="navbar-menu-item" onClick={irAConfiguracion}>
