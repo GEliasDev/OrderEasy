@@ -45,3 +45,13 @@ export const etiquetaTalla = (detalle) => (detalle.talla ? ` · Talla ${detalle.
 
 // Nombre con el que se muestra un pedido al proveedor
 export const nombrePedido = (orden) => orden.nombre || `Pedido #${orden.ordenid}`;
+
+// Estado de una compra de cliente (dentro de un pedido al proveedor)
+export const ESTADOS_COMPRA_CLIENTE = {
+  pendiente: 'Pendiente',
+  confirmado: 'En el pedido',
+  en_compra: 'En compra',
+  recibido: 'Recibida',
+  entregado: 'Entregada',
+  anulado: 'Anulada',
+};

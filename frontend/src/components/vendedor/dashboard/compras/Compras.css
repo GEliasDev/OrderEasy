@@ -583,7 +583,7 @@
 .compras-cliente-lineas { padding: 0.35rem 0.6rem 0.6rem; }
 .compras-cliente-linea {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 5rem 5rem 11rem 11rem;
+  grid-template-columns: minmax(0, 1fr) 4.2rem 4.2rem 5rem 10.5rem 9.5rem;
   align-items: center;
   gap: 0.75rem;
   padding: 0.55rem 0.5rem;
@@ -596,7 +596,8 @@
   color: var(--neutral-400, #94A3B8);
 }
 .compras-cliente-linea-cabecera span:nth-child(2),
-.compras-cliente-linea-cabecera span:nth-child(3) { text-align: center; }
+.compras-cliente-linea-cabecera span:nth-child(3),
+.compras-cliente-linea-cabecera span:nth-child(4) { text-align: center; }
 .compras-cliente-producto { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
 .compras-cliente-producto .compras-producto-miniatura { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 10px; }
 .compras-cliente-cifra { text-align: center; font-variant-numeric: tabular-nums; }
@@ -611,13 +612,23 @@
   .compras-cliente-cabecera .tbl-actions { width: 100%; justify-content: flex-start; }
   .compras-cliente-lineas { padding: 0.25rem 0.5rem 0.5rem; }
   .compras-cliente-linea-cabecera { display: none; }
-  .compras-cliente-linea { grid-template-columns: auto auto 1fr; grid-template-areas: 'producto producto producto' 'asignado recibido estado' 'accion accion accion'; gap: 0.4rem 0.9rem; }
-  .compras-cliente-producto { grid-area: producto; }
-  .compras-cliente-linea > .compras-cliente-cifra:nth-child(2) { grid-area: asignado; }
-  .compras-cliente-linea > .compras-cliente-cifra:nth-child(3) { grid-area: recibido; }
-  .compras-cliente-linea > .compras-reparto-estado { grid-area: estado; justify-self: end; }
-  .compras-cliente-linea > .compras-reparto-accion { grid-area: accion; justify-content: flex-start; }
+  .compras-cliente-linea { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; }
+  .compras-cliente-producto { flex: 1 0 100%; }
+  .compras-cliente-linea > .compras-reparto-estado { margin-left: auto; }
+  .compras-cliente-linea > .compras-reparto-accion { flex: 1 0 100%; justify-content: flex-start; }
   .compras-cliente-linea > .compras-reparto-accion:empty { display: none; }
   .compras-cliente-cifra { text-align: left; }
   .compras-cliente-cifra::before { content: attr(data-etiqueta) ': '; font-size: 0.68rem; font-weight: 600; color: var(--neutral-500, #64748B); }
+}
+
+/* Detalle expandible de cada compra: dinero, abonos con recibos, entregas y devoluciones */
+.compras-cliente-toggle svg { transition: transform 0.2s; }
+.compras-cliente-toggle.abierto svg { transform: rotate(180deg); }
+.compras-cliente-extra { display: flex; flex-direction: column; gap: 0.85rem; padding: 0.9rem 1.1rem 1.1rem; border-top: 1px solid var(--neutral-200, #E2E8F0); background: var(--neutral-50, #F8FAFC); }
+.compras-cliente-extra .pedido-pagos-grid,
+.compras-cliente-extra .pedido-datos-extra { margin: 0; }
+.compras-cliente-subtitulo { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 700; color: var(--neutral-700, #334155); }
+.compras-cliente-acciones { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--neutral-200, #E2E8F0); }
+@media (max-width: 768px) {
+  .compras-cliente-extra { padding: 0.75rem; }
 }

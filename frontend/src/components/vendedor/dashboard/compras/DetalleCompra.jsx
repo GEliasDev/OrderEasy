@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Eye, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, FileText, Truck, Undo2, User, Users, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, FileText, Truck, User, Users, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { imagenUrl } from '../../../../config';
 import {
@@ -18,6 +18,7 @@ import {
 import { getProveedores } from '../../../../services/proveedorService';
 import {
   ESTADOS_COMPRA,
+  ESTADOS_COMPRA_CLIENTE,
   asignacionActiva,
   etiquetaTalla,
   formatearFecha,
@@ -34,36 +35,14 @@ import ListaMovil from '../../../comunes/ListaMovil';
 import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
 import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import { deletePedido } from '../../../../services/pedidoService';
+import { getNegocio } from '../../../../services/negocioService';
+import TarjetaCompra from './TarjetaCompra';
 import './Compras.css';
 
 const num = (valor) => Number(valor) || 0;
 const redondear = (n) => Math.round(n * 1000) / 1000;
 const cantidad = (n) => num(n).toLocaleString('es-CO', { maximumFractionDigits: 3 });
 
-const AVATAR_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#06B6D4','#EF4444','#6366F1'];
-const colorAvatar = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 65) % AVATAR_COLORS.length];
-const iniciales = (name) => {
-  const parts = (name || '?').trim().split(/\s+/);
-  return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : (name || '?').slice(0, 2).toUpperCase();
-};
-
-const BADGE_ESTADO_CLIENTE = {
-  pendiente: 'tbl-badge--warning',
-  confirmado: 'tbl-badge--primary',
-  en_compra: 'tbl-badge--primary',
-  recibido: 'tbl-badge--ok',
-  entregado: 'tbl-badge--ok',
-  anulado: 'tbl-badge--neutral',
-};
-
-const ESTADOS_COMPRA_CLIENTE = {
-  pendiente: 'Pendiente',
-  confirmado: 'En el pedido',
-  en_compra: 'En compra',
-  recibido: 'Recibida',
-  entregado: 'Entregada',
-  anulado: 'Anulada',
-};
 
 // Resumen corto de lo que compró el cliente: "2× Camille · 38, 1× Linda · 39"
 const resumenProductos = (compra) => (compra.detalles || [])
@@ -85,55 +64,12 @@ const miniaturaProducto = (ruta) => (
   </span>
 );
 
-// En qué punto va lo que un cliente pidió de un producto: esperando al proveedor, llegó, entregado...
-const situacionDe = (asignacion) => {
-  if (!asignacionActiva(asignacion)) return { texto: 'Compra cancelada', clase: 'cancelado' };
-  const recibido = num(asignacion.cantidadRecibida);
-  const entregado = num(asignacion.pedidoDetalle?.cantidadEntregada) >= num(asignacion.pedidoDetalle?.cantidad);
-  if (entregado) return { texto: 'Entregado', clase: 'entregado' };
-  if (recibido >= num(asignacion.cantidad)) return { texto: 'Listo para entregar', clase: 'listo' };
-  if (recibido > 0) return { texto: 'Llegó parte', clase: 'parcial' };
-  return { texto: 'Esperando al proveedor', clase: 'espera' };
-};
-
-// Desglose de productos de una compra de cliente, con una miniatura de cada producto
-const desgloseProductos = (compra) => (
-  <div className="compras-productos-desglose">
-    {(compra.detalles || []).map((d) => {
-      const ruta = d.producto?.imagenes?.[0];
-      return (
-        <div className="compras-producto-linea" key={d.detalleid}>
-          <span className="compras-producto-miniatura" aria-hidden="true">
-            <Package size={15} />
-            {ruta && (
-              <img
-                src={imagenUrl(ruta)}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            )}
-          </span>
-          <span className="compras-producto-info">
-            <span className="compras-producto-nombre">{d.productoNombre}</span>
-            <span className="compras-producto-meta">
-              {cantidad(d.cantidad)} × {d.talla ? `Talla ${d.talla}` : 'Sin talla'}
-            </span>
-          </span>
-        </div>
-      );
-    })}
-  </div>
-);
-
 // Pantallas de formulario del pedido (antes ventanas emergentes): cada una es una ruta /dashboard/pedidos/:id/<vista>
 const VISTAS = ['nombre', 'existentes', 'enviar', 'recibir'];
 
 // Pedido al proveedor: contiene las compras de los clientes (con sus abonos y entregas) y los productos para stock
 function DetalleCompra() {
   const esMovil = useEsMovil();
-  const [compraSel, setCompraSel] = useState(null);
   const [lineaSel, setLineaSel] = useState(null);
   const { id, vista } = useParams();
   const navigate = useNavigate();
@@ -150,6 +86,8 @@ function DetalleCompra() {
   }, [navigate, rutaBase, location.state]);
   const volver = () => setModal(null);
   const [masAbierto, setMasAbierto] = useState(false);
+  const [negocio, setNegocio] = useState(null);
+  useEffect(() => { getNegocio().then(setNegocio).catch(() => setNegocio(null)); }, []);
   const [searchParams, setSearchParams] = useSearchParams();
   const [orden, setOrden] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -451,17 +389,11 @@ function DetalleCompra() {
   const puedeCambiarProveedor = !['recibida', 'anulada'].includes(orden.estado);
   const resumen = orden.resumenCompras || { cantidad: 0, total: 0, abonado: 0, saldo: 0 };
 
-  // Lo pedido al proveedor, repartido por compra de cliente; lo que no tiene cliente va al stock
-  const lineasPorCompra = new Map();
+  // Costo al proveedor de cada producto (para mostrarlo junto al precio de venta de cada cliente) y lo que no tiene cliente (va al stock)
+  const costos = new Map(detalles.map((d) => [`${d.productoid}:${d.varianteid || ''}`, d.precioUnitario]));
   const lineasStock = [];
   for (const detalle of detalles) {
     const activas = (detalle.asignaciones || []).filter(asignacionActiva);
-    for (const asignacion of detalle.asignaciones || []) {
-      const compraid = asignacion.pedidoDetalle?.pedido?.pedidoid;
-      if (!compraid) continue;
-      if (!lineasPorCompra.has(compraid)) lineasPorCompra.set(compraid, []);
-      lineasPorCompra.get(compraid).push({ detalle, asignacion });
-    }
     const paraStock = redondear(num(detalle.cantidad) - activas.reduce((s, a) => s + num(a.cantidad), 0));
     if (paraStock > 0) lineasStock.push({ detalle, cantidad: paraStock });
   }
@@ -582,112 +514,50 @@ function DetalleCompra() {
         <div className="compras-nota-bloque"><FileText size={14} /><span>{orden.descripcion}</span></div>
       )}
 
-      {abierto && (<>
       <div className="mod-seccion">
         <span className="mod-seccion-icono"><Users size={16} /></span>
         <div className="mod-seccion-textos">
-          <h2>Compras de clientes <span className="mod-count-badge">{resumen.cantidad}</span></h2>
+          <h2>Clientes y lo pedido al proveedor <span className="mod-count-badge">{resumen.cantidad}</span></h2>
           <p>
             {abierto
-              ? 'Agrega las compras de tus clientes. Dentro de cada una registras sus abonos, pagos y entregas, y puedes editar sus productos mientras el pedido no se haya enviado.'
-              : 'Abre una compra para ver y registrar sus abonos, pagos y entrega.'}
+              ? 'Agrega las compras de tus clientes. Cada una trae sus abonos, recibos, entregas y devoluciones, y puedes editar sus productos mientras el pedido no se haya enviado.'
+              : 'Cada compra de cliente con sus productos: lo que pediste al proveedor, cuánto ha llegado y qué ya puedes entregar. Dentro de cada una registras abonos, entregas y devoluciones, y generas sus recibos. Al registrar la recepción eliges a quién corresponde lo que llegó.'}
           </p>
         </div>
-        {resumen.cantidad > 0 && (
-          <div className="mod-seccion-chips">
-            <span className="tbl-badge tbl-badge--ok">Abonado {formatoMoneda(resumen.abonado)}</span>
-            <span className={`tbl-badge ${resumen.saldo > 0 ? 'tbl-badge--danger' : 'tbl-badge--neutral'}`}>Por cobrar {formatoMoneda(resumen.saldo)}</span>
-          </div>
-        )}
+        <div className="mod-seccion-chips">
+          {!abierto && pedidos > 0 && (
+            <span className={`tbl-badge ${recibidos >= pedidos ? 'tbl-badge--ok' : recibidos > 0 ? 'tbl-badge--warning' : 'tbl-badge--neutral'}`}>
+              Recibido {cantidad(recibidos)} / {cantidad(pedidos)}
+            </span>
+          )}
+          {resumen.cantidad > 0 && (
+            <>
+              <span className="tbl-badge tbl-badge--ok">Abonado {formatoMoneda(resumen.abonado)}</span>
+              <span className={`tbl-badge ${resumen.saldo > 0 ? 'tbl-badge--danger' : 'tbl-badge--neutral'}`}>Por cobrar {formatoMoneda(resumen.saldo)}</span>
+            </>
+          )}
+        </div>
       </div>
 
-      {compras.length === 0 ? (
+      {compras.length === 0 && (abierto || lineasStock.length === 0) && (
         <div className="pedido-ordenes-vacio">
           <Users size={32} />
           <p>Este pedido todavía no tiene compras de clientes.</p>
         </div>
-      ) : (
-        esMovil ? (
-          <ListaMovil
-            items={compras}
-            clave={(c) => c.pedidoid}
-            letras={false}
-            onAbrir={setCompraSel}
-            fila={(c) => {
-              const saldo = Number(c.resumen?.saldo || 0);
-              const anulada = c.estado === 'anulado';
-              return {
-                nombre: c.cliente?.nombreCliente,
-                titulo: c.cliente?.nombreCliente || 'Sin cliente',
-                subtitulo: resumenProductos(c),
-                derecha: anulada ? undefined : (saldo > 0 ? formatoMoneda(saldo) : 'Pagado'),
-                derechaSecundaria: anulada ? undefined : (saldo > 0 ? 'por cobrar' : undefined),
-                insignia: anulada ? 'Anulada' : undefined,
-                tono: anulada ? 'peligro' : (saldo > 0 ? 'peligro' : 'ok'),
-              };
-            }}
-          />
-        ) : (
-        <div className="items-table-container">
-          <table className="tabla-tarjetas items-table compras-tabla">
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th className="col-num">Total</th>
-                <th className="col-num">Abonado</th>
-                <th className="col-num">Saldo</th>
-                <th className="col-centro">Estado</th>
-                <th className="col-num"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {compras.map((compra) => {
-                const anulada = compra.estado === 'anulado';
-                const estadoCompra = compra.estado || 'pendiente';
-                const badgeClase = BADGE_ESTADO_CLIENTE[estadoCompra] || 'tbl-badge--neutral';
-                const clienteNombre = compra.cliente?.nombreCliente || 'Sin cliente';
-                const saldo = Number(compra.resumen?.saldo || 0);
-                return (
-                  <tr key={compra.pedidoid} className={`compras-fila-link ${anulada ? 'compras-fila-cancelada' : ''}`} onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
-                    <td className="compras-compra" data-label="Cliente">
-                      <div className="tbl-main-cell">
-                        <span className="tbl-avatar" style={{ background: colorAvatar(clienteNombre), opacity: anulada ? 0.5 : 1 }}>{iniciales(clienteNombre)}</span>
-                        <span className="tbl-cell-primary">{clienteNombre}</span>
-                      </div>
-                      {desgloseProductos(compra)}
-                    </td>
-                    <td className="col-num" data-label="Total">{formatoMoneda(compra.total)}</td>
-                    <td className="col-num" data-label="Abonado">{formatoMoneda(compra.resumen?.abonado)}</td>
-                    <td className="col-num" data-label="Saldo">
-                      {anulada ? <span className="tbl-vacio">—</span>
-                        : saldo > 0
-                          ? <span className="tbl-badge tbl-badge--danger">{formatoMoneda(saldo)}</span>
-                          : <span className="tbl-badge tbl-badge--ok">Pagado</span>}
-                    </td>
-                    <td className="col-centro" data-label="Estado">
-                      <span className={`tbl-badge ${badgeClase}`}>{ESTADOS_COMPRA_CLIENTE[estadoCompra] || estadoCompra}</span>
-                    </td>
-                    <td className="col-num" data-label="" onClick={(e) => e.stopPropagation()}>
-                      <div className="tbl-actions">
-                        {!anulada && saldo > 0 && (
-                          <button className="tbl-icon-btn tbl-icon-btn--ok" title="Registrar abono" style={{ background: '#DCFCE7', color: '#15803D' }} onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=abono`)}>
-                            <Plus size={14} />
-                          </button>
-                        )}
-                        <button className="tbl-icon-btn tbl-icon-btn--ver" title="Ver detalle" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
-                          <Eye size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        )
       )}
-      </>)}
+
+      {compras.map((compra) => (
+        <TarjetaCompra
+          key={compra.pedidoid}
+          compra={compra}
+          pedidoAbierto={abierto}
+          costos={costos}
+          rutaPedido={rutaBase}
+          negocio={negocio}
+          onEliminar={eliminarCompra}
+          onRecargar={() => cargar(true)}
+        />
+      ))}
 
       {abierto ? (
         <>
@@ -748,128 +618,6 @@ function DetalleCompra() {
         </>
       ) : (
         <>
-          <div className="mod-seccion">
-            <span className="mod-seccion-icono"><Users size={16} /></span>
-            <div className="mod-seccion-textos">
-              <h2>Clientes y lo pedido al proveedor <span className="mod-count-badge">{resumen.cantidad}</span></h2>
-              <p>Cada compra de cliente con sus productos: lo que pediste al proveedor, cuánto ha llegado y qué ya puedes entregar. Lo que no tiene cliente va al stock. Al registrar la recepción eliges a quién corresponde lo que llegó.</p>
-            </div>
-            <div className="mod-seccion-chips">
-              {pedidos > 0 && (
-                <span className={`tbl-badge ${recibidos >= pedidos ? 'tbl-badge--ok' : recibidos > 0 ? 'tbl-badge--warning' : 'tbl-badge--neutral'}`}>
-                  Recibido {cantidad(recibidos)} / {cantidad(pedidos)}
-                </span>
-              )}
-              {resumen.cantidad > 0 && (
-                <>
-                  <span className="tbl-badge tbl-badge--ok">Abonado {formatoMoneda(resumen.abonado)}</span>
-                  <span className={`tbl-badge ${resumen.saldo > 0 ? 'tbl-badge--danger' : 'tbl-badge--neutral'}`}>Por cobrar {formatoMoneda(resumen.saldo)}</span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {compras.length === 0 && lineasStock.length === 0 && (
-            <div className="pedido-ordenes-vacio">
-              <Users size={32} />
-              <p>Este pedido no tiene compras de clientes ni productos.</p>
-            </div>
-          )}
-
-          {compras.map((compra) => {
-            const anulada = compra.estado === 'anulado';
-            const estadoCompra = compra.estado || 'pendiente';
-            const clienteNombre = compra.cliente?.nombreCliente || 'Sin cliente';
-            const saldo = Number(compra.resumen?.saldo || 0);
-            const lineas = lineasPorCompra.get(compra.pedidoid) || [];
-            return (
-              <div key={compra.pedidoid} className={`compras-cliente${anulada ? ' compras-cliente-anulada' : ''}`}>
-                <div className="compras-cliente-cabecera">
-                  <div className="tbl-main-cell compras-cliente-id">
-                    <span className="tbl-avatar" style={{ background: colorAvatar(clienteNombre), opacity: anulada ? 0.5 : 1 }}>{iniciales(clienteNombre)}</span>
-                    <div className="tbl-cell-texts">
-                      <button type="button" className="pedido-link-venta compras-cliente-nombre" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>{clienteNombre}</button>
-                      <span className="tbl-cell-secondary">
-                        Compra #{compra.pedidoid} · <span className={`tbl-badge ${BADGE_ESTADO_CLIENTE[estadoCompra] || 'tbl-badge--neutral'}`}>{ESTADOS_COMPRA_CLIENTE[estadoCompra] || estadoCompra}</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="compras-cliente-dinero">
-                    <span><small>Total</small><strong>{formatoMoneda(compra.total)}</strong></span>
-                    <span><small>Abonado</small><strong>{formatoMoneda(compra.resumen?.abonado)}</strong></span>
-                    <span><small>Saldo</small>
-                      {anulada ? <strong className="tbl-vacio">—</strong>
-                        : saldo > 0 ? <strong className="compras-saldo-pendiente">{formatoMoneda(saldo)}</strong>
-                          : <span className="tbl-badge tbl-badge--ok">Pagado</span>}
-                    </span>
-                  </div>
-                  <div className="tbl-actions">
-                    {!anulada && saldo > 0 && (
-                      <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=abono`)}>
-                        <Plus size={13} /><span>Abonar</span>
-                      </button>
-                    )}
-                    <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}`)}>
-                      <Eye size={13} /><span>Detalle</span>
-                    </button>
-                  </div>
-                </div>
-
-                {lineas.length === 0 ? (
-                  <div className="compras-cliente-lineas">{desgloseProductos(compra)}</div>
-                ) : (
-                  <div className="compras-cliente-lineas">
-                    <div className="compras-cliente-linea compras-cliente-linea-cabecera" aria-hidden="true">
-                      <span>Producto</span><span>Asignado</span><span>Recibido</span><span>Situación</span><span />
-                    </div>
-                    {lineas.map(({ detalle, asignacion }) => {
-                      const activa = asignacionActiva(asignacion);
-                      const recibido = num(asignacion.cantidad) > 0 ? num(asignacion.cantidadRecibida) : 0;
-                      const entregada = num(asignacion.pedidoDetalle?.cantidadEntregada);
-                      const situacion = situacionDe(asignacion);
-                      return (
-                        <div key={asignacion.asignacionid} className={`compras-cliente-linea${!activa ? ' compras-reparto-cancelada' : ''}`}>
-                          <span className="compras-cliente-producto">
-                            {miniaturaProducto(detalle.producto?.imagenes?.[0])}
-                            <span className="compras-producto-info">
-                              <span className="compras-producto-nombre">
-                                {detalle.productoNombre}
-                                {detalle.talla && <span className="cart-item-talla" style={{ marginLeft: '0.4rem' }}>Talla {detalle.talla}</span>}
-                              </span>
-                              <span className="compras-producto-meta">{formatoMoneda(detalle.precioUnitario)} c/u al proveedor</span>
-                            </span>
-                          </span>
-                          <span className="compras-cliente-cifra" data-etiqueta="Asignado"><strong>{num(asignacion.cantidad)}</strong></span>
-                          <span className="compras-cliente-cifra" data-etiqueta="Recibido"><strong>{recibido}</strong></span>
-                          <span className="compras-reparto-estado">
-                            <span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span>
-                          </span>
-                          <span className="compras-reparto-accion">
-                            {activa && entregada < num(asignacion.pedidoDetalle?.cantidad) && recibido > 0 && (
-                              <button type="button" className="pedidos-btn pedidos-btn-verde pedidos-btn-sm" onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=entregar`)}>
-                                Entregar
-                              </button>
-                            )}
-                            {activa && entregada > 0 && (
-                              <button
-                                type="button"
-                                className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm"
-                                title="El cliente devuelve este producto"
-                                onClick={() => navigate(`/dashboard/pedido/${compra.pedidoid}?accion=devolver&detalle=${asignacion.pedidoDetalle.detalleid}`)}
-                              >
-                                <Undo2 size={13} /><span>Devolución</span>
-                              </button>
-                            )}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
           {lineasStock.length > 0 && (
             <div className="compras-cliente">
               <div className="compras-cliente-cabecera">
@@ -882,6 +630,7 @@ function DetalleCompra() {
                 </div>
               </div>
               <div className="compras-cliente-lineas">
+                <div className="compras-cliente-linea compras-cliente-linea-cabecera" aria-hidden="true"><span>Producto</span><span>Pidió</span><span>Llegó</span><span>Entregado</span><span>Situación</span><span /></div>
                 {lineasStock.map(({ detalle, cantidad: paraStock }) => (
                   <div key={detalle.detalleid} className="compras-cliente-linea">
                     <span className="compras-cliente-producto">
@@ -894,8 +643,9 @@ function DetalleCompra() {
                         <span className="compras-producto-meta">{formatoMoneda(detalle.precioUnitario)} c/u al proveedor</span>
                       </span>
                     </span>
-                    <span className="compras-cliente-cifra" data-etiqueta="Asignado"><strong>{paraStock}</strong></span>
-                    <span className="compras-cliente-cifra" data-etiqueta="Recibido"><strong>—</strong></span>
+                    <span className="compras-cliente-cifra" data-etiqueta="Pidió"><strong>{paraStock}</strong></span>
+                    <span className="compras-cliente-cifra" data-etiqueta="Llegó"><strong>—</strong></span>
+                    <span className="compras-cliente-cifra" data-etiqueta="Entregado"><strong>—</strong></span>
                     <span className="compras-reparto-estado">
                       <span className="compras-situacion compras-situacion-espera">Va directo al stock</span>
                     </span>
@@ -924,31 +674,6 @@ function DetalleCompra() {
           )}
           <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { setMasAbierto(false); handleEliminar(); }}><Trash2 size={15} /> Eliminar pedido</button>
         </div>
-      </PanelInferior>
-
-      <PanelInferior
-        abierto={Boolean(compraSel)}
-        onCerrar={() => setCompraSel(null)}
-        titulo={compraSel?.cliente?.nombreCliente || 'Compra'}
-        subtitulo={compraSel ? (ESTADOS_COMPRA_CLIENTE[compraSel.estado] || compraSel.estado) : ''}
-        acciones={compraSel && (
-          <>
-            {compraSel.estado !== 'anulado' && Number(compraSel.resumen?.saldo || 0) > 0 && (
-              <button type="button" className="pi-accion pi-accion-primaria" onClick={() => navigate(`/dashboard/pedido/${compraSel.pedidoid}?accion=abono`)}>Abonar</button>
-            )}
-            <button type="button" className="pi-accion" onClick={() => navigate(`/dashboard/pedido/${compraSel.pedidoid}`)}>Ver detalle</button>
-            <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const c = compraSel; setCompraSel(null); eliminarCompra(c); }}><Trash2 size={15} /> Eliminar</button>
-          </>
-        )}
-      >
-        {compraSel && (
-          <>
-            <DatoPanel etiqueta="Productos" valor={resumenProductos(compraSel)} />
-            <DatoPanel etiqueta="Total" valor={formatoMoneda(compraSel.total)} />
-            <DatoPanel etiqueta="Abonado" valor={formatoMoneda(compraSel.resumen?.abonado)} />
-            <DatoPanel etiqueta="Saldo" valor={compraSel.estado === 'anulado' ? '—' : formatoMoneda(compraSel.resumen?.saldo)} tono={Number(compraSel.resumen?.saldo || 0) > 0 ? 'peligro' : 'ok'} />
-          </>
-        )}
       </PanelInferior>
 
       <PanelInferior

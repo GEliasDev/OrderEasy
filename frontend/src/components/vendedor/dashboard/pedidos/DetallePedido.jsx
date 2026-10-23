@@ -144,6 +144,7 @@ function DetallePedido() {
     if (sinNavegar.current) return;
     if (destino) navigate(`${rutaBase}/${destino}${consulta}`, { state: { desde: true } });
     else if (location.state?.desde) navigate(-1);
+    else if (location.state?.volverA) navigate(location.state.volverA, { replace: true });
     else navigate(rutaBase, { replace: true });
   };
   const volver = () => setModal(null);
@@ -468,7 +469,7 @@ function DetallePedido() {
     if (modal === 'orden') abrirOrdenCompra();
     if (modal === 'pago') abrirPago(searchParams.get('tipo') === 'devolucion' ? 'devolucion' : 'abono');
     if (modal === 'entrega') abrirEntrega();
-    if (modal === 'devolucion') abrirDevolucion();
+    if (modal === 'devolucion') abrirDevolucion(searchParams.get('detalle'));
     if (modal === 'anular') abrirAnular();
     sinNavegar.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
