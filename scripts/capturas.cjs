@@ -7,6 +7,7 @@
 //   node scripts/capturas.cjs /dashboard/balance                 -> todos los tamaños, claro y oscuro
 //   node scripts/capturas.cjs /dashboard/balance /dashboard/inicio
 //   node scripts/capturas.cjs /dashboard/balance --tamanos=movil,escritorio --sin-oscuro
+//   node scripts/capturas.cjs login registro landing --publica    -> páginas públicas (sin sesión; nombres sin barra)
 //
 // Las imágenes quedan en capturas/<ruta>-<tamaño>[-oscuro].png (carpeta ignorada por git). Además se informa de
 // errores de consola y de desbordes horizontales, que son los fallos de responsive más comunes.
@@ -30,13 +31,21 @@ const TAMANOS = {
   ancho: { width: 1920, height: 1080 },
   tablet: { width: 820, height: 1100 },
   movil: { width: 375, height: 812 },
+  // Páginas con scroll interno (landing, login): una pantalla muy alta para ver todo el contenido de una vez
+  largo: { width: 1440, height: 4800 },
+  movillargo: { width: 375, height: 7600 },
 };
 
 const args = process.argv.slice(2);
-// Acepta /dashboard/x o dashboard/x (Git Bash convierte "/dashboard/x" en una ruta de Windows; se recupera aquí)
+const publica = args.includes('--publica'); // páginas públicas, sin iniciar sesión: login, registro y landing
+// Acepta /dashboard/x o dashboard/x (Git Bash convierte "/dashboard/x" en una ruta de Windows; se recupera aquí).
+// Con --publica se indican los nombres sin barra: login, registro, landing
 const rutas = args
   .filter((a) => !a.startsWith('--'))
-  .map((a) => `/${a.split('\\').join('/').replace(/^.*?(dashboard(\/|$))/, '$1').replace(/^\/+/, '')}`);
+  .map((a) => {
+    if (publica) return a === 'landing' ? '/' : `/${a.replace(/^\/+/, '')}`;
+    return `/${a.split('\\').join('/').replace(/^.*?(dashboard(\/|$))/, '$1').replace(/^\/+/, '')}`;
+  });
 const opcion = (nombre) => args.find((a) => a.startsWith(`--${nombre}=`))?.split('=')[1];
 const tamanos = (opcion('tamanos') ? opcion('tamanos').split(',') : ['ancho', 'escritorio', 'tablet', 'movil']);
 const conOscuro = !args.includes('--sin-oscuro');
@@ -51,12 +60,12 @@ const CLAVE = process.env.CAPTURAS_CLAVE || '123456';
     process.exit(1);
   }
   const { chromium } = cargarPlaywright();
-  const login = await (await fetch(`${API}/api/auth/login`, {
+  const login = publica ? {} : await (await fetch(`${API}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ correo: CORREO, contraseña: CLAVE }),
   })).json();
-  if (!login.token) throw new Error('No se pudo iniciar sesión con la cuenta de prueba. ¿Está el backend en marcha?');
+  if (!publica && !login.token) throw new Error('No se pudo iniciar sesión con la cuenta de prueba. ¿Está el backend en marcha?');
 
   const salida = path.join(__dirname, '..', 'capturas');
   fs.mkdirSync(salida, { recursive: true });
@@ -72,12 +81,14 @@ const CLAVE = process.env.CAPTURAS_CLAVE || '123456';
         if (tema === 'dark' && !['escritorio', 'movil'].includes(nombre)) continue;
 
         const ctx = await navegador.newContext({ viewport });
-        await ctx.addInitScript(([t, u, th]) => {
-          localStorage.setItem('token', t);
-          localStorage.setItem('user', JSON.stringify(u));
-          localStorage.setItem('rol', u.rol);
+        await ctx.addInitScript(([t, u, th, sinSesion]) => {
+          if (!sinSesion) {
+            localStorage.setItem('token', t);
+            localStorage.setItem('user', JSON.stringify(u));
+            localStorage.setItem('rol', u.rol);
+          }
           localStorage.setItem('theme', th);
-        }, [login.token, login.usuario, tema]);
+        }, [login.token, login.usuario, tema, publica]);
         const pagina = await ctx.newPage();
         const errores = [];
         pagina.on('pageerror', (e) => errores.push(e.message));
@@ -97,7 +108,7 @@ const CLAVE = process.env.CAPTURAS_CLAVE || '123456';
           return { scroll: document.documentElement.scrollWidth > ancho + 1, culpables };
         });
 
-        const base = ruta.replace(/^\/dashboard\/?/, '').replace(/[^\w-]+/g, '_') || 'inicio';
+        const base = ruta.replace(/^\/dashboard\/?/, '').replace(/[^\w-]+/g, '_') || (publica ? 'landing' : 'inicio');
         const archivo = path.join(salida, `${base}-${nombre}${tema === 'dark' ? '-oscuro' : ''}.png`);
         await pagina.screenshot({ path: archivo, fullPage: true });
 

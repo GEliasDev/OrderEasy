@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Home } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { registerUser } from '../../../services/authServices';
-import './styles/Registro.css';
-import logo from './LoginAssets/logo.png'
+import { AuthLayout, Campo } from './AuthLayout';
 
 function Registro() {
   const navigate = useNavigate();
@@ -19,6 +17,7 @@ function Registro() {
     confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
+  const [errorClave, setErrorClave] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,12 +25,14 @@ function Registro() {
       ...prevState,
       [name]: value
     }));
+    if (name === 'password' || name === 'confirmPassword') setErrorClave('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
+      setErrorClave('Las contraseñas no coinciden.');
       toast.error('Las contraseñas no coinciden.');
       return;
     }
@@ -61,163 +62,49 @@ function Registro() {
   };
 
   return (
-    <div className="registro-container">
-      <button
-        className="boton-home"
-        onClick={() => navigate('/')}
-      >
-        <Home className="icono-home" />
-        <span>Volver al Inicio</span>
-      </button>
-      <div className="registro-wrapper">
-        <div className="imagen-seccion">
-          <div className="imagen-overlay" />
-          <img
-            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2340&q=80"
-            alt="Gestión de Inventario"
-            className="imagen-fondo"
-          />
-          <div className="imagen-contenido">
-            <h2>Sistema de Gestión de Inventarios</h2>
-            <p>Optimiza tu inventario y mejora la eficiencia de tu negocio con nuestra solución gratuita.</p>
+    <AuthLayout
+      ancho
+      titulo="Crea la cuenta de tu negocio"
+      subtitulo="Es gratis. Registras tu negocio y tu usuario administrador en un solo paso."
+      pie={<>¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></>}
+    >
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <fieldset className="auth-grupo">
+          <legend>Tu negocio</legend>
+          <div className="auth-fila">
+            <Campo etiqueta="Nombre del negocio" name="nombreNegocio" autoComplete="organization" value={formData.nombreNegocio} onChange={handleChange} placeholder="Nombre de tu empresa" required />
+            <Campo etiqueta="NIT / RUT" name="nit" value={formData.nit} onChange={handleChange} placeholder="900123456-1" required />
           </div>
-        </div>
+        </fieldset>
 
-        <div className="formulario-seccion">
-          <div className="formulario-contenedor">
-            <div className="encabezado">
-              <button className="logo-boton" onClick={() => navigate('/')}>
-                <img src={logo} alt="Logo" className="logo-login" />
-              </button>
-              <h2>Registro de Negocio</h2>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              {/* Campos de Negocio */}
-              <div className="input-grupo">
-                <label htmlFor="nombreNegocio">Nombre del Negocio</label>
-                <input
-                  type="text"
-                  id="nombreNegocio"
-                  name="nombreNegocio"
-                  value={formData.nombreNegocio}
-                  onChange={handleChange}
-                  placeholder="Nombre de tu empresa"
-                  required
-                />
-              </div>
-
-              <div className="input-grupo">
-                <label htmlFor="nit">NIT / RUT</label>
-                <input
-                  type="text"
-                  id="nit"
-                  name="nit"
-                  value={formData.nit}
-                  onChange={handleChange}
-                  placeholder="900123456-1"
-                  required
-                />
-              </div>
-
-              {/* Campos de Usuario */}
-              <div className="grupo-inputs">
-                <div className="input-grupo">
-                  <label htmlFor="primerNombre">Primer Nombre</label>
-                  <input
-                    type="text"
-                    id="primerNombre"
-                    name="primerNombre"
-                    value={formData.primerNombre}
-                    onChange={handleChange}
-                    placeholder="Juan"
-                    required
-                  />
-                </div>
-
-                <div className="input-grupo">
-                  <label htmlFor="primerApellido">Primer Apellido</label>
-                  <input
-                    type="text"
-                    id="primerApellido"
-                    name="primerApellido"
-                    value={formData.primerApellido}
-                    onChange={handleChange}
-                    placeholder="Pérez"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="input-grupo">
-                <label htmlFor="correo">Correo Electrónico</label>
-                <input
-                  type="email"
-                  id="correo"
-                  name="correo"
-                  value={formData.correo}
-                  onChange={handleChange}
-                  placeholder="correo@empresa.com"
-                  required
-                />
-              </div>
-
-              <div className="input-grupo">
-                <label htmlFor="telefono">Teléfono</label>
-                <input
-                  type="tel"
-                  id="telefono"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={handleChange}
-                  placeholder="+1234567890"
-                  required
-                />
-              </div>
-
-              <div className="input-grupo">
-                <label htmlFor="password">Contraseña</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-
-              <div className="input-grupo">
-                <label htmlFor="confirmPassword">Confirmar Contraseña</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-
-              <button type="submit" className="boton-submit" disabled={loading}>
-                {loading ? 'Registrando...' : 'Crear Cuenta'}
-              </button>
-            </form>
-
-            <div className="volver-login">
-              <button
-                className="boton-volver"
-                onClick={() => navigate('/login')}
-              >
-                ¿Ya tienes cuenta? Iniciar Sesión
-              </button>
-            </div>
+        <fieldset className="auth-grupo">
+          <legend>Administrador</legend>
+          <div className="auth-fila">
+            <Campo etiqueta="Primer nombre" name="primerNombre" autoComplete="given-name" value={formData.primerNombre} onChange={handleChange} placeholder="Juan" required />
+            <Campo etiqueta="Primer apellido" name="primerApellido" autoComplete="family-name" value={formData.primerApellido} onChange={handleChange} placeholder="Pérez" required />
+            <Campo etiqueta="Correo electrónico" tipo="email" name="correo" autoComplete="email" value={formData.correo} onChange={handleChange} placeholder="correo@empresa.com" required />
+            <Campo etiqueta="Teléfono" tipo="tel" name="telefono" autoComplete="tel" inputMode="tel" value={formData.telefono} onChange={handleChange} placeholder="3001234567" required />
+            <Campo etiqueta="Contraseña" tipo="password" name="password" autoComplete="new-password" value={formData.password} onChange={handleChange} placeholder="Crea una contraseña" required />
+            <Campo
+              etiqueta="Confirmar contraseña"
+              tipo="password"
+              name="confirmPassword"
+              autoComplete="new-password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Repite la contraseña"
+              aria-invalid={Boolean(errorClave)}
+              ayuda={errorClave || undefined}
+              required
+            />
           </div>
-        </div>
-      </div>
-    </div>
+        </fieldset>
+
+        <button type="submit" className="auth-boton" disabled={loading}>
+          {loading ? 'Registrando...' : 'Crear cuenta'}
+        </button>
+      </form>
+    </AuthLayout>
   );
 }
 
