@@ -95,7 +95,6 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
   const detalles = compra.detalles || [];
   const pagos = compra.pagos || [];
   const devoluciones = compra.devoluciones || [];
-  const ventas = compra.ventas || [];
 
   const lineasEntregables = detalles.filter((d) => entregableDe(d) > 0);
   const puedeEntregar = !anulada && ['confirmado', 'en_compra', 'recibido'].includes(estado) && lineasEntregables.length > 0;
@@ -184,7 +183,7 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
             onClick={() => setExpandida((v) => !v)}
             aria-expanded={expandida}
           >
-            <span>{expandida ? 'Ocultar' : 'Abonos y más'}</span><ChevronDown size={14} />
+            <span>{expandida ? 'Ocultar' : 'Abonos y recibos'}</span><ChevronDown size={14} />
           </button>
         </div>
       </div>
@@ -235,30 +234,9 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
 
       {expandida && (
         <div className="compras-cliente-extra">
-          <div className="pedido-pagos-grid">
-            <div className="pedido-pago-stat"><span>Abonado</span><strong>{formatoMoneda(resumen.abonado)}</strong></div>
-            <div className={`pedido-pago-stat ${saldo > 0 && !anulada ? 'pedido-pago-stat-alerta' : ''}`}>
-              <span>Saldo por cobrar</span><strong>{anulada ? '—' : formatoMoneda(saldo)}</strong>
-            </div>
-            <div className="pedido-pago-stat"><span>Entregado</span><strong>{formatoMoneda(resumen.entregado)}</strong></div>
-            <div className="pedido-pago-stat"><span>Por entregar</span><strong>{formatoMoneda(resumen.porEntregar)}</strong></div>
-          </div>
-
           <div className="pedido-datos-extra">
             <div className="pedido-dato"><span>Entrega</span><strong>{fechaSola(compra.fechaEntrega)}</strong></div>
             <div className="pedido-dato"><span>Creada</span><strong>{formatearFecha(compra.createdAt)}</strong></div>
-            {ventas.length > 0 && (
-              <div className="pedido-dato">
-                <span>Entregas realizadas</span>
-                <div className="pedido-entregas-lista">
-                  {ventas.map((venta) => (
-                    <button key={venta.ventaid} type="button" className="pedido-link-venta" onClick={() => navigate(`/dashboard/venta/${venta.ventaid}`)}>
-                      Venta #{venta.ventaid} · {formatoMoneda(venta.total)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {compra.descripcion && (
