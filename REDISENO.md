@@ -22,6 +22,8 @@ node scripts/capturas.cjs dashboard/balance
 node scripts/capturas.cjs dashboard/balance dashboard/estadisticas --tamanos=movil,escritorio --sin-oscuro
 ```
 
+Para las páginas públicas (login, registro y landing) se agrega `--publica` y se escriben los nombres sin barra: `node scripts/capturas.cjs login registro landing --publica`. Para páginas con scroll interno sirven los tamaños `largo` y `movillargo`.
+
 Genera capturas en `capturas/` (ignorada por git) y avisa de desbordes horizontales y errores de consola. Usa la cuenta de prueba `gvaldelamar2003@gmail.com`; se puede cambiar con `CAPTURAS_CORREO` y `CAPTURAS_CLAVE`. Si Playwright no está instalado en el proyecto, se busca en la carpeta que indique `PLAYWRIGHT_DIR`.
 
 ## Módulos rediseñados
@@ -40,6 +42,9 @@ Genera capturas en `capturas/` (ignorada por git) y avisa de desbordes horizonta
 | Categorías | `/dashboard/categorias` | Resumen (categorías, con y sin productos), búsqueda, tabla con conteo de productos, crear y editar como página (`/categorias/nueva`, `/categorias/:id/editar`). |
 | Productos | `/dashboard/productos` | Resumen (productos, valor del inventario a costo, stock bajo, sin stock), filtros por categoría, estado y stock, exportación a Excel, tabla con miniaturas y filas clicables. |
 | Menú lateral y barra superior | todas las pantallas | Menú con ficha del negocio (logo y nombre), opciones activas también en subpantallas (por ejemplo Balance en Registrar venta), `aria-current`, panel móvil con Esc, sin scroll de fondo y oculto al teclado cuando está cerrado. Barra con el nombre de la pantalla, menú de cuenta accesible (Esc, `aria-expanded`), objetivos de 44 px en móvil y enlace "Saltar al contenido". Buscador Ctrl+K con roles de diálogo y combobox. |
+| Carrito de venta y de egreso | `/dashboard/nueva-venta`, `/dashboard/nuevo-egreso` | Pantalla compartida `comunes/CarritoPantalla.jsx`: catálogo con fotos que se desplaza, tarjetas con la cantidad ya agregada, carrito fijo a la derecha con total y botón siempre visibles, hoja inferior en celular (Esc la cierra), botones y cantidades accesibles. Los estilos (`CartStyles.css`) también los usa el carrito de compras de Pedidos. |
+| Iniciar sesión y Registro | `/login`, `/registro` | Marco compartido `login/AuthLayout.jsx` con panel de marca (sin imágenes externas), campos con etiqueta, mostrar y ocultar contraseña, `autocomplete`, error junto al campo, formulario de registro en dos grupos. |
+| Landing pública | `/` | Clases propias con prefijo `land-` (antes chocaban con el panel), "Cómo funciona" en lugar de testimonios, textos ajustados a lo que el sistema hace, pie con enlaces reales, `main`, foco visible y respeto de "reducir movimiento". |
 | Recibo de abono (dentro de Pedidos) | `/dashboard/pedido/:id/recibo/:pagoid` | Cabecera con logo y datos del negocio, importe en números y letras, resumen con saldo, listo para imprimir y exportar. |
 
 ## Módulos pendientes de rediseño
@@ -50,9 +55,6 @@ No tienen rediseño registrado todavía. Se aplican las reglas de arriba.
 |---|---|
 | Inventario (tarjetas, crear y editar producto, detalle) | `/dashboard/inventario` |
 | Pedidos (lista, detalle, crear pedido al proveedor, carrito) | `/dashboard/pedidos` |
-| Registrar venta y egreso (carrito del Balance) | `/dashboard/nueva-venta`, `/dashboard/nuevo-egreso` |
-| Login y registro | `/login`, `/registro` |
-| Landing pública | `/` |
 
 ## Datos de ejemplo en la base local
 
