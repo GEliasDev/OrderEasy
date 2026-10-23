@@ -5,7 +5,7 @@ import axiosInstance from '../../../../api/axiosConfig';
 import { useAuth } from '../../../../context/AuthContext';
 import { colorAvatar, iniciales } from '../../../../utils/avatar';
 import { imagenUrl } from '../../../../config';
-import '../pedidos/Pedidos.css';
+import '../../../comunes/contactos.css';
 import './perfil.css';
 
 const PERFIL_VACIO = { primerNombre: '', segundoNombre: '', primerApellido: '', segundoApellido: '', correo: '', telefono: '' };
@@ -113,129 +113,112 @@ function Perfil() {
   if (cargando) return <div className="view-loading"><div className="loader-spinner-dark" /></div>;
 
   return (
-    <div className="perfil-view">
-      <div className="mod-page-header">
+    <div className="ct-form-pagina">
+      <header className="ct-encabezado">
         <div>
-          <h1 className="mod-page-title">Mi perfil</h1>
-          <p className="mod-page-subtitle">Actualiza tus datos personales y la información de la empresa</p>
+          <h1>Mi perfil</h1>
+          <p>Actualiza tus datos personales y la información de la empresa.</p>
         </div>
-      </div>
+      </header>
 
-      <div className="perfil-resumen">
-        <span className="tbl-avatar perfil-avatar" style={{ background: colorAvatar(perfil.primerNombre) }}>
+      <section className="pf-resumen" aria-label="Tu cuenta">
+        <span className="tbl-avatar pf-avatar" style={{ background: colorAvatar(perfil.primerNombre) }}>
           {iniciales(`${perfil.primerNombre} ${perfil.primerApellido}`)}
         </span>
         <div>
-          <div className="perfil-resumen-nombre">{nombreCompleto || 'Usuario'}</div>
-          <div className="perfil-resumen-meta">
-            {perfil.correo}
-            <span className={`tbl-badge ${user?.rol === 'administrador' ? 'tbl-badge--primary' : 'tbl-badge--neutral'}`}>
+          <div className="pf-nombre">{nombreCompleto || 'Usuario'}</div>
+          <div className="pf-meta">
+            <span>{perfil.correo}</span>
+            <span className={`ct-rol${user?.rol === 'administrador' ? ' ct-rol--admin' : ''}`}>
               {user?.rol === 'administrador' ? 'Administrador' : 'Vendedor'}
             </span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="perfil-grid">
-        <form className="perfil-card" onSubmit={guardarPerfil}>
-          <div className="mod-seccion perfil-card-titulo">
-            <span className="mod-seccion-icono"><UserRound size={16} /></span>
-            <div className="mod-seccion-textos">
-              <h2>Mis datos</h2>
-              <p>Tu nombre completo y los datos con los que inicias sesión.</p>
-            </div>
-          </div>
-
-          <div className="perfil-fila">
-            <div className="perfil-campo">
+      <div className="ct-form pf-columnas">
+        <form className="ct-form-tarjeta" onSubmit={guardarPerfil}>
+          <h2><UserRound size={16} aria-hidden="true" /> Mis datos</h2>
+          <p>Tu nombre completo y los datos con los que inicias sesión.</p>
+          <div className="ct-campos">
+            <div className="ct-campo">
               <label htmlFor="primerNombre">Primer nombre *</label>
               <input id="primerNombre" name="primerNombre" value={perfil.primerNombre} onChange={cambiarPerfil} required minLength={2} maxLength={50} />
             </div>
-            <div className="perfil-campo">
+            <div className="ct-campo">
               <label htmlFor="segundoNombre">Segundo nombre</label>
               <input id="segundoNombre" name="segundoNombre" value={perfil.segundoNombre} onChange={cambiarPerfil} maxLength={50} />
             </div>
-          </div>
-          <div className="perfil-fila">
-            <div className="perfil-campo">
+            <div className="ct-campo">
               <label htmlFor="primerApellido">Primer apellido *</label>
               <input id="primerApellido" name="primerApellido" value={perfil.primerApellido} onChange={cambiarPerfil} required minLength={2} maxLength={50} />
             </div>
-            <div className="perfil-campo">
+            <div className="ct-campo">
               <label htmlFor="segundoApellido">Segundo apellido</label>
               <input id="segundoApellido" name="segundoApellido" value={perfil.segundoApellido} onChange={cambiarPerfil} maxLength={50} />
             </div>
-          </div>
-          <div className="perfil-fila">
-            <div className="perfil-campo">
+            <div className="ct-campo">
               <label htmlFor="correo">Correo *</label>
               <input id="correo" name="correo" type="email" value={perfil.correo} onChange={cambiarPerfil} required maxLength={100} />
             </div>
-            <div className="perfil-campo">
+            <div className="ct-campo">
               <label htmlFor="telefonoPerfil">Teléfono</label>
-              <input id="telefonoPerfil" name="telefono" value={perfil.telefono} onChange={cambiarPerfil} placeholder="3001234567" maxLength={15} />
+              <input id="telefonoPerfil" name="telefono" type="tel" inputMode="tel" value={perfil.telefono} onChange={cambiarPerfil} placeholder="3001234567" maxLength={15} />
             </div>
           </div>
-
-          <div className="perfil-acciones">
-            <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={guardandoPerfil}>
-              <Save size={14} /><span>{guardandoPerfil ? 'Guardando...' : 'Guardar mis datos'}</span>
+          <div className="pf-acciones">
+            <button type="submit" className="ct-btn ct-btn--primario" disabled={guardandoPerfil}>
+              <Save size={15} aria-hidden="true" /><span>{guardandoPerfil ? 'Guardando...' : 'Guardar mis datos'}</span>
             </button>
           </div>
         </form>
 
-        <form className="perfil-card" onSubmit={guardarEmpresa}>
-          <div className="mod-seccion perfil-card-titulo">
-            <span className="mod-seccion-icono"><Building2 size={16} /></span>
-            <div className="mod-seccion-textos">
-              <h2>Información de la empresa</h2>
-              <p>Aparece en los recibos y en los mensajes que envías a tus clientes.</p>
-            </div>
-          </div>
+        <form className="ct-form-tarjeta" onSubmit={guardarEmpresa}>
+          <h2><Building2 size={16} aria-hidden="true" /> Información de la empresa</h2>
+          <p>Aparece en los recibos y en los mensajes que envías a tus clientes.</p>
 
-          <div className="perfil-logo">
-            <div className="perfil-logo-caja">
-              {hayLogo ? <img src={logoVisible} alt="Logo de la empresa" /> : <Building2 size={26} />}
+          <div className="pf-logo">
+            <div className="pf-logo-caja">
+              {hayLogo ? <img src={logoVisible} alt="Logo de la empresa" /> : <Building2 size={26} aria-hidden="true" />}
             </div>
-            <div className="perfil-logo-acciones">
-              <span className="perfil-logo-titulo">Logo de la empresa</span>
-              <span className="perfil-logo-ayuda">Sale en el encabezado de los recibos. PNG, JPG o WebP, máx. 5 MB.</span>
-              <div className="perfil-logo-botones">
-                <label className="pedidos-btn pedidos-btn-secundario perfil-logo-subir">
-                  <ImagePlus size={14} /><span>{hayLogo ? 'Cambiar logo' : 'Subir logo'}</span>
+            <div className="pf-logo-textos">
+              <strong>Logo de la empresa</strong>
+              <span>Sale en el encabezado de los recibos. PNG, JPG o WebP, máx. 5 MB.</span>
+              <div className="pf-logo-botones">
+                <label className="ct-btn ct-btn--neutro pf-logo-subir">
+                  <ImagePlus size={15} aria-hidden="true" /><span>{hayLogo ? 'Cambiar logo' : 'Subir logo'}</span>
                   <input type="file" accept="image/png,image/jpeg,image/webp" onChange={elegirLogo} hidden />
                 </label>
                 {hayLogo && (
-                  <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={quitarLogoElegido}>
-                    <Trash2 size={14} /><span>Quitar</span>
+                  <button type="button" className="ct-btn ct-btn--neutro" onClick={quitarLogoElegido}>
+                    <Trash2 size={15} aria-hidden="true" /><span>Quitar</span>
                   </button>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="perfil-campo">
-            <label htmlFor="nombreEmpresa">Nombre de la empresa *</label>
-            <input id="nombreEmpresa" name="nombre" value={empresa.nombre} onChange={cambiarEmpresa} required maxLength={100} />
-          </div>
-          <div className="perfil-fila">
-            <div className="perfil-campo">
+          <div className="ct-campos">
+            <div className="ct-campo ct-campo--completo">
+              <label htmlFor="nombreEmpresa">Nombre de la empresa *</label>
+              <input id="nombreEmpresa" name="nombre" value={empresa.nombre} onChange={cambiarEmpresa} required maxLength={100} />
+            </div>
+            <div className="ct-campo">
               <label htmlFor="nit">NIT</label>
               <input id="nit" name="nit" value={empresa.nit} onChange={cambiarEmpresa} placeholder="900123456-7" maxLength={20} />
             </div>
-            <div className="perfil-campo">
+            <div className="ct-campo">
               <label htmlFor="telefonoEmpresa">Teléfono</label>
-              <input id="telefonoEmpresa" name="telefono" value={empresa.telefono} onChange={cambiarEmpresa} placeholder="3001234567" maxLength={20} />
+              <input id="telefonoEmpresa" name="telefono" type="tel" inputMode="tel" value={empresa.telefono} onChange={cambiarEmpresa} placeholder="3001234567" maxLength={20} />
+            </div>
+            <div className="ct-campo ct-campo--completo">
+              <label htmlFor="direccion">Dirección</label>
+              <input id="direccion" name="direccion" value={empresa.direccion} onChange={cambiarEmpresa} placeholder="Calle 123 #45-67" maxLength={255} />
             </div>
           </div>
-          <div className="perfil-campo">
-            <label htmlFor="direccion">Dirección</label>
-            <input id="direccion" name="direccion" value={empresa.direccion} onChange={cambiarEmpresa} placeholder="Calle 123 #45-67" maxLength={255} />
-          </div>
-
-          <div className="perfil-acciones">
-            <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={guardandoEmpresa}>
-              <Save size={14} /><span>{guardandoEmpresa ? 'Guardando...' : 'Guardar empresa'}</span>
+          <div className="pf-acciones">
+            <button type="submit" className="ct-btn ct-btn--primario" disabled={guardandoEmpresa}>
+              <Save size={15} aria-hidden="true" /><span>{guardandoEmpresa ? 'Guardando...' : 'Guardar empresa'}</span>
             </button>
           </div>
         </form>

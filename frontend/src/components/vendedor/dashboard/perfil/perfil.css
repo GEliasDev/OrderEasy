@@ -1,54 +1,46 @@
-.perfil-view { width: 100%; max-width: 1100px; }
-
-.perfil-resumen {
-  display: flex; align-items: center; gap: 1rem;
-  margin-bottom: 1.25rem; padding: 1rem 1.25rem;
-  background: var(--surface); border: 1px solid var(--neutral-200); border-radius: 14px;
+/* Mi perfil: resumen de la cuenta y bloque del logo. El resto usa comunes/contactos.css. */
+.pf-resumen {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
-.perfil-avatar { width: 52px; height: 52px; font-size: 1rem; }
-.perfil-resumen-nombre { font-size: 1.05rem; font-weight: 700; color: var(--neutral-900); }
-.perfil-resumen-meta { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-top: 2px; font-size: 0.82rem; color: var(--neutral-500); }
+.pf-avatar { width: 56px; height: 56px; font-size: 1.05rem; }
+.pf-nombre { font-size: 1.1rem; font-weight: 700; color: var(--neutral-900); overflow-wrap: anywhere; }
+.pf-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.75rem; margin-top: 2px; font-size: 0.85rem; color: var(--neutral-500); }
 
-.perfil-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.25rem; align-items: start; }
+.pf-columnas .ct-form-tarjeta h2 { display: flex; align-items: center; gap: 0.5rem; }
+.pf-acciones { display: flex; justify-content: flex-end; margin-top: 0.25rem; padding-top: 1rem; border-top: 1px solid var(--neutral-100); }
 
-.perfil-card {
-  display: flex; flex-direction: column; gap: 0.9rem;
-  padding: 1.25rem 1.4rem;
-  background: var(--surface); border: 1px solid var(--neutral-200); border-radius: 14px;
-  box-shadow: var(--shadow-sm);
+.pf-logo { display: flex; align-items: center; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--neutral-100); }
+.pf-logo-caja {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px dashed var(--neutral-300);
+  border-radius: var(--radius-lg);
+  background: var(--neutral-50);
+  color: var(--neutral-400);
 }
-.perfil-card-titulo { margin: 0 0 0.25rem; }
-
-.perfil-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
-.perfil-campo { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
-.perfil-campo label { font-size: 0.75rem; font-weight: 600; color: var(--neutral-700); }
-.perfil-campo input {
-  padding: 0.55rem 0.7rem; border: 1px solid var(--neutral-200); border-radius: 8px;
-  font-size: 0.85rem; color: var(--neutral-900); background: var(--surface);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.perfil-campo input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-soft); }
-
-.perfil-acciones { display: flex; justify-content: flex-end; margin-top: 0.25rem; padding-top: 0.9rem; border-top: 1px solid var(--neutral-100); }
+.pf-logo-caja img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.pf-logo-textos { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.pf-logo-textos strong { font-size: 0.85rem; color: var(--neutral-800); }
+.pf-logo-textos > span { font-size: 0.76rem; color: var(--neutral-500); }
+.pf-logo-botones { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; }
+.pf-logo-subir { cursor: pointer; min-height: 38px; }
 
 @media (max-width: 640px) {
-  .perfil-grid { grid-template-columns: 1fr; }
-  .perfil-fila { grid-template-columns: 1fr; }
-  .perfil-card { padding: 1rem; }
-  .perfil-acciones .pedidos-btn { width: 100%; justify-content: center; }
+  .pf-resumen { padding: 0.85rem 1rem; }
+  .pf-logo { flex-direction: column; align-items: flex-start; }
+  .pf-logo-botones { width: 100%; }
+  .pf-logo-botones .ct-btn { flex: 1; min-height: 44px; }
+  .pf-acciones .ct-btn { width: 100%; min-height: 46px; }
 }
-
-/* Logo de la empresa */
-.perfil-logo { display: flex; align-items: center; gap: 1rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--neutral-100); }
-.perfil-logo-caja {
-  width: 84px; height: 84px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  border: 1px dashed var(--neutral-300, #CBD5E1); border-radius: 12px; background: var(--neutral-50, #F8FAFC);
-  color: var(--neutral-400, #94A3B8); overflow: hidden;
-}
-.perfil-logo-caja img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
-.perfil-logo-acciones { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
-.perfil-logo-titulo { font-size: 0.8rem; font-weight: 600; color: var(--neutral-700); }
-.perfil-logo-ayuda { font-size: 0.72rem; color: var(--neutral-500); }
-.perfil-logo-botones { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.4rem; }
-.perfil-logo-subir { cursor: pointer; }

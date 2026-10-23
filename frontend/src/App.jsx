@@ -37,6 +37,8 @@ const EditarProducto = lazy(() => import('./components/vendedor/dashboard/invent
 const Categorias = lazy(() => import('./components/vendedor/dashboard/categorias/Categorias'));
 const Usuarios = lazy(() => import('./components/vendedor/dashboard/usuarios/Usuario'));
 const Roles = lazy(() => import('./components/vendedor/dashboard/roles/Roles'));
+const UsuarioForm = lazy(() => import('./components/vendedor/dashboard/usuarios/UsuarioForm'));
+const RolForm = lazy(() => import('./components/vendedor/dashboard/roles/RolForm'));
 const Perfil = lazy(() => import('./components/vendedor/dashboard/perfil/Perfil'));
 const Configuracion = lazy(() => import('./components/vendedor/dashboard/configuracion/Configuracion'));
 
@@ -105,6 +107,10 @@ function App() {
                 <Route path="configuracion" element={<AdminRoute><Configuracion /></AdminRoute>} />
                 <Route path="usuarios" element={<AdminRoute><Usuarios /></AdminRoute>} />
                 <Route path="roles" element={<AdminRoute><Roles /></AdminRoute>} />
+                <Route path="usuarios/nuevo" element={<AdminRoute><UsuarioForm /></AdminRoute>} />
+                <Route path="usuarios/:id/editar" element={<AdminRoute><UsuarioForm /></AdminRoute>} />
+                <Route path="roles/nuevo" element={<AdminRoute><RolForm /></AdminRoute>} />
+                <Route path="roles/:id/editar" element={<AdminRoute><RolForm /></AdminRoute>} />
 
                 {/* Accesibles por todos los roles autenticados */}
                 <Route path="producto/:id" element={<DetalleProducto />} />
