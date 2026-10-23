@@ -46,9 +46,9 @@ function Landing() {
       <div className="bg-blob blob-blue"></div>
 
       {/* Navigation */}
-      <nav className="navbar anim-fade-down">
+      <nav className="land-navbar anim-fade-down" aria-label="Principal">
         <div className="nav-container">
-          <div className="logo">
+          <div className="land-logo">
             <Sparkles className="logo-icon animate-pulse-slow" />
             <span className="logo-text">OrderEasy</span>
             <span className="logo-badge">Inventario + Pedidos</span>
@@ -59,21 +59,23 @@ function Landing() {
               onClick={toggleTheme} 
               className="theme-toggle-btn" 
               aria-label="Cambiar tema"
+              aria-pressed={theme === "dark"}
               title={theme === "dark" ? "Cambiar a Modo Claro" : "Cambiar a Modo Oscuro"}
             >
               {theme === "dark" ? <Sun className="toggle-icon sun" /> : <Moon className="toggle-icon moon" />}
             </button>
 
-            <Link className="btn-secondary no-underline" to="/login">
+            <Link className="land-btn-secondary no-underline" to="/login">
               Iniciar Sesión
             </Link>
-            <Link className="btn-primary no-underline btn-glow" to="/registro">
+            <Link className="land-btn-primary no-underline btn-glow" to="/registro">
               Registrarse<span className="solo-escritorio"> Gratis</span>
             </Link>
           </div>
         </div>
       </nav>
 
+      <main>
       {/* Hero Section */}
       <section className="hero">
         <div className="container hero-grid">
@@ -91,7 +93,7 @@ function Landing() {
             <div className="button-group">
               <Link
                 to="/registro"
-                className="btn-primary flex items-center no-underline btn-glow btn-lg"
+                className="land-btn-primary flex items-center no-underline btn-glow btn-lg"
               >
                 Comenzar Gratis <ArrowUpRight className="icon" />
               </Link>
@@ -120,7 +122,7 @@ function Landing() {
             <div className="mock-pedido glass-panel">
               <div className="mock-pedido-header">
                 <div>
-                  <h4>Pedido de octubre</h4>
+                  <h2 className="mock-pedido-titulo">Pedido de octubre</h2>
                   <span>3 compras de clientes</span>
                 </div>
                 <span className="mock-pedido-estado">Abierto</span>
@@ -174,7 +176,7 @@ function Landing() {
               </div>
               <h3>Control de Inventario Avanzado</h3>
               <p>
-                Monitorea stock en tiempo real, clasifica por categorías personalizadas y recibe alertas visuales inmediatas cuando un producto esté por debajo de su umbral mínimo.
+                Monitorea el stock en tiempo real, clasifica por categorías propias, maneja tallas y unidades de medida, y mira de un vistazo qué productos se están agotando.
               </p>
             </div>
             <div className="feature-card glass-panel card-hover-lift anim-fade-up">
@@ -209,7 +211,7 @@ function Landing() {
       </section>
 
       {/* Benefits */}
-      <section className="benefits">
+      <section className="benefits" id="ventajas">
         <div className="container">
           <div className="section-header text-center anim-fade-up">
             <span className="section-tag">Ventajas OrderEasy</span>
@@ -225,16 +227,16 @@ function Landing() {
             </div>
             <div className="benefit-item glass-panel card-hover-lift anim-fade-up">
               <div className="benefit-badge"><Check className="benefit-check-icon" /></div>
-              <h3>Seguridad a Nivel de Datos</h3>
+              <h3>Accesos por Rol</h3>
               <p>
-                Control estricto de roles. Toda acción crítica (como eliminar ventas o productos) cuenta con confirmaciones en tiempo real y registro de auditoría.
+                Cada persona de tu equipo ve solo lo que le corresponde. Las acciones delicadas, como eliminar, piden confirmación antes de ejecutarse.
               </p>
             </div>
             <div className="benefit-item glass-panel card-hover-lift anim-fade-up">
               <div className="benefit-badge"><Check className="benefit-check-icon" /></div>
-              <h3>100% Personalizable</h3>
+              <h3>Se Adapta a tu Comercio</h3>
               <p>
-                Ajusta las categorías, configura alertas de stock por producto y personaliza los métodos de pago según las necesidades de tu comercio.
+                Crea tus propias categorías, maneja productos por talla o por unidad de medida y recibe alertas cuando el stock esté bajo.
               </p>
             </div>
             <div className="benefit-item glass-panel card-hover-lift anim-fade-up">
@@ -254,78 +256,58 @@ function Landing() {
           <div className="stats-grid">
             <div className="stat-box anim-fade-up">
               <div className="stat-number gradient-text">24/7</div>
-              <div className="stat-label">Acceso desde Cualquier Dispositivo</div>
+              <div className="land-stat-label">Acceso desde Cualquier Dispositivo</div>
             </div>
             <div className="stat-box anim-fade-up">
               <div className="stat-number gradient-text">10 Min</div>
-              <div className="stat-label">Configuración Inicial</div>
+              <div className="land-stat-label">Configuración Inicial</div>
             </div>
             <div className="stat-box anim-fade-up">
               <div className="stat-number gradient-text">100%</div>
-              <div className="stat-label">Control Financiero del Negocio</div>
+              <div className="land-stat-label">Control Financiero del Negocio</div>
             </div>
             <div className="stat-box anim-fade-up">
               <div className="stat-number gradient-text">0%</div>
-              <div className="stat-label">Comisión por Ventas Realizadas</div>
+              <div className="land-stat-label">Comisión por Ventas Realizadas</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="testimonials">
+      {/* Cómo funciona */}
+      <section className="features pasos" id="como-funciona" aria-labelledby="pasos-titulo">
         <div className="container">
           <div className="section-header text-center anim-fade-up">
-            <span className="section-tag">Testimonios</span>
-            <h2>La opinión de comercios reales</h2>
+            <span className="section-tag">Cómo funciona</span>
+            <h2 id="pasos-titulo">Empieza a usarlo en tres pasos</h2>
+            <p className="section-subtitle">Sin instalaciones ni configuraciones complicadas: entras desde el navegador, en el computador o en el celular.</p>
           </div>
-          <div className="testimonials-grid">
-            <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
-              <p>
-                “Con los pedidos al proveedor sé qué le debo a cada cliente, cuánto ha abonado y cuándo llega cada par. Ya no se me pierde ninguna cuenta y todo lo reviso desde el celular.”
-              </p>
-              <div className="testimonial-author">
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=80&h=80&q=80"
-                  alt="Diana Valencia"
-                />
-                <div>
-                  <div className="author-name">Diana Valencia</div>
-                  <div className="author-title">Propietaria, MiniMarket La 70</div>
-                </div>
+          <ol className="features-grid pasos-lista">
+            <li className="feature-card glass-panel card-hover-lift anim-fade-up">
+              <span className="paso-numero" aria-hidden="true">1</span>
+              <div className="feature-icon-wrapper blue-glow">
+                <Users className="feature-icon" />
               </div>
-            </div>
-            <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
-              <p>
-                “Antes llevaba el control de ventas y egresos en hojas de cálculo. Con OrderEasy tengo el balance del día al instante y sé exactamente cuánto gané.”
-              </p>
-              <div className="testimonial-author">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=80&h=80&q=80"
-                  alt="Andrés Restrepo"
-                />
-                <div>
-                  <div className="author-name">Andrés Restrepo</div>
-                  <div className="author-title">Gerente General, Distribuidora Oriente</div>
-                </div>
+              <h3>Registra tu negocio</h3>
+              <p>Crea tu cuenta gratis: registras el negocio y tu usuario administrador en un solo paso.</p>
+            </li>
+            <li className="feature-card glass-panel card-hover-lift anim-fade-up">
+              <span className="paso-numero" aria-hidden="true">2</span>
+              <div className="feature-icon-wrapper teal-glow">
+                <Package className="feature-icon" />
               </div>
-            </div>
-            <div className="testimonial-card glass-panel card-hover-lift anim-fade-up">
-              <p>
-                “Implementamos OrderEasy por el control de inventario, pero nos quedamos por todo lo demás. El balance financiero mensual y el control de accesos de vendedores nos da una tranquilidad inmensa.”
-              </p>
-              <div className="testimonial-author">
-                <img
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=80&h=80&q=80"
-                  alt="Valeria Ospina"
-                />
-                <div>
-                  <div className="author-name">Valeria Ospina</div>
-                  <div className="author-title">Fundadora, Tendencias Tienda de Ropa</div>
-                </div>
+              <h3>Carga tus productos</h3>
+              <p>Agrega categorías y productos con sus fotos, tallas y precios de compra y de venta.</p>
+            </li>
+            <li className="feature-card glass-panel card-hover-lift anim-fade-up">
+              <span className="paso-numero" aria-hidden="true">3</span>
+              <div className="feature-icon-wrapper purple-glow">
+                <ClipboardList className="feature-icon" />
               </div>
-            </div>
-          </div>
+              <h3>Vende, pide y cobra</h3>
+              <p>Registra ventas, arma pedidos al proveedor con las compras de tus clientes y lleva sus abonos y entregas.</p>
+            </li>
+          </ol>
         </div>
       </section>
 
@@ -336,7 +318,7 @@ function Landing() {
             <h2>Toma el control absoluto de tu negocio hoy mismo</h2>
             <p>Empieza gratis con OrderEasy, configura tu inventario en minutos y lleva tus pedidos, abonos y entregas en un solo lugar.</p>
             <div className="cta-buttons">
-              <Link to="/registro" className="btn-primary no-underline btn-lg btn-glow">
+              <Link to="/registro" className="land-btn-primary no-underline btn-lg btn-glow">
                 Crear Mi Cuenta Gratis
               </Link>
               <Link to="/login" className="btn-outline btn-lg">
@@ -347,12 +329,14 @@ function Landing() {
         </div>
       </section>
 
+      </main>
+
       {/* Footer */}
       <footer className="footer anim-fade-up">
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
-              <div className="logo">
+              <div className="land-logo">
                 <Sparkles className="logo-icon" />
                 <span className="logo-text">OrderEasy</span>
               </div>
@@ -372,58 +356,16 @@ function Landing() {
               </ul>
             </div>
             <div className="footer-links">
-              <h3>Funciones</h3>
+              <h3>Conoce el sistema</h3>
               <ul>
-                <li>
-                  <a href="#">Pedidos y Abonos</a>
-                </li>
-                <li>
-                  <a href="#">Gestión de Clientes</a>
-                </li>
-                <li>
-                  <a href="#">Gestión de Stock</a>
-                </li>
-                <li>
-                  <a href="#">Balance e Informes</a>
-                </li>
-              </ul>
-            </div>
-            <div className="footer-links">
-              <h3>Soporte</h3>
-              <ul>
-                <li>
-                  <a href="#">Centro de Ayuda</a>
-                </li>
-                <li>
-                  <a href="#">Guías de Configuración</a>
-                </li>
-                <li>
-                  <a href="#">Contacto Técnico</a>
-                </li>
-              </ul>
-            </div>
-            <div className="footer-links">
-              <h3>Seguridad</h3>
-              <ul>
-                <li>
-                  <a href="#">Políticas de Privacidad</a>
-                </li>
-                <li>
-                  <a href="#">Términos del Servicio</a>
-                </li>
-                <li>
-                  <a href="#">Respaldo de Datos</a>
-                </li>
+                <li><a href="#funciones">Funcionalidades</a></li>
+                <li><a href="#como-funciona">Cómo funciona</a></li>
+                <li><a href="#ventajas">Ventajas</a></li>
               </ul>
             </div>
           </div>
           <div className="footer-bottom">
             <p>&copy; {new Date().getFullYear()} OrderEasy. Todos los derechos reservados.</p>
-            <div className="footer-bottom-links">
-              <a href="#">Seguridad del Servidor</a>
-              <a href="#">Términos y Condiciones</a>
-              <a href="#">Cookies</a>
-            </div>
           </div>
         </div>
       </footer>

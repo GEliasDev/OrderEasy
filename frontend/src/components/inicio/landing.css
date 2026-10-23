@@ -162,7 +162,7 @@
 }
 
 /* Navigation */
-.navbar {
+.land-navbar {
   position: fixed;
   top: 0;
   left: 0;
@@ -183,7 +183,7 @@
   padding: 0 1.5rem;
 }
 
-.logo {
+.land-logo {
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -258,7 +258,7 @@
 }
 
 /* Standard Buttons */
-.btn-primary {
+.land-btn-primary {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--accent-indigo) 100%);
   color: white !important;
   border: none;
@@ -273,7 +273,7 @@
   box-shadow: 0 4px 14px rgba(21, 101, 192, 0.25);
 }
 
-.btn-primary:hover {
+.land-btn-primary:hover {
   transform: translateY(-2px);
   filter: brightness(1.08);
   box-shadow: 0 6px 20px rgba(21, 101, 192, 0.4);
@@ -283,7 +283,7 @@
   box-shadow: var(--shadow-glow-indigo);
 }
 
-.btn-secondary {
+.land-btn-secondary {
   background: transparent;
   color: var(--text-main);
   border: none;
@@ -293,7 +293,7 @@
   cursor: pointer;
 }
 
-.btn-secondary:hover {
+.land-btn-secondary:hover {
   color: var(--color-primary);
 }
 
@@ -328,14 +328,14 @@
 }
 
 /* Button & Icon micro-animations */
-.btn-primary svg,
+.land-btn-primary svg,
 .btn-outline svg {
   width: 1.1rem;
   height: 1.1rem;
   transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.btn-primary:hover svg {
+.land-btn-primary:hover svg {
   transform: translate(3px, -3px);
 }
 
@@ -726,7 +726,7 @@
   letter-spacing: -0.03em;
 }
 
-.stat-label {
+.land-stat-label {
   font-size: 0.9rem;
   color: var(--text-muted);
   font-weight: 600;
@@ -839,7 +839,7 @@
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 2fr repeat(4, 1fr);
+  grid-template-columns: 2fr repeat(2, 1fr);
   gap: 3rem;
   margin-bottom: 4.5rem;
 }
@@ -1139,12 +1139,12 @@
 @media (max-width: 640px) {
   .nav-container { height: 4rem; padding: 0 1rem; }
   .container { padding: 0 1rem; }
-  .logo { gap: 0.4rem; }
+  .land-logo { gap: 0.4rem; }
   .logo-icon { width: 1.5rem; height: 1.5rem; }
   .logo-text { font-size: 1.3rem; }
   .nav-buttons { gap: 0.4rem; }
-  .nav-buttons .btn-secondary,
-  .nav-buttons .btn-primary { padding: 0.5rem 0.75rem; font-size: 0.8rem; white-space: nowrap; }
+  .nav-buttons .land-btn-secondary,
+  .nav-buttons .land-btn-primary { padding: 0.5rem 0.75rem; font-size: 0.8rem; white-space: nowrap; }
   .solo-escritorio { display: none; }
   .theme-toggle-btn { width: 2rem; height: 2rem; flex-shrink: 0; }
 
@@ -1177,7 +1177,34 @@
 
 @media (max-width: 380px) {
   .logo-text { font-size: 1.15rem; }
-  .nav-buttons .btn-secondary,
-  .nav-buttons .btn-primary { padding: 0.45rem 0.55rem; font-size: 0.75rem; }
+  .nav-buttons .land-btn-secondary,
+  .nav-buttons .land-btn-primary { padding: 0.45rem 0.55rem; font-size: 0.75rem; }
   .hero-title { font-size: 1.9rem; }
+}
+
+/* ───── Cómo funciona ───── */
+.pasos { padding-top: 4rem; }
+.pasos-lista { list-style: none; counter-reset: paso; }
+.pasos-lista .feature-card { position: relative; }
+.paso-numero {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.4rem;
+  font-family: var(--font-title);
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-dark);
+  opacity: 0.25;
+}
+.mock-pedido-titulo { font-size: 1rem; font-weight: 700; }
+
+/* Foco visible para teclado en toda la landing */
+.app a:focus-visible,
+.app button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+
+/* Con "reducir movimiento" no hay animaciones ni desplazamiento suave */
+@media (prefers-reduced-motion: reduce) {
+  .app { scroll-behavior: auto; }
+  .app *, .app *::before, .app *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
