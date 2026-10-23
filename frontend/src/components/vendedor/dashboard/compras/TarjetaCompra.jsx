@@ -8,7 +8,7 @@ import { imagenUrl } from '../../../../config';
 import { getSaldoFavor, usarSaldoFavor } from '../../../../services/pedidoService';
 import { abrirWhatsApp, mensajeListoParaEntregar, mensajeRecordatorioSaldo } from '../../../../utils/whatsapp';
 import { colorAvatar, iniciales } from '../../../../utils/avatar';
-import { ESTADOS_COMPRA_CLIENTE, formatearFecha, formatoMoneda } from './comprasUtils';
+import { ESTADOS_COMPRA_CLIENTE, MOTIVOS_DEVOLUCION, formatearFecha, formatoMoneda } from './comprasUtils';
 
 const num = (valor) => Number(valor) || 0;
 const redondear = (n) => Math.round(n * 1000) / 1000;
@@ -30,15 +30,6 @@ const TIPO_MOVIMIENTO = {
 };
 
 const METODOS = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' };
-
-const MOTIVOS_DEVOLUCION = {
-  color: 'No era el color',
-  talla: 'No era la talla',
-  modelo: 'No era el modelo',
-  danado: 'Llegó dañado o con defecto',
-  no_gusto: 'No le gustó',
-  otro: 'Otro motivo',
-};
 
 const fechaHora = (fecha) => (fecha
   ? new Date(fecha).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -67,8 +58,9 @@ const entregableDe = (detalle) => {
   return Math.max(0, Math.min(pendiente, redondear(num(detalle.recibidoCompra) - num(detalle.cantidadEntregada))));
 };
 
-const situacionDe = (detalle, { anulada, pedidoAbierto }) => {
+const situacionDe = (detalle, { anulada, pedidoAbierto, devuelta }) => {
   if (anulada) return { texto: 'Compra cancelada', clase: 'cancelado' };
+  if (devuelta > 0 && num(detalle.cantidad) <= 0) return { texto: 'Devolución', clase: 'devolucion' };
   if (num(detalle.cantidadEntregada) >= num(detalle.cantidad)) return { texto: 'Entregado', clase: 'entregado' };
   if (pedidoAbierto) return { texto: 'En el pedido', clase: 'espera' };
   if (num(detalle.recibidoCompra) >= num(detalle.cantidad)) return { texto: 'Listo para entregar', clase: 'listo' };
@@ -94,7 +86,12 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
   const saldo = num(resumen.saldo);
   const detalles = compra.detalles || [];
   const pagos = compra.pagos || [];
-  const devoluciones = compra.devoluciones || [];
+  // Las devoluciones se muestran como estado de cada línea (con su motivo), no como una sección aparte
+  const devolucionesPorLinea = new Map();
+  for (const dev of compra.devoluciones || []) {
+    if (!devolucionesPorLinea.has(dev.detalleid)) devolucionesPorLinea.set(dev.detalleid, []);
+    devolucionesPorLinea.get(dev.detalleid).push(dev);
+  }
 
   const lineasEntregables = detalles.filter((d) => entregableDe(d) > 0);
   const puedeEntregar = !anulada && ['confirmado', 'en_compra', 'recibido'].includes(estado) && lineasEntregables.length > 0;
@@ -193,7 +190,10 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
           <span>Producto</span><span>Pidió</span><span>Llegó</span><span>Entregado</span><span>Situación</span><span />
         </div>
         {detalles.map((d) => {
-          const situacion = situacionDe(d, { anulada, pedidoAbierto });
+          const devs = devolucionesPorLinea.get(d.detalleid) || [];
+          const devuelta = devs.reduce((acc, dev) => acc + num(dev.cantidad), 0);
+          const pidio = redondear(num(d.cantidad) + devuelta);
+          const situacion = situacionDe(d, { anulada, pedidoAbierto, devuelta });
           const costo = d.precioCompra !== null && d.precioCompra !== undefined
             ? Number(d.precioCompra)
             : costos?.get(`${d.productoid}:${d.varianteid || ''}`);
@@ -209,13 +209,24 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
                   <span className="compras-producto-meta">
                     Venta {formatoMoneda(d.precioUnitario)} c/u{costo !== undefined ? ` · Costo ${formatoMoneda(costo)} c/u` : ''}
                   </span>
+                  {devs.map((dev) => (
+                    <span key={dev.devolucionid} className="compras-producto-devolucion">
+                      <Undo2 size={11} />
+                      Devolución de {cantidad(dev.cantidad)}: {MOTIVOS_DEVOLUCION[dev.motivo] || dev.motivo}
+                      {dev.nota ? ` · ${dev.nota}` : ''}
+                      {!dev.reingresaStock ? ' · No volvió al inventario' : ''}
+                    </span>
+                  ))}
                 </span>
               </span>
-              <span className="compras-cliente-cifra" data-etiqueta="Pidió"><strong>{cantidad(d.cantidad)}</strong></span>
-              <span className="compras-cliente-cifra" data-etiqueta="Llegó"><strong>{pedidoAbierto ? '—' : cantidad(Math.min(num(d.recibidoCompra), num(d.cantidad)))}</strong></span>
+              <span className="compras-cliente-cifra" data-etiqueta="Pidió"><strong>{cantidad(pidio)}</strong></span>
+              <span className="compras-cliente-cifra" data-etiqueta="Llegó"><strong>{pedidoAbierto ? '—' : cantidad(Math.min(num(d.recibidoCompra), pidio))}</strong></span>
               <span className="compras-cliente-cifra" data-etiqueta="Entregado"><strong>{cantidad(d.cantidadEntregada)}</strong></span>
               <span className="compras-reparto-estado">
                 <span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span>
+                {devuelta > 0 && situacion.clase !== 'devolucion' && (
+                  <span className="compras-situacion compras-situacion-devolucion">Devolución · {cantidad(devuelta)}</span>
+                )}
               </span>
               <span className="compras-reparto-accion">
                 {!anulada && num(d.cantidadEntregada) > 0 && (
@@ -282,33 +293,6 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
             </div>
           )}
 
-          {devoluciones.length > 0 && (
-            <>
-              <div className="compras-cliente-subtitulo"><Undo2 size={14} /> Devoluciones de productos</div>
-              <div className="items-table-container">
-                <table className="items-table tabla-tarjetas">
-                  <thead>
-                    <tr><th>Fecha</th><th>Producto</th><th>Cant.</th><th>Motivo</th><th>Nota</th><th>Valor</th></tr>
-                  </thead>
-                  <tbody>
-                    {devoluciones.map((dev) => (
-                      <tr key={dev.devolucionid}>
-                        <td>{fechaHora(dev.createdAt)}</td>
-                        <td>{dev.productoNombre}{dev.talla ? ` · Talla ${dev.talla}` : ''}</td>
-                        <td>{cantidad(dev.cantidad)}</td>
-                        <td>
-                          <span className={`tbl-badge ${dev.motivo === 'danado' ? 'tbl-badge--danger' : 'tbl-badge--warning'}`}>{MOTIVOS_DEVOLUCION[dev.motivo] || dev.motivo}</span>
-                          {!dev.reingresaStock && <small className="compras-nota-corta">No volvió al inventario</small>}
-                        </td>
-                        <td className="pedido-mov-nota">{dev.nota || <span className="tbl-vacio">—</span>}</td>
-                        <td className="item-subtotal">{formatoMoneda(num(dev.cantidad) * num(dev.precioUnitario))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
 
           <div className="compras-cliente-acciones">
             {puedeAbonar && saldoFavor > 0 && (

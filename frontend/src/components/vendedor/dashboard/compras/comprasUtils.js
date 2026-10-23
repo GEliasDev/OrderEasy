@@ -55,3 +55,13 @@ export const ESTADOS_COMPRA_CLIENTE = {
   entregado: 'Entregada',
   anulado: 'Anulada',
 };
+
+// Por qué el cliente devuelve la mercancía (las claves las valida el backend)
+export const MOTIVOS_DEVOLUCION = {
+  color: 'No era el color',
+  talla: 'No era la talla',
+  modelo: 'No era el modelo',
+  danado: 'Llegó dañado o con defecto',
+  no_gusto: 'No le gustó',
+  otro: 'Otro motivo',
+};

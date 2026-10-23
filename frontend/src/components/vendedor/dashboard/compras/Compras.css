@@ -334,7 +334,7 @@
   color: var(--neutral-500, #64748B);
 }
 
-.compras-reparto-estado { display: flex; justify-content: flex-start; }
+.compras-reparto-estado { display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 0.25rem; }
 .compras-reparto-accion { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 .compras-reparto-cancelada { opacity: 0.55; }
 

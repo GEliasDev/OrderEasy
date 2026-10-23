@@ -547,6 +547,12 @@ function DetallePedido() {
   const puedeConvertir = ['confirmado', 'en_compra', 'recibido'].includes(pedido.estado) && hayParaEntregar;
   const puedeAbonar = pedido.estado !== 'anulado' && resumen.saldo > 0;
   const pagoRecibo = (pedido.pagos || []).find((p) => String(p.pagoid) === String(pagoid));
+  // Las devoluciones se muestran como estado de cada producto (con su motivo), no como una sección aparte
+  const devolucionesPorLinea = new Map();
+  for (const dev of pedido.devoluciones || []) {
+    if (!devolucionesPorLinea.has(dev.detalleid)) devolucionesPorLinea.set(dev.detalleid, []);
+    devolucionesPorLinea.get(dev.detalleid).push(dev);
+  }
   const lineasDevolvibles = (pedido.detalles || []).filter((d) => Number(d.cantidadEntregada) > 0);
   const puedeDevolver = pedido.estado !== 'anulado' && lineasDevolvibles.length > 0;
   const devolValor = lineasDevolvibles.reduce(
@@ -798,38 +804,6 @@ function DetallePedido() {
         )}
       </div>
 
-      {(pedido.devoluciones || []).length > 0 && (
-        <div className="detalle-items-section">
-          <div className="detalle-items-header">
-            <Undo2 size={15} /> Devoluciones de productos
-          </div>
-          <div className="items-table-container">
-            <table className="items-table tabla-tarjetas">
-              <thead>
-                <tr><th>Fecha</th><th>Producto</th><th>Cant.</th><th>Motivo</th><th>Nota</th><th>Valor</th></tr>
-              </thead>
-              <tbody>
-                {pedido.devoluciones.map((dev) => (
-                  <tr key={dev.devolucionid}>
-                    <td data-label="Fecha">{formatearFecha(dev.createdAt, true)}</td>
-                    <td data-label="Producto">
-                      <span className="tbl-cell-primary">{dev.productoNombre}</span>
-                      {dev.talla && <span className="cart-item-talla" style={{ marginLeft: '0.4rem' }}>Talla {dev.talla}</span>}
-                    </td>
-                    <td data-label="Cant.">{formatearCantidad(dev.cantidad)}</td>
-                    <td data-label="Motivo">
-                      <span className={`tbl-badge ${dev.motivo === 'danado' ? 'tbl-badge--danger' : 'tbl-badge--warning'}`}>{etiquetaMotivo(dev.motivo)}</span>
-                      {!dev.reingresaStock && <small className="compras-nota-corta">No volvió al inventario</small>}
-                    </td>
-                    <td data-label="Nota" className="pedido-mov-nota">{dev.nota || <span className="tbl-vacio">—</span>}</td>
-                    <td data-label="Valor" className="item-subtotal">{formatoMoneda(Number(dev.cantidad) * Number(dev.precioUnitario))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       <div className="pedido-datos-extra">
         <div className="pedido-dato">
@@ -878,6 +852,10 @@ function DetallePedido() {
                 const stockFisico = stockFisicoDe(item);
                 const pendiente = pendienteDe(item);
                 const faltante = Math.max(0, pendiente - stockFisico);
+                const devs = devolucionesPorLinea.get(item.detalleid) || [];
+                const devuelta = devs.reduce((acc, dev) => acc + Number(dev.cantidad), 0);
+                const pidio = Math.round((Number(item.cantidad) + devuelta) * 1000) / 1000;
+                const todoDevuelto = devuelta > 0 && Number(item.cantidad) <= 0;
                 return (
                   <tr key={item.detalleid}>
                     <td className="item-name">
@@ -900,6 +878,14 @@ function DetallePedido() {
                             {item.productoNombre}
                             {item.talla && <span className="cart-item-talla" style={{ marginLeft: '0.4rem' }}>Talla {item.talla}</span>}
                           </span>
+                          {devs.map((dev) => (
+                            <span key={dev.devolucionid} className="compras-producto-devolucion">
+                              <Undo2 size={11} />
+                              Devolución de {formatearCantidad(dev.cantidad, item.producto?.unidadMedida)}: {etiquetaMotivo(dev.motivo)}
+                              {dev.nota ? ` · ${dev.nota}` : ''}
+                              {!dev.reingresaStock ? ' · No volvió al inventario' : ''}
+                            </span>
+                          ))}
                           {(Number(item.enCompra) > 0 || Number(item.recibidoCompra) > 0) && (
                             <span className="tbl-cell-secondary">
                               {Number(item.enCompra) > 0 && `En compra: ${item.enCompra}`}
@@ -910,15 +896,20 @@ function DetallePedido() {
                         </div>
                       </div>
                     </td>
-                    <td className="item-qty">{formatearCantidad(item.cantidad, item.producto?.unidadMedida)}</td>
+                    <td className="item-qty">{formatearCantidad(pidio, item.producto?.unidadMedida)}</td>
                     <td>
                       <span className={`pedido-entrega-estado ${pendiente <= 0 ? 'completa' : Number(item.cantidadEntregada) > 0 ? 'parcial' : ''}`}>
-                        {formatearCantidad(item.cantidadEntregada || 0, item.producto?.unidadMedida)} / {formatearCantidad(item.cantidad, item.producto?.unidadMedida)}
+                        {formatearCantidad(item.cantidadEntregada || 0, item.producto?.unidadMedida)} / {formatearCantidad(pidio, item.producto?.unidadMedida)}
                       </span>
                     </td>
                     <td>
-                      {pendiente <= 0 ? (
-                        <span className="pedido-stock-ok">Entregado</span>
+                      {todoDevuelto ? (
+                        <span className="compras-situacion compras-situacion-devolucion">Devolución</span>
+                      ) : pendiente <= 0 ? (
+                        <>
+                          <span className="pedido-stock-ok">Entregado</span>
+                          {devuelta > 0 && <span className="compras-situacion compras-situacion-devolucion" style={{ marginLeft: '0.35rem' }}>Devolución · {formatearCantidad(devuelta, item.producto?.unidadMedida)}</span>}
+                        </>
                       ) : faltante > 0 ? (
                         <span className="pedido-stock-faltante">{pedido.ordenid ? 'Por llegar' : 'Faltan'} {formatearCantidad(faltante, item.producto?.unidadMedida)}</span>
                       ) : (
