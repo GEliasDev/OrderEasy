@@ -36,6 +36,9 @@ Genera capturas en `capturas/` (ignorada por git) y avisa de desbordes horizonta
 | Usuarios (Personal) | `/dashboard/usuarios` | Resumen (usuarios, administradores, sin rol), tabla con rol en etiqueta, crear y editar como página (`/usuarios/nuevo`, `/usuarios/:id/editar`) con tarjetas de datos personales y acceso. |
 | Roles y permisos | `/dashboard/roles` | Tarjetas por rol con sus secciones, estado vacío con acción, crear y editar como página (`/roles/nuevo`, `/roles/:id/editar`) con casillas accesibles y "Seleccionar todas". |
 | Mi perfil | `/dashboard/perfil` | Resumen de la cuenta, tarjetas "Mis datos" y "Información de la empresa" con el bloque del logo, a todo el ancho y apiladas en móvil. |
+| Inicio | `/dashboard/inicio` | Saludo con accesos rápidos (venta, pedido, egreso), 5 indicadores (ventas hoy, balance del mes, por cobrar, productos, stock crítico), gráfica de ventas de los últimos 7 días, stock crítico y últimas ventas clicables. Los ingresos usan lo cobrado, igual que Balance; el stock crítico ignora productos inactivos. |
+| Categorías | `/dashboard/categorias` | Resumen (categorías, con y sin productos), búsqueda, tabla con conteo de productos, crear y editar como página (`/categorias/nueva`, `/categorias/:id/editar`). |
+| Productos | `/dashboard/productos` | Resumen (productos, valor del inventario a costo, stock bajo, sin stock), filtros por categoría, estado y stock, exportación a Excel, tabla con miniaturas y filas clicables. |
 | Recibo de abono (dentro de Pedidos) | `/dashboard/pedido/:id/recibo/:pagoid` | Cabecera con logo y datos del negocio, importe en números y letras, resumen con saldo, listo para imprimir y exportar. |
 
 ## Módulos pendientes de rediseño
@@ -44,10 +47,7 @@ No tienen rediseño registrado todavía. Se aplican las reglas de arriba.
 
 | Módulo | Ruta |
 |---|---|
-| Inicio | `/dashboard/inicio` |
 | Inventario (tarjetas, crear y editar producto, detalle) | `/dashboard/inventario` |
-| Productos (tabla) | `/dashboard/productos` |
-| Categorías | `/dashboard/categorias` |
 | Pedidos (lista, detalle, crear pedido al proveedor, carrito) | `/dashboard/pedidos` |
 | Registrar venta y egreso (carrito del Balance) | `/dashboard/nueva-venta`, `/dashboard/nuevo-egreso` |
 | Navbar y menú lateral | todas las pantallas |
