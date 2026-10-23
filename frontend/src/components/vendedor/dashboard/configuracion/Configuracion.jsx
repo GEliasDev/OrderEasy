@@ -1,89 +1,98 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Users, ShieldCheck, ChevronRight, Building2, Edit2 } from 'lucide-react';
-import axiosInstance from '../../../../api/axiosConfig';
+import { Users, ShieldCheck, ChevronRight, Building2, Pencil, UserRound, ImagePlus } from 'lucide-react';
+import { getNegocio } from '../../../../services/negocioService';
+import { imagenUrl } from '../../../../config';
 import './configuracion.css';
+
+const OPCIONES = [
+  {
+    ruta: '/dashboard/usuarios',
+    icono: Users,
+    titulo: 'Personal',
+    texto: 'Los usuarios registrados en el sistema: edita sus datos y administra su acceso.',
+  },
+  {
+    ruta: '/dashboard/roles',
+    icono: ShieldCheck,
+    titulo: 'Roles y permisos',
+    texto: 'Crea roles personalizados y define a qué secciones puede entrar cada usuario.',
+  },
+  {
+    ruta: '/dashboard/perfil',
+    icono: UserRound,
+    titulo: 'Mi perfil',
+    texto: 'Tus datos personales, tu correo y la información de la empresa.',
+  },
+];
 
 const Configuracion = () => {
   const navigate = useNavigate();
   const [negocio, setNegocio] = useState(null);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    axiosInstance
-      .get('/api/negocio')
-      .then((res) => setNegocio(res.data.negocio))
-      .catch(() => {});
+    getNegocio()
+      .then(setNegocio)
+      .catch(() => {})
+      .finally(() => setCargando(false));
   }, []);
 
+  const datos = [
+    negocio?.nit && { etiqueta: 'NIT', valor: negocio.nit },
+    negocio?.telefono && { etiqueta: 'Teléfono', valor: negocio.telefono },
+    negocio?.direccion && { etiqueta: 'Dirección', valor: negocio.direccion },
+  ].filter(Boolean);
+
   return (
-    <div className="config-view">
-      <div className="config-header">
-        <div className="config-header-icon">
-          <Settings size={20} />
-        </div>
-        <div className="config-header-text">
-          <h1>Configuración</h1>
-          <p>Administra el negocio y las opciones del sistema</p>
-        </div>
-      </div>
+    <div className="cfg-pagina">
+      <header className="cfg-encabezado">
+        <h1>Configuración</h1>
+        <p>Administra tu negocio, el personal y los permisos del sistema.</p>
+      </header>
 
-      {/* ── Negocio ── */}
-      <p className="config-section-label">Negocio</p>
-      <div className="config-negocio-card">
-        <div className="config-negocio-icon">
-          <Building2 size={20} />
+      <section className="cfg-empresa" aria-labelledby="cfg-empresa-titulo">
+        <div className="cfg-logo">
+          {negocio?.logo
+            ? <img src={imagenUrl(negocio.logo)} alt={`Logo de ${negocio.nombre}`} />
+            : <Building2 size={30} aria-hidden="true" />}
         </div>
-        <div className="config-negocio-info">
-          <div className="config-negocio-nombre">{negocio?.nombre || '—'}</div>
-          <div className="config-negocio-meta">
-            {negocio?.nit && <span>NIT {negocio.nit}</span>}
-            {negocio?.telefono && <span>{negocio.telefono}</span>}
-            {negocio?.direccion && <span>{negocio.direccion}</span>}
-          </div>
+
+        <div className="cfg-empresa-info">
+          <h2 id="cfg-empresa-titulo">{cargando ? <span className="cfg-esq" /> : negocio?.nombre || 'Mi negocio'}</h2>
+          {datos.length > 0 ? (
+            <dl className="cfg-datos">
+              {datos.map((d) => (
+                <div key={d.etiqueta}><dt>{d.etiqueta}</dt><dd>{d.valor}</dd></div>
+              ))}
+            </dl>
+          ) : !cargando && <p className="cfg-ayuda">Completa el NIT, el teléfono y la dirección para que salgan en tus recibos.</p>}
+          {!cargando && !negocio?.logo && (
+            <p className="cfg-ayuda"><ImagePlus size={13} aria-hidden="true" /> Agrega el logo de tu empresa para que aparezca en los recibos.</p>
+          )}
         </div>
-        <button className="config-negocio-btn" onClick={() => navigate('/dashboard/perfil')}>
-          <Edit2 size={13} />
-          <span>Editar</span>
+
+        <button type="button" className="cfg-btn" onClick={() => navigate('/dashboard/perfil')}>
+          <Pencil size={14} aria-hidden="true" />
+          <span>Editar empresa</span>
         </button>
-      </div>
+      </section>
 
-      {/* ── Gestión ── */}
-      <p className="config-section-label" style={{ marginTop: '1.5rem' }}>Gestión</p>
-      <div className="config-cards-grid">
-
-        <div className="config-card">
-          <div className="config-card-icon">
-            <Users size={20} />
-          </div>
-          <div className="config-card-body">
-            <h3 className="config-card-title">Personal</h3>
-            <p className="config-card-desc">
-              Gestiona los usuarios registrados en el sistema: edita datos y administra el acceso.
-            </p>
-          </div>
-          <button className="config-card-btn" onClick={() => navigate('/dashboard/usuarios')}>
-            <span>Gestionar</span>
-            <ChevronRight size={14} />
-          </button>
+      <section aria-labelledby="cfg-gestion-titulo">
+        <h2 id="cfg-gestion-titulo" className="cfg-seccion">Gestión</h2>
+        <div className="cfg-grid">
+          {OPCIONES.map(({ ruta, icono: Icono, titulo, texto }) => (
+            <button key={ruta} type="button" className="cfg-opcion" onClick={() => navigate(ruta)}>
+              <span className="cfg-opcion-icono"><Icono size={20} aria-hidden="true" /></span>
+              <span className="cfg-opcion-textos">
+                <strong>{titulo}</strong>
+                <span>{texto}</span>
+              </span>
+              <ChevronRight size={18} className="cfg-opcion-flecha" aria-hidden="true" />
+            </button>
+          ))}
         </div>
-
-        <div className="config-card">
-          <div className="config-card-icon">
-            <ShieldCheck size={20} />
-          </div>
-          <div className="config-card-body">
-            <h3 className="config-card-title">Roles y Permisos</h3>
-            <p className="config-card-desc">
-              Define roles personalizados y controla a qué secciones tiene acceso cada usuario.
-            </p>
-          </div>
-          <button className="config-card-btn" onClick={() => navigate('/dashboard/roles')}>
-            <span>Gestionar</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-
-      </div>
+      </section>
     </div>
   );
 };
