@@ -38,3 +38,17 @@
   .perfil-card { padding: 1rem; }
   .perfil-acciones .pedidos-btn { width: 100%; justify-content: center; }
 }
+
+/* Logo de la empresa */
+.perfil-logo { display: flex; align-items: center; gap: 1rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--neutral-100); }
+.perfil-logo-caja {
+  width: 84px; height: 84px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  border: 1px dashed var(--neutral-300, #CBD5E1); border-radius: 12px; background: var(--neutral-50, #F8FAFC);
+  color: var(--neutral-400, #94A3B8); overflow: hidden;
+}
+.perfil-logo-caja img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.perfil-logo-acciones { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.perfil-logo-titulo { font-size: 0.8rem; font-weight: 600; color: var(--neutral-700); }
+.perfil-logo-ayuda { font-size: 0.72rem; color: var(--neutral-500); }
+.perfil-logo-botones { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.4rem; }
+.perfil-logo-subir { cursor: pointer; }
