@@ -1,86 +1,48 @@
-import { useState, useEffect } from 'react';
-import { Users, Plus, Edit2, Trash2, X, User, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Plus, Edit2, Trash2, ShieldCheck, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
 import axiosInstance from '../../../../api/axiosConfig';
+import { colorAvatar } from '../../../../utils/avatar';
 import { useEsMovil } from '../../../../hooks/useEsMovil';
 import ListaMovil from '../../../comunes/ListaMovil';
 import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
-import './Usuarios.css';
+import '../../../comunes/contactos.css';
 
-const VACIO = { primerNombre: '', primerApellido: '', correo: '', telefono: '', contraseña: '', rolid: '' };
+const nombreCompleto = (u) => `${u.primer_nombre || ''} ${u.primer_apellido || ''}`.trim();
+const inicialesDe = (u) => `${u.primer_nombre?.[0] || ''}${u.primer_apellido?.[0] || ''}`.toUpperCase();
+const esAdmin = (u) => u.rol === 'administrador';
+const nombreRol = (u) => (esAdmin(u) ? 'Administrador' : u.rolCustom?.nombre || 'Sin rol');
+
+const FilaEsqueleto = () => (
+  <tr>{[50, 40, 25, 25, 10].map((w, i) => <td key={i}><span className="ct-esq" style={{ width: `${w}%` }} /></td>)}</tr>
+);
 
 const Personal = () => {
+  const navigate = useNavigate();
   const esMovil = useEsMovil();
   const [seleccionado, setSeleccionado] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
-  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // null | { modo: 'crear' | 'editar', usuario? }
-  const [form, setForm] = useState(VACIO);
-  const [guardando, setGuardando] = useState(false);
 
-  const cargar = async () => {
-    try {
-      const [uRes, rRes] = await Promise.all([
-        axiosInstance.get('/api/usuarios'),
-        axiosInstance.get('/api/roles'),
-      ]);
-      setUsuarios(uRes.data.usuarios || []);
-      setRoles(rRes.data.roles || []);
-    } catch {
-      toast.error('No se pudo cargar la información.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { cargar(); }, []);
-
-  const abrirCrear = () => {
-    setForm(VACIO);
-    setModal({ modo: 'crear' });
-  };
-
-  const abrirEditar = (u) => {
-    setForm({
-      primerNombre: u.primer_nombre || '',
-      primerApellido: u.primer_apellido || '',
-      correo: u.correo || '',
-      telefono: u.telefono || '',
-      contraseña: '',
-      rolid: u.rolid || '',
-    });
-    setModal({ modo: 'editar', usuario: u });
-  };
-
-  const cerrar = () => setModal(null);
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setGuardando(true);
-    try {
-      const payload = { ...form, rolid: form.rolid || null };
-      if (modal.modo === 'crear') {
-        const res = await axiosInstance.post('/api/usuarios', payload);
-        setUsuarios((prev) => [...prev, res.data.usuario]);
-        toast.success('Usuario creado correctamente.');
-      } else {
-        const res = await axiosInstance.put(`/api/usuarios/${modal.usuario.usuarioid}`, payload);
-        setUsuarios((prev) => prev.map((u) => u.usuarioid === modal.usuario.usuarioid ? res.data.usuario : u));
-        toast.success('Usuario actualizado correctamente.');
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axiosInstance.get('/api/usuarios');
+        setUsuarios(res.data.usuarios || []);
+      } catch {
+        toast.error('No se pudo cargar la información.');
+      } finally {
+        setLoading(false);
       }
-      cerrar();
-    } catch (err) {
-      toast.error(err.response?.data?.mensaje || 'Error al guardar el usuario.');
-    } finally {
-      setGuardando(false);
-    }
-  };
+    })();
+  }, []);
+
+  const irACrear = () => navigate('/dashboard/usuarios/nuevo');
+  const irAEditar = (u) => navigate(`/dashboard/usuarios/${u.usuarioid}/editar`);
 
   const eliminar = (u) => {
-    toast(`¿Eliminar a ${u.primer_nombre} ${u.primer_apellido}?`, {
+    toast(`¿Eliminar a ${nombreCompleto(u)}?`, {
       action: {
         label: 'Eliminar',
         onClick: async () => {
@@ -98,98 +60,121 @@ const Personal = () => {
     });
   };
 
-  const iniciales = (u) =>
-    `${u.primer_nombre?.[0] || ''}${u.primer_apellido?.[0] || ''}`.toUpperCase();
-
-  const nombreRol = (u) => {
-    if (u.rol === 'administrador') return 'Administrador';
-    return u.rolCustom?.nombre || 'Sin rol';
-  };
-
-  if (loading) {
-    return <div className="personal-loading"><div className="personal-spinner" /></div>;
-  }
+  const ordenados = useMemo(
+    () => [...usuarios].sort((a, b) => nombreCompleto(a).localeCompare(nombreCompleto(b), 'es')),
+    [usuarios]
+  );
+  const admins = usuarios.filter(esAdmin).length;
+  const sinRol = usuarios.filter((u) => !esAdmin(u) && !u.rolCustom).length;
 
   return (
-    <div className="personal-view">
-      <div className="personal-header">
-        <div className="personal-header-icon"><Users size={20} /></div>
-        <div className="personal-header-text">
-          <h1>Personal</h1>
-          <p>Gestiona los usuarios del negocio</p>
+    <div className="ct-pagina">
+      <header className="ct-encabezado">
+        <div>
+          <h1>Personal <span className="mod-count-badge">{usuarios.length}</span></h1>
+          <p>Las personas que usan el sistema, su rol y a qué secciones pueden entrar.</p>
         </div>
-        <button className="personal-btn-nuevo" onClick={abrirCrear}>
-          <Plus size={14} />
+        <button type="button" className="ct-btn ct-btn--primario" onClick={irACrear}>
+          <Plus size={16} aria-hidden="true" />
           <span>Nuevo usuario</span>
         </button>
-      </div>
+      </header>
+
+      <section className="ct-resumen" aria-label="Resumen del personal">
+        <div className="ct-dato">
+          <span className="ct-dato-icono"><Users size={18} aria-hidden="true" /></span>
+          <div><span>Usuarios</span><strong>{usuarios.length}</strong></div>
+        </div>
+        <div className="ct-dato ct-dato--aviso">
+          <span className="ct-dato-icono"><ShieldCheck size={18} aria-hidden="true" /></span>
+          <div><span>Administradores</span><strong>{admins}</strong></div>
+        </div>
+        <div className={`ct-dato ${sinRol > 0 ? 'ct-dato--peligro' : 'ct-dato--ok'}`}>
+          <span className="ct-dato-icono"><UserCog size={18} aria-hidden="true" /></span>
+          <div><span>Sin rol asignado</span><strong>{sinRol}</strong></div>
+        </div>
+      </section>
 
       {esMovil ? (
         <ListaMovil
-          items={[...usuarios].sort((a, b) => `${a.primer_nombre} ${a.primer_apellido}`.localeCompare(`${b.primer_nombre} ${b.primer_apellido}`, 'es'))}
+          items={ordenados}
           clave={(u) => u.usuarioid}
+          cargando={loading}
           letras
           vacio="Aún no hay usuarios"
           onAbrir={setSeleccionado}
           fila={(u) => ({
-            titulo: `${u.primer_nombre} ${u.primer_apellido}`,
+            titulo: nombreCompleto(u),
             subtitulo: u.correo,
             insignia: nombreRol(u),
-            tono: u.rol === 'administrador' ? 'aviso' : undefined,
+            tono: esAdmin(u) ? 'aviso' : undefined,
           })}
         />
       ) : (
-      <div className="personal-lista">
-        {usuarios.map((u) => (
-          <div key={u.usuarioid} className="personal-card">
-            <div className="personal-card-top">
-              <div className="personal-avatar">{iniciales(u)}</div>
-              <div className="personal-card-info">
-                <div className="personal-nombre">{u.primer_nombre} {u.primer_apellido}</div>
-                <span className={`personal-role-badge ${u.rol === 'administrador' ? 'admin' : ''}`}>
-                  <ShieldCheck size={10} />
-                  {nombreRol(u)}
-                </span>
-              </div>
-              {u.rol !== 'administrador' && (
-                <div className="personal-acciones">
-                  <button className="personal-btn-icon" onClick={() => abrirEditar(u)} title="Editar">
-                    <Edit2 size={14} />
-                  </button>
-                  <button className="personal-btn-icon danger" onClick={() => eliminar(u)} title="Eliminar">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+        <div className="ct-tabla-wrap ct-tabla-wrap--auto">
+          <table className="ct-tabla">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Teléfono</th>
+                <th>Rol</th>
+                <th><span className="sr-only">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => <FilaEsqueleto key={i} />)
+              ) : ordenados.length > 0 ? ordenados.map((u) => (
+                <tr key={u.usuarioid}>
+                  <td>
+                    <div className="tbl-main-cell">
+                      <span className="tbl-avatar" style={{ background: colorAvatar(u.primer_nombre) }}>{inicialesDe(u)}</span>
+                      <div className="tbl-cell-texts"><span className="tbl-cell-primary">{nombreCompleto(u)}</span></div>
+                    </div>
+                  </td>
+                  <td title={u.correo}>{u.correo}</td>
+                  <td>{u.telefono || <span className="tbl-vacio">—</span>}</td>
+                  <td>
+                    <span className={`ct-rol${esAdmin(u) ? ' ct-rol--admin' : !u.rolCustom ? ' ct-rol--sin' : ''}`}>
+                      {esAdmin(u) && <ShieldCheck size={12} aria-hidden="true" />}
+                      {nombreRol(u)}
+                    </span>
+                  </td>
+                  <td className="ct-acciones">
+                    {!esAdmin(u) && (
+                      <div className="tbl-actions">
+                        <button type="button" className="tbl-icon-btn tbl-icon-btn--editar" title="Editar" aria-label={`Editar a ${nombreCompleto(u)}`} onClick={() => irAEditar(u)}>
+                          <Edit2 size={14} />
+                        </button>
+                        <button type="button" className="tbl-icon-btn tbl-icon-btn--borrar" title="Eliminar" aria-label={`Eliminar a ${nombreCompleto(u)}`} onClick={() => eliminar(u)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="5" className="ct-vacio">
+                    <Users size={28} style={{ opacity: 0.35 }} aria-hidden="true" />
+                    <p>Aún no hay usuarios</p>
+                  </td>
+                </tr>
               )}
-            </div>
-
-            <div className="personal-divider" />
-
-            <div className="personal-fields">
-              <div className="personal-field">
-                <span className="personal-field-label"><Mail size={12} /> Correo</span>
-                <span className="personal-field-value">{u.correo}</span>
-              </div>
-              {u.telefono && (
-                <div className="personal-field">
-                  <span className="personal-field-label"><Phone size={12} /> Teléfono</span>
-                  <span className="personal-field-value">{u.telefono}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+            </tbody>
+          </table>
+        </div>
       )}
 
       <PanelInferior
         abierto={Boolean(seleccionado)}
         onCerrar={() => setSeleccionado(null)}
-        titulo={seleccionado ? `${seleccionado.primer_nombre} ${seleccionado.primer_apellido}` : ''}
+        titulo={seleccionado ? nombreCompleto(seleccionado) : ''}
         subtitulo={seleccionado ? nombreRol(seleccionado) : ''}
-        acciones={seleccionado && seleccionado.rol !== 'administrador' && (
+        acciones={seleccionado && !esAdmin(seleccionado) && (
           <>
-            <button type="button" className="pi-accion pi-accion-primaria" onClick={() => { const u = seleccionado; setSeleccionado(null); abrirEditar(u); }}><Edit2 size={15} /> Editar</button>
+            <button type="button" className="pi-accion pi-accion-primaria" onClick={() => { const u = seleccionado; setSeleccionado(null); irAEditar(u); }}><Edit2 size={15} /> Editar</button>
             <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const u = seleccionado; setSeleccionado(null); eliminar(u); }}><Trash2 size={15} /> Eliminar</button>
           </>
         )}
@@ -202,61 +187,6 @@ const Personal = () => {
           </>
         )}
       </PanelInferior>
-
-      {modal && (
-        <div className="personal-overlay" onClick={cerrar}>
-          <div className="personal-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="personal-modal-header">
-              <h3>{modal.modo === 'crear' ? 'Nuevo usuario' : 'Editar usuario'}</h3>
-              <button className="personal-modal-close" onClick={cerrar}><X size={16} /></button>
-            </div>
-            <form onSubmit={handleSubmit} className="personal-form">
-              <div className="personal-form-row">
-                <div className="personal-form-group">
-                  <label>Nombre *</label>
-                  <input name="primerNombre" value={form.primerNombre} onChange={handleChange} required placeholder="Nombre" />
-                </div>
-                <div className="personal-form-group">
-                  <label>Apellido *</label>
-                  <input name="primerApellido" value={form.primerApellido} onChange={handleChange} required placeholder="Apellido" />
-                </div>
-              </div>
-              <div className="personal-form-row">
-                <div className="personal-form-group">
-                  <label>Correo *</label>
-                  <input name="correo" type="email" value={form.correo} onChange={handleChange} required placeholder="correo@email.com" />
-                </div>
-                <div className="personal-form-group">
-                  <label>Teléfono</label>
-                  <input name="telefono" value={form.telefono} onChange={handleChange} placeholder="3001234567" />
-                </div>
-              </div>
-              <div className="personal-form-group">
-                <label>
-                  {modal.modo === 'crear' ? 'Contraseña *' : 'Nueva contraseña'}
-                  {modal.modo === 'editar' && <span className="personal-label-hint"> (vacío = no cambiar)</span>}
-                </label>
-                <input name="contraseña" type="password" value={form.contraseña} onChange={handleChange} required={modal.modo === 'crear'} placeholder="••••••••" />
-              </div>
-              <div className="personal-form-group">
-                <label>Rol</label>
-                <select name="rolid" value={form.rolid} onChange={handleChange}>
-                  <option value="">Sin rol asignado</option>
-                  {roles.map((r) => (
-                    <option key={r.rolid} value={r.rolid}>{r.nombre}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="personal-form-actions">
-                <button type="button" className="personal-btn-cancelar" onClick={cerrar}>Cancelar</button>
-                <button type="submit" className="personal-btn-guardar" disabled={guardando}>
-                  {guardando ? 'Guardando...' : modal.modo === 'crear' ? 'Crear usuario' : 'Guardar cambios'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
