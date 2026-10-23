@@ -650,41 +650,6 @@
   color: var(--neutral-400, #94A3B8);
 }
 
-.pedido-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(2px);
-}
-
-.pedido-modal {
-  width: 100%;
-  max-width: 460px;
-  background: var(--surface, #fff);
-  border-radius: 12px;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
-  overflow: hidden;
-}
-
-.pedido-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--neutral-200, #E2E8F0);
-}
-
-.pedido-modal-header h3 {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--neutral-900, #0F172A);
-}
-
 .pedido-modal-close {
   display: inline-flex;
   align-items: center;
@@ -1090,7 +1055,6 @@
 .pedido-entrega-estado.completa { color: #15803D; font-weight: 600; }
 
 /* ── Modal de entrega y anulación ── */
-.pedido-modal-ancho { max-width: 620px; }
 
 .pedido-entrega-lineas {
   display: flex;
@@ -1395,3 +1359,31 @@
 
 /* Motivos de devolución de mercancía */
 .devolucion-motivos { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+
+/* ───────── Pantallas de formulario (antes ventanas emergentes): ruta completa con tarjeta ───────── */
+.pedido-pagina { width: 100%; padding-bottom: 1.5rem; }
+.pedido-pagina-card {
+  max-width: 760px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--neutral-200, #E2E8F0);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(15, 23, 42, 0.08));
+  overflow: hidden;
+}
+.pedido-pagina-card.pedido-pagina-ancha { max-width: 980px; }
+.pedido-pagina-card .pedido-modal-form { padding: 1.25rem 1.5rem; }
+/* El botón de guardar queda siempre visible aunque el formulario sea largo */
+.pedido-pagina-card .pedido-modal-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 -1.5rem -1.25rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface, #fff);
+  border-top: 1px solid var(--neutral-200, #E2E8F0);
+}
+@media (max-width: 768px) {
+  .pedido-pagina-card { border-radius: 12px; }
+  .pedido-pagina-card .pedido-modal-form { padding: 1rem; }
+  .pedido-pagina-card .pedido-modal-footer { margin: 0 -1rem -1rem; padding: 0.7rem 1rem; }
+}

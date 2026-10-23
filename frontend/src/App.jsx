@@ -19,6 +19,7 @@ const Proveedores = lazy(() => import('./components/vendedor/dashboard/proveedor
 const NuevoPedido = lazy(() => import('./components/vendedor/dashboard/pedidos/NuevoPedido'));
 const DetallePedido = lazy(() => import('./components/vendedor/dashboard/pedidos/DetallePedido'));
 const Compras = lazy(() => import('./components/vendedor/dashboard/compras/Compras'));
+const CrearPedidoProveedor = lazy(() => import('./components/vendedor/dashboard/compras/CrearPedidoProveedor'));
 const DetalleCompra = lazy(() => import('./components/vendedor/dashboard/compras/DetalleCompra'));
 const Login = lazy(() => import('./components/vendedor/login/Login'));
 const Home = lazy(() => import('./components/inicio/landing'));
@@ -81,9 +82,10 @@ function App() {
                 <Route path="productos" element={<SeccionRoute seccion="productos"><Productos /></SeccionRoute>} />
                 <Route path="categorias" element={<SeccionRoute seccion="categorias"><Categorias /></SeccionRoute>} />
                 <Route path="pedidos" element={<SeccionRoute seccion="pedidos"><Compras /></SeccionRoute>} />
-                <Route path="pedidos/:id" element={<SeccionRoute seccion="pedidos"><DetalleCompra /></SeccionRoute>} />
+                <Route path="pedidos/nuevo" element={<SeccionRoute seccion="pedidos"><CrearPedidoProveedor /></SeccionRoute>} />
+                <Route path="pedidos/:id/:vista?" element={<SeccionRoute seccion="pedidos"><DetalleCompra /></SeccionRoute>} />
                 <Route path="nuevo-pedido" element={<SeccionRoute seccion="pedidos"><NuevoPedido /></SeccionRoute>} />
-                <Route path="pedido/:id" element={<SeccionRoute seccion="pedidos"><DetallePedido /></SeccionRoute>} />
+                <Route path="pedido/:id/:vista?/:pagoid?" element={<SeccionRoute seccion="pedidos"><DetallePedido /></SeccionRoute>} />
                 <Route path="nuevo-producto" element={<SeccionRoute seccion="inventario"><NuevoProducto /></SeccionRoute>} />
                 <Route path="producto/:id/editar" element={<SeccionRoute seccion="inventario"><EditarProducto /></SeccionRoute>} />
                 <Route path="balance" element={<SeccionRoute seccion="balance"><Balance /></SeccionRoute>} />

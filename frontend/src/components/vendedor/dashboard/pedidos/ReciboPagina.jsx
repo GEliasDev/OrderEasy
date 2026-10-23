@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { MessageCircle, Printer, X } from 'lucide-react';
+import { MessageCircle, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { abrirWhatsApp, mensajeRecibo } from '../../../../utils/whatsapp';
+import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
+import './Pedidos.css';
 import './Recibo.css';
 
 const formatoMoneda = (valor) =>
@@ -24,20 +24,14 @@ const saldoDespues = (pedido, pago) => {
 };
 
 /**
- * Recibo imprimible de un abono (o comprobante de devolución) de un pedido, con envío por WhatsApp.
+ * Pantalla del recibo imprimible de un abono (o comprobante de devolución) de un pedido, con envío por WhatsApp.
  */
-function ReciboModal({ pedido, pago, negocio, onClose }) {
+function ReciboPagina({ pedido, pago, negocio, onVolver }) {
   const tipo = TIPOS[pago.tipo] || TIPOS.abono;
   const nombreNegocio = negocio?.nombre || '';
   const saldo = saldoDespues(pedido, pago);
   const cliente = pedido.cliente?.nombreCliente || 'Cliente';
   const fecha = new Date(pago.createdAt).toLocaleString('es-CO', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-  useEffect(() => {
-    const cerrar = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', cerrar);
-    return () => window.removeEventListener('keydown', cerrar);
-  }, [onClose]);
 
   const enviar = () => {
     const ok = abrirWhatsApp(pedido.cliente?.telefono, mensajeRecibo({
@@ -53,23 +47,21 @@ function ReciboModal({ pedido, pago, negocio, onClose }) {
     if (!ok) toast.error('Este cliente no tiene un teléfono válido para WhatsApp.');
   };
 
-  // En un portal directo en <body>: al imprimir se oculta todo lo demás y sale solo la hoja del recibo
-  return createPortal(
-    <div className="recibo-overlay" onClick={onClose}>
-      <div className="recibo-contenedor" onClick={(e) => e.stopPropagation()}>
-        <div className="recibo-barra no-imprimir">
-          <span>{tipo.titulo}</span>
-          <div className="recibo-barra-acciones">
-            <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={enviar}>
-              <MessageCircle size={13} /><span>WhatsApp</span>
-            </button>
-            <button className="pedidos-btn pedidos-btn-primary pedidos-btn-sm" onClick={() => window.print()}>
-              <Printer size={13} /><span>Imprimir</span>
-            </button>
-            <button className="pedido-modal-close" onClick={onClose} aria-label="Cerrar"><X size={16} /></button>
-          </div>
+  return (
+    <div className="pedido-pagina recibo-pagina">
+      <div className="no-imprimir">
+        <EncabezadoPagina onVolver={onVolver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>{tipo.titulo}</EncabezadoPagina>
+        <div className="recibo-barra-acciones">
+          <button className="pedidos-btn pedidos-btn-secundario" onClick={enviar}>
+            <MessageCircle size={14} /><span>Enviar por WhatsApp</span>
+          </button>
+          <button className="pedidos-btn pedidos-btn-primary" onClick={() => window.print()}>
+            <Printer size={14} /><span>Imprimir</span>
+          </button>
         </div>
+      </div>
 
+      <div className="recibo-contenedor">
         <article className="recibo-hoja">
           <header className="recibo-encabezado">
             <h2>{nombreNegocio || 'OrderEasy'}</h2>
@@ -122,9 +114,8 @@ function ReciboModal({ pedido, pago, negocio, onClose }) {
           <p className="recibo-pie">Gracias por tu compra.</p>
         </article>
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }
 
-export default ReciboModal;
+export default ReciboPagina;

@@ -1,43 +1,16 @@
 /* Recibo de abono: ventana en pantalla y hoja imprimible */
 
-.recibo-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(15, 23, 42, 0.55);
-  overflow-y: auto;
-}
+.recibo-barra-acciones { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
 
+/* La hoja del recibo se muestra como un papel centrado */
 .recibo-contenedor {
   width: 100%;
-  max-width: 460px;
-  max-height: 94vh;
-  display: flex;
-  flex-direction: column;
+  max-width: 520px;
+  border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: 12px;
-  background: var(--surface, #fff);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.1));
   overflow: hidden;
 }
-
-.recibo-barra {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--neutral-200, #E2E8F0);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--neutral-900, #0F172A);
-}
-
-.recibo-barra-acciones { display: flex; align-items: center; gap: 6px; }
 
 /* La hoja siempre es clara (como el papel), incluso en modo oscuro */
 .recibo-hoja {
@@ -86,10 +59,9 @@
 
 /* Al imprimir solo sale la hoja del recibo */
 @media print {
-  body > *:not(.recibo-overlay) { display: none !important; }
-  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
-  .recibo-overlay { position: static !important; display: block !important; background: none !important; padding: 0 !important; overflow: visible !important; }
-  .recibo-contenedor { max-width: none !important; max-height: none !important; border-radius: 0 !important; box-shadow: none !important; overflow: visible !important; }
-  .recibo-hoja { max-width: 160mm; margin: 0 auto; padding: 12mm 14mm !important; overflow: visible !important; }
+  body * { visibility: hidden !important; }
+  .recibo-contenedor, .recibo-contenedor * { visibility: visible !important; }
+  .recibo-contenedor { position: absolute !important; left: 0; top: 0; width: 100%; max-width: none !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; }
+  .recibo-hoja { max-width: 160mm; margin: 0 auto; padding: 12mm 14mm !important; }
   .no-imprimir { display: none !important; }
 }

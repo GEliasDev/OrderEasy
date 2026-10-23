@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Eye, PackageCheck, Plus, Trash2, Truck, Users, X } from 'lucide-react';
+import { ClipboardList, Eye, PackageCheck, Plus, Trash2, Truck } from 'lucide-react';
 
 const BADGE_ORDEN = {
   abierta: 'tbl-badge--warning',
@@ -14,7 +14,7 @@ const BADGE_ORDEN = {
 const ORDEN_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#06B6D4','#EF4444','#6366F1'];
 const colorOrden = (id) => ORDEN_COLORS[(Number(id) || 0) % ORDEN_COLORS.length];
 import { toast } from 'sonner';
-import { crearPedidoProveedor, eliminarPedidoProveedor, getOrdenesCompra, getSaldoPorCobrar } from '../../../../services/pedidoService';
+import { eliminarPedidoProveedor, getOrdenesCompra, getSaldoPorCobrar } from '../../../../services/pedidoService';
 import { ESTADOS_COMPRA, formatearFecha, formatoMoneda, nombrePedido } from './comprasUtils';
 import { useEsMovil } from '../../../../hooks/useEsMovil';
 import ListaMovil from '../../../comunes/ListaMovil';
@@ -31,9 +31,6 @@ function Compras() {
   const [ordenes, setOrdenes] = useState([]);
   const [saldoPorCobrar, setSaldoPorCobrar] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [creando, setCreando] = useState(false);
-  const [modalNuevo, setModalNuevo] = useState(false);
-  const [nombreNuevo, setNombreNuevo] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todas');
   const [busqueda, setBusqueda] = useState('');
 
@@ -70,19 +67,6 @@ function Compras() {
       },
       cancel: { label: 'Cancelar', onClick: () => {} },
     });
-  };
-
-  const crearPedido = async (e) => {
-    e?.preventDefault();
-    try {
-      setCreando(true);
-      const orden = await crearPedidoProveedor({ nombre: nombreNuevo.trim() || undefined });
-      toast.success(`${nombrePedido(orden)} creado. Agrégale las compras de tus clientes.`);
-      navigate(`/dashboard/pedidos/${orden.ordenid}`);
-    } catch (error) {
-      toast.error(error?.response?.data?.mensaje || 'No se pudo crear el pedido.');
-      setCreando(false);
-    }
   };
 
   const filas = useMemo(() => ordenes.map((orden) => {
@@ -140,7 +124,7 @@ function Compras() {
           <p className="pedidos-subtitle">Cada pedido es lo que le haces al proveedor. Dentro agregas las compras de tus clientes y llevas sus abonos y entregas.</p>
         </div>
         <div className="pedidos-header-acciones">
-          <button className="pedidos-btn pedidos-btn-primary" onClick={() => { setNombreNuevo(''); setModalNuevo(true); }}>
+          <button className="pedidos-btn pedidos-btn-primary" onClick={() => navigate('/dashboard/pedidos/nuevo')}>
             <Plus size={16} />
             <span>Crear pedido</span>
           </button>
@@ -210,7 +194,7 @@ function Compras() {
           <div className="pedidos-vacio">
             <Truck size={44} />
             <p>No hay pedidos que coincidan con el filtro.</p>
-            <button className="pedidos-btn pedidos-btn-primary" onClick={() => { setNombreNuevo(''); setModalNuevo(true); }}>
+            <button className="pedidos-btn pedidos-btn-primary" onClick={() => navigate('/dashboard/pedidos/nuevo')}>
               <Plus size={16} /><span>Crear pedido</span>
             </button>
           </div>
@@ -279,27 +263,6 @@ function Compras() {
       </div>
       )}
 
-      {modalNuevo && (
-        <div className="pedido-modal-overlay" onClick={() => setModalNuevo(false)}>
-          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Crear pedido</h3>
-              <button className="pedido-modal-close" onClick={() => setModalNuevo(false)}><X size={16} /></button>
-            </div>
-            <form className="pedido-modal-form" onSubmit={crearPedido}>
-              <label>
-                Nombre del pedido (opcional)
-                <input type="text" maxLength={120} autoFocus placeholder="Ej. Pedido de octubre, Colección Aura..." value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} />
-              </label>
-              <p className="pedido-ayuda">Si lo dejas vacío se llamará «Pedido #número». Puedes cambiarlo cuando quieras.</p>
-              <div className="pedido-modal-footer">
-                <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModalNuevo(false)}>Cancelar</button>
-                <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={creando}>{creando ? 'Creando...' : 'Crear pedido'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

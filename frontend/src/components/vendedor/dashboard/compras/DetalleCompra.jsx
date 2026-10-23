@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Eye, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, Truck, Undo2, User, Users, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Calendar, Eye, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, FileText, Truck, Undo2, User, Users, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { imagenUrl } from '../../../../config';
 import {
@@ -32,6 +32,7 @@ import '../pedidos/Pedidos.css';
 import { useEsMovil } from '../../../../hooks/useEsMovil';
 import ListaMovil from '../../../comunes/ListaMovil';
 import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
+import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import { deletePedido } from '../../../../services/pedidoService';
 import './Compras.css';
 
@@ -100,17 +101,32 @@ const desgloseProductos = (compra) => (
   </div>
 );
 
+// Pantallas de formulario del pedido (antes ventanas emergentes): cada una es una ruta /dashboard/pedidos/:id/<vista>
+const VISTAS = ['nombre', 'existentes', 'enviar', 'recibir'];
+
 // Pedido al proveedor: contiene las compras de los clientes (con sus abonos y entregas) y los productos para stock
 function DetalleCompra() {
   const esMovil = useEsMovil();
   const [compraSel, setCompraSel] = useState(null);
   const [lineaSel, setLineaSel] = useState(null);
-  const { id } = useParams();
+  const { id, vista } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const modal = VISTAS.includes(vista) ? vista : null;
+  const sinNavegar = useRef(false);
+  const rutaBase = `/dashboard/pedidos/${id}`;
+  // Abre una pantalla de formulario; `desde` permite volver con la flecha del navegador sin dejar historial de sobra
+  const setModal = useCallback((destino) => {
+    if (sinNavegar.current) return;
+    if (destino) navigate(`${rutaBase}/${destino}`, { state: { desde: true } });
+    else if (location.state?.desde) navigate(-1);
+    else navigate(rutaBase, { replace: true });
+  }, [navigate, rutaBase, location.state]);
+  const volver = () => setModal(null);
+  const [masAbierto, setMasAbierto] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [orden, setOrden] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'recibir' | 'enviar' | 'existentes' | 'nombre'
   const [nombreEdicion, setNombreEdicion] = useState('');
   const [recepcion, setRecepcion] = useState({}); // detalleid -> { llegaron, reparto: { asignacionid: cantidad } }
   const [guardando, setGuardando] = useState(false);
@@ -146,7 +162,7 @@ function DetalleCompra() {
     }
     setRecepcion(inicial);
     setModal('recibir');
-  }, []);
+  }, [setModal]);
 
   // Desde la ficha de una compra de cliente se llega con ?accion=recibir
   useEffect(() => {
@@ -384,6 +400,17 @@ function DetalleCompra() {
     }
   };
 
+  useEffect(() => {
+    if (!orden || !modal || location.state?.desde) return;
+    sinNavegar.current = true;
+    if (modal === 'nombre') setNombreEdicion(orden.nombre || '');
+    if (modal === 'existentes') abrirExistentes();
+    if (modal === 'enviar') abrirEnviar();
+    if (modal === 'recibir') abrirRecepcion(orden);
+    sinNavegar.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orden?.ordenid, modal]);
+
   if (loading) return <div className="view-loading"><div className="loader-spinner-dark" /></div>;
   if (!orden) return null;
 
@@ -400,6 +427,7 @@ function DetalleCompra() {
 
   return (
     <div className="detalle-tx-view detalle-ancho">
+      {!modal && (<>
       <div className="detalle-tx-header">
         <button className="btn-circle-back" onClick={() => navigate('/dashboard/pedidos')}>
           <ArrowLeft size={18} />
@@ -433,7 +461,7 @@ function DetalleCompra() {
                 <PackageCheck size={14} /><span>Registrar recepción</span>
               </button>
             )}
-            <button className="pedidos-btn pedidos-btn-secundario pedido-btn-mas" onClick={() => setModal('mas')} aria-label="Más acciones">
+            <button className="pedidos-btn pedidos-btn-secundario pedido-btn-mas" onClick={() => setMasAbierto(true)} aria-label="Más acciones">
               <MoreHorizontal size={16} />
             </button>
           </div>
@@ -497,18 +525,39 @@ function DetalleCompra() {
         <div className="detalle-tx-stat">
           <div className="detalle-tx-stat-label"><Hash size={11} /> Recibido</div>
           <div className="detalle-tx-stat-value">{abierto ? '—' : `${cantidad(recibidos)} / ${cantidad(pedidos)}`}</div>
+          {!abierto && pedidos > 0 && (
+            <div className={`compras-barra compras-barra-mini${recibidos < pedidos ? ' compras-barra-parcial' : ''}`}><div style={{ width: `${Math.min(100, (recibidos / pedidos) * 100)}%` }} /></div>
+          )}
         </div>
+        {resumen.cantidad > 0 && (
+          <div className="detalle-tx-stat">
+            <div className="detalle-tx-stat-label"><Users size={11} /> Por cobrar a clientes</div>
+            <div className={`detalle-tx-stat-value amount ${resumen.saldo > 0 ? 'expense' : 'income'}`}>{resumen.saldo > 0 ? formatoMoneda(resumen.saldo) : 'Al día'}</div>
+          </div>
+        )}
       </div>
 
-      {orden.descripcion && <p className="compras-nota">{orden.descripcion}</p>}
+      {orden.descripcion && (
+        <div className="compras-nota-bloque"><FileText size={14} /><span>{orden.descripcion}</span></div>
+      )}
 
-      <h2 className="compras-seccion-titulo"><Users size={15} /> Compras de clientes ({resumen.cantidad})</h2>
-      <p className="pedido-ayuda compras-seccion-ayuda">
-        {abierto
-          ? 'Agrega las compras que te hacen los clientes. Dentro de cada una registras sus abonos, pagos y entregas, y puedes editar sus productos mientras el pedido no se haya enviado.'
-          : 'Abre una compra para ver y registrar sus abonos, pagos y entrega.'}
-        {resumen.cantidad > 0 && ` Entre todas: abonado ${formatoMoneda(resumen.abonado)} · por cobrar ${formatoMoneda(resumen.saldo)}.`}
-      </p>
+      <div className="mod-seccion">
+        <span className="mod-seccion-icono"><Users size={16} /></span>
+        <div className="mod-seccion-textos">
+          <h2>Compras de clientes <span className="mod-count-badge">{resumen.cantidad}</span></h2>
+          <p>
+            {abierto
+              ? 'Agrega las compras de tus clientes. Dentro de cada una registras sus abonos, pagos y entregas, y puedes editar sus productos mientras el pedido no se haya enviado.'
+              : 'Abre una compra para ver y registrar sus abonos, pagos y entrega.'}
+          </p>
+        </div>
+        {resumen.cantidad > 0 && (
+          <div className="mod-seccion-chips">
+            <span className="tbl-badge tbl-badge--ok">Abonado {formatoMoneda(resumen.abonado)}</span>
+            <span className={`tbl-badge ${resumen.saldo > 0 ? 'tbl-badge--danger' : 'tbl-badge--neutral'}`}>Por cobrar {formatoMoneda(resumen.saldo)}</span>
+          </div>
+        )}
+      </div>
 
       {compras.length === 0 ? (
         <div className="pedido-ordenes-vacio">
@@ -599,10 +648,13 @@ function DetalleCompra() {
 
       {abierto ? (
         <>
-          <h2 className="compras-seccion-titulo"><Truck size={15} /> Productos para stock</h2>
-          <p className="pedido-ayuda compras-seccion-ayuda">
-            Pares extra que pides sin cliente asignado: al recibirlos suben directo al stock.
-          </p>
+          <div className="mod-seccion">
+            <span className="mod-seccion-icono"><Package size={16} /></span>
+            <div className="mod-seccion-textos">
+              <h2>Productos para stock <span className="mod-count-badge">{detalles.length}</span></h2>
+              <p>Pares extra que pides sin cliente asignado: al recibirlos suben directo al inventario.</p>
+            </div>
+          </div>
           {detalles.length === 0 ? (
             <div className="pedido-ordenes-vacio"><p>No hay productos para stock en este pedido.</p></div>
           ) : (
@@ -653,13 +705,26 @@ function DetalleCompra() {
         </>
       ) : (
         <>
-          <h2 className="compras-seccion-titulo"><Truck size={15} /> Lo pedido al proveedor y su reparto</h2>
-          <p className="pedido-ayuda compras-seccion-ayuda">
-            Cada par está destinado a un cliente; lo que no tiene cliente va al stock. Al registrar la recepción eliges a quién corresponde lo que llegó.
-          </p>
+          <div className="mod-seccion">
+            <span className="mod-seccion-icono"><Truck size={16} /></span>
+            <div className="mod-seccion-textos">
+              <h2>Lo pedido al proveedor y su reparto <span className="mod-count-badge">{detalles.length}</span></h2>
+              <p>Cada par está destinado a un cliente; lo que no tiene cliente va al stock. Al registrar la recepción eliges a quién corresponde lo que llegó.</p>
+            </div>
+            {pedidos > 0 && (
+              <div className="mod-seccion-chips">
+                <span className={`tbl-badge ${recibidos >= pedidos ? 'tbl-badge--ok' : recibidos > 0 ? 'tbl-badge--warning' : 'tbl-badge--neutral'}`}>
+                  Recibido {cantidad(recibidos)} / {cantidad(pedidos)}
+                </span>
+              </div>
+            )}
+          </div>
 
           {detalles.map((detalle) => {
             const progreso = num(detalle.cantidad) === 0 ? 0 : (num(detalle.cantidadRecibida) / num(detalle.cantidad)) * 100;
+            const estadoLinea = progreso >= 100
+              ? { texto: 'Completo', clase: 'tbl-badge--ok' }
+              : progreso > 0 ? { texto: 'Llegó parte', clase: 'tbl-badge--warning' } : { texto: 'Sin recibir', clase: 'tbl-badge--neutral' };
             const activas = (detalle.asignaciones || []).filter(asignacionActiva);
             const paraStock = redondear(num(detalle.cantidad) - activas.reduce((s, a) => s + num(a.cantidad), 0));
             return (
@@ -683,19 +748,19 @@ function DetalleCompra() {
                       {detalle.talla && <span className="cart-item-talla">Talla {detalle.talla}</span>}
                     </div>
                     <div className="compras-linea-meta">
-                      <span>{cantidad(detalle.cantidad)} und</span>
-                      <span>{formatoMoneda(detalle.precioUnitario)} c/u</span>
-                      <span>Total {formatoMoneda(detalle.subtotal)}</span>
+                      <span className="compras-chip">{cantidad(detalle.cantidad)} und</span>
+                      <span className="compras-chip">{formatoMoneda(detalle.precioUnitario)} c/u</span>
+                      <span className="compras-chip compras-chip-fuerte">Total {formatoMoneda(detalle.subtotal)}</span>
                     </div>
                   </div>
                   <div className="compras-linea-recibido">
                     <strong>{num(detalle.cantidadRecibida)} / {cantidad(detalle.cantidad)}</strong>
-                    <span>recibidos</span>
+                    <span className={`tbl-badge ${estadoLinea.clase}`}>{estadoLinea.texto}</span>
                   </div>
                 </div>
 
                 <div className="compras-linea-progreso">
-                  <div className="compras-barra"><div style={{ width: `${Math.min(100, progreso)}%` }} /></div>
+                  <div className={`compras-barra${progreso < 100 ? ' compras-barra-parcial' : ''}`}><div style={{ width: `${Math.min(100, progreso)}%` }} /></div>
                 </div>
 
                 <div className="compras-reparto">
@@ -720,10 +785,13 @@ function DetalleCompra() {
                     return (
                       <div key={asignacion.asignacionid} className={`compras-reparto-item${!activa ? ' compras-reparto-cancelada' : ''}`}>
                         <span className="compras-reparto-cliente">
-                          <button type="button" className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedido/${compra?.pedidoid}`)}>
-                            {compra?.cliente?.nombreCliente || 'Sin cliente'}
-                          </button>
-                          <small>Pedido #{compra?.pedidoid || '—'}</small>
+                          <span className="tbl-avatar compras-reparto-avatar" style={{ background: colorAvatar(compra?.cliente?.nombreCliente) }}>{iniciales(compra?.cliente?.nombreCliente)}</span>
+                          <span className="compras-reparto-cliente-texto">
+                            <button type="button" className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedido/${compra?.pedidoid}`)}>
+                              {compra?.cliente?.nombreCliente || 'Sin cliente'}
+                            </button>
+                            <small>Compra #{compra?.pedidoid || '—'}</small>
+                          </span>
                         </span>
                         <span className="compras-reparto-datos">
                           <span><strong>{num(asignacion.cantidad)}</strong><small>asignado</small></span>
@@ -759,8 +827,11 @@ function DetalleCompra() {
                   {paraStock > 0 && (
                     <div className="compras-reparto-item compras-reparto-stock">
                       <span className="compras-reparto-cliente">
-                        <strong>Stock (sin cliente)</strong>
-                        <small>Va directo al inventario</small>
+                        <span className="tbl-avatar compras-reparto-avatar compras-reparto-avatar-stock"><Package size={14} /></span>
+                        <span className="compras-reparto-cliente-texto">
+                          <strong>Stock (sin cliente)</strong>
+                          <small>Va directo al inventario</small>
+                        </span>
                       </span>
                       <span className="compras-reparto-datos">
                         <span><strong>{paraStock}</strong><small>asignado</small></span>
@@ -779,21 +850,21 @@ function DetalleCompra() {
         </>
       )}
 
-      <PanelInferior abierto={modal === 'mas'} onCerrar={() => setModal(null)} titulo="Más acciones" subtitulo={nombrePedido(orden)} nombreAvatar="Pedido">
+      <PanelInferior abierto={masAbierto} onCerrar={() => setMasAbierto(false)} titulo="Más acciones" subtitulo={nombrePedido(orden)} nombreAvatar="Pedido">
         <div className="pi-lista-acciones">
           {abierto && (
-            <button type="button" className="pi-accion" onClick={() => { setModal(null); navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}&tipo=stock`); }}><Plus size={15} /> Productos para stock</button>
+            <button type="button" className="pi-accion" onClick={() => { setMasAbierto(false); navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}&tipo=stock`); }}><Plus size={15} /> Productos para stock</button>
           )}
           {abierto && (
-            <button type="button" className="pi-accion" onClick={() => { setModal(null); abrirExistentes(); }}><Users size={15} /> Agregar compra existente</button>
+            <button type="button" className="pi-accion" onClick={() => { setMasAbierto(false); abrirExistentes(); }}><Users size={15} /> Agregar compra existente</button>
           )}
           {!['recibida', 'anulada'].includes(orden.estado) && (
-            <button type="button" className="pi-accion" onClick={() => { setNombreEdicion(orden.nombre || ''); setModal('nombre'); }}><Pencil size={15} /> Cambiar nombre</button>
+            <button type="button" className="pi-accion" onClick={() => { setMasAbierto(false); setNombreEdicion(orden.nombre || ''); setModal('nombre'); }}><Pencil size={15} /> Cambiar nombre</button>
           )}
           {puedeAnular && (
-            <button type="button" className="pi-accion" onClick={() => { setModal(null); handleAnular(); }}><XCircle size={15} /> Anular pedido</button>
+            <button type="button" className="pi-accion" onClick={() => { setMasAbierto(false); handleAnular(); }}><XCircle size={15} /> Anular pedido</button>
           )}
-          <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { setModal(null); handleEliminar(); }}><Trash2 size={15} /> Eliminar pedido</button>
+          <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { setMasAbierto(false); handleEliminar(); }}><Trash2 size={15} /> Eliminar pedido</button>
         </div>
       </PanelInferior>
 
@@ -840,13 +911,12 @@ function DetalleCompra() {
         )}
       </PanelInferior>
 
+      </>)}
+
       {modal === 'nombre' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Nombre del pedido</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / {nombrePedido(orden)}</>}>Nombre del pedido</EncabezadoPagina>
+          <div className="pedido-pagina-card">
             <form className="pedido-modal-form" onSubmit={guardarNombre}>
               <label>
                 Nombre
@@ -862,12 +932,9 @@ function DetalleCompra() {
       )}
 
       {modal === 'existentes' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Agregar compras existentes</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / {nombrePedido(orden)}</>}>Agregar compras existentes</EncabezadoPagina>
+          <div className="pedido-pagina-card pedido-pagina-ancha">
             <div className="pedido-modal-form">
               {sueltas.length === 0 ? (
                 <p className="pedido-modal-texto">No hay compras de clientes sin pedido.</p>
@@ -905,12 +972,9 @@ function DetalleCompra() {
       )}
 
       {modal === 'enviar' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Enviar {nombrePedido(orden)} al proveedor</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / {nombrePedido(orden)}</>}>Enviar {nombrePedido(orden)} al proveedor</EncabezadoPagina>
+          <div className="pedido-pagina-card pedido-pagina-ancha">
             <div className="pedido-modal-form">
               {!preview ? (
                 <p className="pedido-modal-texto">Calculando lo que hay que pedir...</p>
@@ -972,12 +1036,9 @@ function DetalleCompra() {
       )}
 
       {modal === 'recibir' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Registrar recepción</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / {nombrePedido(orden)}</>}>Registrar recepción</EncabezadoPagina>
+          <div className="pedido-pagina-card pedido-pagina-ancha">
             <form className="pedido-modal-form" onSubmit={confirmarRecepcion}>
               <p className="pedido-modal-texto">
                 Indica cuánto llegó de cada línea y a qué cliente corresponde. Por defecto se asigna al primero que pidió; lo que no se asigne queda como stock libre.

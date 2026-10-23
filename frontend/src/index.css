@@ -355,3 +355,15 @@ div { padding: 0; }
 :root[data-theme="dark"] .tbl-badge--neutral { background: var(--neutral-200); color: var(--neutral-700); }
 :root[data-theme="dark"] .mod-count-badge { background: var(--color-primary-soft); color: var(--color-primary); }
 :root[data-theme="dark"] .tbl-chip { background: var(--surface-2); border-color: var(--neutral-200); }
+
+/* Encabezado de sección dentro de una pantalla (icono, título con contador, ayuda y chips de resumen a la derecha) */
+.mod-seccion { display: flex; align-items: center; gap: 0.75rem; margin: 1.5rem 0 0.75rem; flex-wrap: wrap; }
+.mod-seccion-icono {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--color-primary-soft); color: var(--color-primary);
+}
+.mod-seccion-textos { flex: 1 1 16rem; min-width: 0; }
+.mod-seccion-textos h2 { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1rem; font-weight: 700; color: var(--neutral-900); }
+.mod-seccion-textos p { margin: 2px 0 0; font-size: 0.76rem; line-height: 1.4; color: var(--neutral-500); }
+.mod-seccion-chips { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }

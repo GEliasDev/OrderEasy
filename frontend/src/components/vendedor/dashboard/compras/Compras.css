@@ -539,3 +539,52 @@
 @media (max-width: 480px) {
   .detalle-tx-stat:has(.compras-select-proveedor) { grid-column: 1 / -1; }
 }
+
+/* ── Rediseño del detalle del pedido ── */
+.detalle-ancho .detalle-tx-summary { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+.compras-nota-bloque {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  margin: 0 0 0.25rem; padding: 0.65rem 0.9rem;
+  border-radius: 10px; border: 1px solid var(--neutral-200, #E2E8F0);
+  background: var(--surface, #fff); color: var(--neutral-600, #475569);
+  font-size: 0.82rem; line-height: 1.4;
+}
+.compras-nota-bloque svg { flex-shrink: 0; margin-top: 2px; color: var(--neutral-400, #94A3B8); }
+
+.compras-barra-mini { height: 5px; margin: 0.5rem 0 0; }
+.compras-barra-parcial > div { background: var(--color-warning, #D97706); }
+
+/* Cada producto pedido es una tarjeta con su reparto dentro */
+.compras-linea {
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.85rem;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(15, 23, 42, 0.06));
+}
+.compras-linea-miniatura { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 12px; }
+.compras-linea-titulo strong { font-size: 1rem; }
+.compras-linea-meta { gap: 0.35rem; margin-top: 0.4rem; }
+.compras-chip {
+  display: inline-flex; align-items: center; padding: 0.12rem 0.55rem; border-radius: 9999px;
+  background: var(--neutral-100, #F1F5F9); color: var(--neutral-600, #475569);
+  font-size: 0.7rem; font-weight: 600;
+}
+.compras-chip-fuerte { background: var(--color-primary-soft); color: var(--color-primary); }
+.compras-linea-recibido { gap: 0.3rem; align-items: flex-end; }
+.compras-linea-recibido strong { font-size: 1.1rem; }
+.compras-linea-recibido .tbl-badge { text-transform: none; letter-spacing: 0; font-size: 0.67rem; }
+.compras-linea-progreso { margin-top: 0.85rem; }
+.compras-linea-progreso .compras-barra { height: 7px; }
+
+/* Reparto por cliente: filas con avatar */
+.compras-reparto { margin-top: 0.9rem; padding-top: 0.75rem; }
+.compras-reparto-cabecera,
+.compras-reparto-item { grid-template-columns: minmax(0, 1fr) 8.5rem 9.5rem auto; }
+.compras-reparto-item { padding: 0.55rem 0.7rem; border-radius: 10px; }
+.compras-reparto-cliente { flex-direction: row; align-items: center; gap: 0.65rem; }
+.compras-reparto-cliente-texto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.compras-reparto-avatar { width: 30px; height: 30px; font-size: 0.66rem; flex-shrink: 0; }
+.compras-reparto-avatar-stock { background: var(--neutral-400, #94A3B8); }
+.compras-reparto-accion .pedidos-btn-sm { white-space: nowrap; }
+

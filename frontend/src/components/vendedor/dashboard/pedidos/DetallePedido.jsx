@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, ShoppingBag, Trash2, Truck, Undo2, User, Wallet, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, ShoppingBag, Trash2, Truck, Undo2, User, Wallet, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   anularOrdenCompra,
@@ -20,7 +20,8 @@ import { getClientes } from '../../../../services/clienteService';
 import { getProveedores } from '../../../../services/proveedorService';
 import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import { imagenUrl } from '../../../../config';
-import ReciboModal from './ReciboModal';
+import ReciboPagina from './ReciboPagina';
+import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import { getNegocio } from '../../../../services/negocioService';
 import { abrirWhatsApp, mensajeListoParaEntregar, mensajeRecordatorioSaldo } from '../../../../utils/whatsapp';
 import '../balance/vistas/styles/DetalleTransaccion.css';
@@ -128,12 +129,26 @@ const formatearFecha = (fecha, conHora = false) => {
       : { day: '2-digit', month: 'long', year: 'numeric' });
 };
 
+// Pantallas de formulario del pedido (antes ventanas emergentes): cada una es una ruta /dashboard/pedido/:id/<vista>
+const VISTAS = ['editar', 'orden', 'pago', 'entrega', 'devolucion', 'anular', 'recibo'];
+
 function DetallePedido() {
-  const { id } = useParams();
+  const { id, vista, pagoid } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const modal = VISTAS.includes(vista) ? vista : null;
+  const sinNavegar = useRef(false);
+  const rutaBase = `/dashboard/pedido/${id}`;
+  // Abre una pantalla de formulario; `desde` permite volver con la flecha del navegador sin dejar historial de sobra
+  const setModal = (destino, consulta = '') => {
+    if (sinNavegar.current) return;
+    if (destino) navigate(`${rutaBase}/${destino}${consulta}`, { state: { desde: true } });
+    else if (location.state?.desde) navigate(-1);
+    else navigate(rutaBase, { replace: true });
+  };
+  const volver = () => setModal(null);
   const [pedido, setPedido] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null);
   const [proveedores, setProveedores] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [guardando, setGuardando] = useState(false);
@@ -145,7 +160,6 @@ function DetallePedido() {
   const [entregaPago, setEntregaPago] = useState({ monto: '', metodo: 'efectivo' });
   const [anularForm, setAnularForm] = useState({ abonos: 'devolver', metodo: 'efectivo' });
   const [devolForm, setDevolForm] = useState({ items: {}, motivo: '', nota: '', reingresar: true, reembolsar: false, metodo: 'efectivo' });
-  const [reciboPago, setReciboPago] = useState(null);
   const [negocio, setNegocio] = useState(null);
 
   // Datos del negocio para los recibos y los mensajes de WhatsApp
@@ -222,7 +236,7 @@ function DetallePedido() {
     const resumen = pedido.resumen || {};
     const sugerido = tipo === 'abono' ? resumen.saldo : resumen.disponibleAbonos;
     setPagoForm({ tipo, monto: sugerido > 0 ? String(sugerido) : '', metodo: 'efectivo', nota: '' });
-    setModal('pago');
+    setModal('pago', `?tipo=${tipo}`);
   };
 
   const handleGuardarPago = async (e) => {
@@ -447,6 +461,19 @@ function DetallePedido() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedido, searchParams]);
 
+  useEffect(() => {
+    if (!pedido || !modal || location.state?.desde) return;
+    sinNavegar.current = true;
+    if (modal === 'editar') abrirEditar();
+    if (modal === 'orden') abrirOrdenCompra();
+    if (modal === 'pago') abrirPago(searchParams.get('tipo') === 'devolucion' ? 'devolucion' : 'abono');
+    if (modal === 'entrega') abrirEntrega();
+    if (modal === 'devolucion') abrirDevolucion();
+    if (modal === 'anular') abrirAnular();
+    sinNavegar.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedido?.pedidoid, modal]);
+
   const handleGuardarEdicion = async (e) => {
     e.preventDefault();
     try {
@@ -518,6 +545,7 @@ function DetallePedido() {
   const hayParaEntregar = (pedido.detalles || []).some((d) => pendienteDe(d) > 0 && stockFisicoDe(d) > 0);
   const puedeConvertir = ['confirmado', 'en_compra', 'recibido'].includes(pedido.estado) && hayParaEntregar;
   const puedeAbonar = pedido.estado !== 'anulado' && resumen.saldo > 0;
+  const pagoRecibo = (pedido.pagos || []).find((p) => String(p.pagoid) === String(pagoid));
   const lineasDevolvibles = (pedido.detalles || []).filter((d) => Number(d.cantidadEntregada) > 0);
   const puedeDevolver = pedido.estado !== 'anulado' && lineasDevolvibles.length > 0;
   const devolValor = lineasDevolvibles.reduce(
@@ -537,6 +565,7 @@ function DetallePedido() {
 
   return (
     <div className="detalle-tx-view detalle-ancho">
+      {!modal && (<>
       <div className="detalle-tx-header">
         <button className="btn-circle-back" onClick={() => navigate(pedido.ordenid ? `/dashboard/pedidos/${pedido.ordenid}` : '/dashboard/pedidos')}>
           <ArrowLeft size={18} />
@@ -755,7 +784,7 @@ function DetallePedido() {
                       <td className="pedido-mov-nota">{pago.nota || <span className="tbl-vacio">—</span>}</td>
                       <td className={`item-subtotal pedido-mov-monto-${tipo.clase}`}>{tipo.signo} {formatoMoneda(pago.monto)}</td>
                       <td>
-                        <button className="tbl-icon-btn" style={{ background: 'var(--neutral-100)', color: 'var(--neutral-600)' }} onClick={() => setReciboPago(pago)} title="Ver o imprimir el recibo" aria-label={`Recibo ${pago.pagoid}`}>
+                        <button className="tbl-icon-btn" style={{ background: 'var(--neutral-100)', color: 'var(--neutral-600)' }} onClick={() => setModal(`recibo/${pago.pagoid}`)} title="Ver o imprimir el recibo" aria-label={`Recibo ${pago.pagoid}`}>
                           <Receipt size={14} />
                         </button>
                       </td>
@@ -999,13 +1028,12 @@ function DetallePedido() {
       </div>
       )}
 
+      </>)}
+
       {modal === 'editar' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Editar pedido</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Editar pedido</EncabezadoPagina>
+          <div className="pedido-pagina-card">
             <form className="pedido-modal-form" onSubmit={handleGuardarEdicion}>
               <div className="pedido-form-group">
                 <label>Cliente</label>
@@ -1053,12 +1081,9 @@ function DetallePedido() {
       )}
 
       {modal === 'orden' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Generar orden de compra</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Generar orden de compra</EncabezadoPagina>
+          <div className="pedido-pagina-card">
             <form className="pedido-modal-form" onSubmit={handleGenerarOrden}>
               <p className="pedido-modal-texto">
                 La orden incluirá automáticamente solo los productos que faltan para cubrir el pedido.
@@ -1096,12 +1121,9 @@ function DetallePedido() {
       )}
 
       {modal === 'pago' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>{pagoForm.tipo === 'abono' ? 'Registrar abono' : 'Devolver dinero al cliente'}</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>{pagoForm.tipo === 'abono' ? 'Registrar abono' : 'Devolver dinero al cliente'}</EncabezadoPagina>
+          <div className="pedido-pagina-card">
             <form className="pedido-modal-form" onSubmit={handleGuardarPago}>
               <p className="pedido-modal-texto">
                 {pagoForm.tipo === 'abono'
@@ -1147,12 +1169,9 @@ function DetallePedido() {
       )}
 
       {modal === 'entrega' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Entregar productos</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Entregar productos</EncabezadoPagina>
+          <div className="pedido-pagina-card pedido-pagina-ancha">
             <form className="pedido-modal-form" onSubmit={handleEntregar}>
               <p className="pedido-modal-texto">
                 Indica cuánto de cada línea entregas ahora. Lo demás queda pendiente y puedes entregarlo después.
@@ -1226,12 +1245,9 @@ function DetallePedido() {
       )}
 
       {modal === 'devolucion' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal pedido-modal-ancho" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Devolución de productos</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Devolución de productos</EncabezadoPagina>
+          <div className="pedido-pagina-card pedido-pagina-ancha">
             <form className="pedido-modal-form" onSubmit={handleDevolver}>
               <p className="pedido-modal-texto">
                 Indica cuánto devuelve el cliente de cada producto que ya recibió.
@@ -1339,12 +1355,9 @@ function DetallePedido() {
       )}
 
       {modal === 'anular' && (
-        <div className="pedido-modal-overlay" onClick={() => setModal(null)}>
-          <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="pedido-modal-header">
-              <h3>Anular pedido #{pedido.pedidoid}</h3>
-              <button className="pedido-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
-            </div>
+        <div className="pedido-pagina">
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Anular pedido #{pedido.pedidoid}</EncabezadoPagina>
+          <div className="pedido-pagina-card">
             <form className="pedido-modal-form" onSubmit={handleConfirmarAnulacion}>
               <p className="pedido-modal-texto">
                 Se liberará el stock reservado de lo que falte por entregar y se anularán las órdenes de compra pendientes.
@@ -1398,8 +1411,8 @@ function DetallePedido() {
         </div>
       )}
 
-      {reciboPago && (
-        <ReciboModal pedido={pedido} pago={reciboPago} negocio={negocio} onClose={() => setReciboPago(null)} />
+      {modal === 'recibo' && pagoRecibo && (
+        <ReciboPagina pedido={pedido} pago={pagoRecibo} negocio={negocio} onVolver={volver} />
       )}
     </div>
   );
