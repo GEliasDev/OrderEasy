@@ -13,11 +13,15 @@ const Usuario = require('../models/userModel');
 const Categoria = require('../models/categoryModel');
 const Producto = require('../models/productModel');
 const Variante = require('../models/varianteModel');
+const { processAndUploadImage } = require('../utils/cloudinary');
 
-const CORREO = 'gvaldelamar2003@gmail.com';
+const CORREO = process.env.SEED_CORREO || 'gvaldelamar2003@gmail.com';
 const ORIGEN = process.argv[2] || 'C:\\Users\\GabrielEliasValdelam\\Desktop\\Catalogo\\CatalogoGyC';
 const TALLAS = ['35', '36', '37', '38', '39', '40']; // todas las sandalias se manejan por talla; el stock arranca en 0
 const MARGEN_COMPRA = 0.5; // precioCompra provisional = 50% del precio de venta (el catálogo no lo trae)
+const COMPRA_POR_COLECCION = { Mila: 30000 }; // precio de compra real; manda sobre el margen provisional
+const EN_PRODUCCION = process.env.NODE_ENV === 'production'; // en producción las fotos van a Cloudinary (uploads/ es efímero)
+const SIMULAR = process.env.SEED_SIMULAR === '1'; // solo lee la base y lista lo que crearía
 
 (async () => {
   try {
@@ -33,7 +37,7 @@ const MARGEN_COMPRA = 0.5; // precioCompra provisional = 50% del precio de venta
     let creados = 0, omitidos = 0, sinFoto = 0;
 
     for (const p of products) {
-      if (!categorias[p.collection]) {
+      if (!categorias[p.collection] && !SIMULAR) {
         const [cat] = await Categoria.findOrCreate({
           where: { nombre: p.collection, negocioid: usuario.negocioid },
           defaults: { descripcion: `Colección ${p.collection}`, usuarioid: usuario.usuarioid },
@@ -46,19 +50,27 @@ const MARGEN_COMPRA = 0.5; // precioCompra provisional = 50% del precio de venta
         const existe = await Producto.findOne({ where: { nombre, negocioid: usuario.negocioid } });
         if (existe) { omitidos++; continue; }
 
+        if (SIMULAR) { console.log(`  + ${p.collection} / ${nombre} (venta ${p.price})`); creados++; continue; }
+
         const imagenes = [];
         for (const rel of v.images) {
           const archivo = path.join(ORIGEN, 'public', rel);
           if (!fs.existsSync(archivo)) { sinFoto++; continue; }
-          fs.copyFileSync(archivo, path.join(destino, path.basename(rel)));
-          imagenes.push(`productos/${path.basename(rel)}`);
+          if (EN_PRODUCCION) {
+            const subida = await processAndUploadImage(fs.readFileSync(archivo));
+            if (subida.local) throw new Error('Cloudinary no respondió: las fotos se perderían en el próximo despliegue. Revisa CLOUDINARY_*.');
+            imagenes.push(subida.secure_url);
+          } else {
+            fs.copyFileSync(archivo, path.join(destino, path.basename(rel)));
+            imagenes.push(`productos/${path.basename(rel)}`);
+          }
         }
 
         const producto = await Producto.create({
           nombre,
           descripcion: `Sandalia ${p.name} color ${v.color} - Colección ${p.collection}`,
           cantidadDisponible: 0,
-          precioCompra: Math.round(p.price * MARGEN_COMPRA),
+          precioCompra: COMPRA_POR_COLECCION[p.collection] ?? Math.round(p.price * MARGEN_COMPRA),
           precioVenta: p.price,
           imagenes,
           categoriaNombre: p.collection,
