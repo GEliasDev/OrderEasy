@@ -52,3 +52,7 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 - `utils/migrar.js` aplica las migraciones SQL pendientes al arrancar (con bloqueo asesor y registro en `schema_migrations`).
   Cambios a tablas existentes = nuevo archivo `scripts/migrations/00N-*.sql` idempotente; `sync()` no altera tablas en producción.
 - Sin Cloudinary las imágenes se guardan en `uploads/` (disco efímero en Render: se pierden al redesplegar).
+
+## Estado del producto
+
+- `productos.activo` (boolean, por defecto `true`, migración 011). `PUT /api/productos/:id` acepta `activo`. `GET /api/productos` devuelve todos; el frontend oculta los inactivos al armar pedidos e ingresos. El backend no bloquea ventas de productos inactivos.
