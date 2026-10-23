@@ -101,7 +101,8 @@ const TablaEgresos = ({ from = '', to = '' }) => {
           placeholder="Buscar producto, proveedor o descripción..."
           value={searchTerm}
           onChange={(e) => { setSearchTerm(e.target.value); setPaginaActual(1); }}
-          className="filter-input"
+          className="filter-input filter-input--busqueda"
+          aria-label="Buscar movimientos"
         />
         <div className="date-range-inputs">
           <input
@@ -109,6 +110,7 @@ const TablaEgresos = ({ from = '', to = '' }) => {
             value={dateFrom}
             onChange={(e) => handleDateChange(e.target.value, dateTo)}
             className="filter-input filter-input--date"
+            aria-label="Desde"
           />
           <span className="date-range-sep">—</span>
           <input
@@ -116,10 +118,12 @@ const TablaEgresos = ({ from = '', to = '' }) => {
             value={dateTo}
             onChange={(e) => handleDateChange(dateFrom, e.target.value)}
             className="filter-input filter-input--date"
+            aria-label="Hasta"
           />
         </div>
         <select
           className="filter-input"
+          aria-label="Filtrar por contacto"
           value={selectedProveedor}
           onChange={(e) => { setSelectedProveedor(e.target.value); setPaginaActual(1); }}
         >

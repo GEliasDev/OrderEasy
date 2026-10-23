@@ -1,32 +1,44 @@
+/* Selector de período: mismo control segmentado que usa Estadísticas para el año */
 .period-selector {
-  display: flex;
-  gap: 0.25rem;
-  background: var(--surface);
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: var(--radius-md, 8px);
-  padding: 0.25rem;
-  box-shadow: var(--shadow-xs, 0 1px 2px rgba(0,0,0,0.04));
+  background: var(--neutral-100, #F0F4FA);
 }
 
 .period-chip {
-  padding: 0.3rem 0.75rem;
+  min-width: 56px;
+  min-height: 34px;
+  padding: 0 0.85rem;
   border: none;
   border-radius: var(--radius-sm, 6px);
   background: transparent;
   color: var(--neutral-500, #64748B);
-  font-size: 0.78rem;
+  font: inherit;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
   white-space: nowrap;
+  transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.period-chip:hover:not(.period-chip--active) {
-  background: var(--neutral-100, #F0F4FA);
-  color: var(--neutral-700, #334155);
-}
+.period-chip:hover:not(.period-chip--active) { color: var(--neutral-800, #1E293B); }
 
 .period-chip--active {
-  background: var(--color-primary, #1565C0);
-  color: white;
+  background: var(--surface, #fff);
+  color: var(--color-primary, #1565C0);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.period-chip:focus-visible { outline: 2px solid var(--color-primary, #1565C0); outline-offset: 2px; }
+
+@media (max-width: 520px) {
+  .period-selector { display: flex; width: 100%; }
+  .period-chip { flex: 1; min-width: 0; min-height: 44px; padding: 0 0.4rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .period-chip { transition: none; }
 }

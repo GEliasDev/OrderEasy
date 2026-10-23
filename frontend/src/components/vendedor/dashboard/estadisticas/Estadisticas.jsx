@@ -291,7 +291,8 @@ function Estadisticas() {
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-        <table className="stats-solo-lectores">
+        <div className="stats-solo-lectores">
+        <table>
           <caption>Ingresos, egresos y balance por mes de {anio}</caption>
           <thead><tr><th>Mes</th><th>Ingresos</th><th>Egresos</th><th>Balance del mes</th></tr></thead>
           <tbody>
@@ -300,6 +301,7 @@ function Estadisticas() {
             ))}
           </tbody>
         </table>
+        </div>
       </section>
 
       <div className="stats-dos-columnas">

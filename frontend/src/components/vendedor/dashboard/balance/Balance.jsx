@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TablaIngresos from './vistas/TablaIngresos';
@@ -40,7 +40,19 @@ const formatoMoneda = (valor) =>
     maximumFractionDigits: 0
   }).format(valor);
 
-function Balance({ token }) {
+// "1 oct – 23 oct 2026": deja claro qué fechas cubren las cifras de arriba
+const describirRango = ({ from, to }) => {
+  if (!from || !to) return 'Todo el historial';
+  const corta = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+  const anio = new Date(`${to}T12:00:00`).getFullYear();
+  return from === to ? `${corta(to)} ${anio}` : `${corta(from)} – ${corta(to)} ${anio}`;
+};
+
+function Valor({ cargando, children }) {
+  return cargando ? <div className="bal-esqueleto" aria-hidden="true" /> : children;
+}
+
+function Balance() {
   const navigate = useNavigate();
   const [period, setPeriod] = useState(
     () => localStorage.getItem('balancePeriod') || 'month'
@@ -83,96 +95,104 @@ function Balance({ token }) {
     localStorage.setItem('activeBalanceTab', tab);
   };
 
-  const range = computeRange(period);
+  const range = useMemo(() => computeRange(period), [period]);
+  const balanceNegativo = summary.balance < 0;
 
   return (
-    <div className="balance-container">
-      <div className="top-actions">
-        <button className="action-button action-button-income" onClick={() => navigate('/dashboard/nueva-venta')}>
-          <Plus className="button-icon" />
-          <span>Registrar Venta</span>
-        </button>
-        <button className="action-button action-button-expense" onClick={() => navigate('/dashboard/nuevo-egreso')}>
-          <Plus className="button-icon" />
-          <span>Registrar Egreso</span>
-        </button>
-      </div>
+    <div className="bal-pagina">
+      <header className="bal-encabezado">
+        <div>
+          <h1>Balance</h1>
+          <p>Lo que entra y lo que sale de tu negocio en el período elegido.</p>
+        </div>
+        <div className="bal-acciones">
+          <button type="button" className="bal-btn bal-btn--ingreso" onClick={() => navigate('/dashboard/nueva-venta')}>
+            <Plus size={16} aria-hidden="true" />
+            <span>Registrar venta</span>
+          </button>
+          <button type="button" className="bal-btn bal-btn--egreso" onClick={() => navigate('/dashboard/nuevo-egreso')}>
+            <Plus size={16} aria-hidden="true" />
+            <span>Registrar egreso</span>
+          </button>
+        </div>
+      </header>
 
-      <div className="balance-period-row">
+      <div className="bal-periodo-fila">
         <PeriodSelector value={period} onChange={handlePeriodChange} />
+        <span className="bal-rango">{describirRango(range)}</span>
       </div>
 
-      <div className="metrics-grid">
-        <div className="metric-card total-balance metric-featured">
-          <div className="metric-icon"><DollarSign size={22} /></div>
-          <div className="metric-content">
-            <h3>Balance General</h3>
-            {loading
-              ? <div className="metric-skeleton" />
-              : (
-                <>
-                  <p className={`metric-value ${summary.balance < 0 ? 'metric-negative' : ''}`}>
-                    {formatoMoneda(summary.balance)}
-                  </p>
-                  <span className={`metric-margen ${summary.margen < 0 ? 'metric-margen--neg' : ''}`}>
-                    Margen: {summary.margen}%
-                  </span>
-                </>
-              )}
-          </div>
-        </div>
+      <section className="bal-kpis" aria-label="Resumen del período" aria-busy={loading}>
+        <article className={`bal-kpi bal-kpi--balance${balanceNegativo ? ' bal-kpi--negativo' : ''}`}>
+          <header>
+            <span className="bal-kpi-icono"><DollarSign size={18} aria-hidden="true" /></span>
+            <h2>Balance general</h2>
+          </header>
+          <Valor cargando={loading}>
+            <p className="bal-kpi-valor">{formatoMoneda(summary.balance)}</p>
+            <span className={`bal-margen${summary.margen < 0 ? ' bal-margen--neg' : ''}`}>
+              Margen {summary.margen}%
+            </span>
+          </Valor>
+        </article>
 
-        <div className="metric-card income">
-          <div className="metric-icon"><TrendingUp size={20} /></div>
-          <div className="metric-content">
-            <h3>Ingresos Totales</h3>
-            {loading
-              ? <div className="metric-skeleton" />
-              : <p className="metric-value">{formatoMoneda(summary.totalIngresos)}</p>}
-          </div>
-        </div>
+        <article className="bal-kpi bal-kpi--ingresos">
+          <header>
+            <span className="bal-kpi-icono"><TrendingUp size={18} aria-hidden="true" /></span>
+            <h2>Ingresos totales</h2>
+          </header>
+          <Valor cargando={loading}>
+            <p className="bal-kpi-valor">{formatoMoneda(summary.totalIngresos)}</p>
+          </Valor>
+        </article>
 
-        <div className="metric-card expense">
-          <div className="metric-icon"><TrendingDown size={20} /></div>
-          <div className="metric-content">
-            <h3>Egresos Totales</h3>
-            {loading
-              ? <div className="metric-skeleton" />
-              : <p className="metric-value">{formatoMoneda(summary.totalEgresos)}</p>}
-          </div>
-        </div>
+        <article className="bal-kpi bal-kpi--egresos">
+          <header>
+            <span className="bal-kpi-icono"><TrendingDown size={18} aria-hidden="true" /></span>
+            <h2>Egresos totales</h2>
+          </header>
+          <Valor cargando={loading}>
+            <p className="bal-kpi-valor">{formatoMoneda(summary.totalEgresos)}</p>
+          </Valor>
+        </article>
 
         {/* Dinero de abonos de pedidos aún sin entregar: no es utilidad, solo está en caja */}
-        <div className="metric-card anticipos">
-          <div className="metric-icon"><Wallet size={20} /></div>
-          <div className="metric-content">
-            <h3>Abonos por entregar</h3>
-            {loading
-              ? <div className="metric-skeleton" />
-              : <p className="metric-value">{formatoMoneda(summary.anticiposClientes || 0)}</p>}
-            <span className="metric-nota">Anticipos de clientes con pedidos pendientes</span>
-          </div>
-        </div>
-      </div>
+        <article className="bal-kpi bal-kpi--anticipos">
+          <header>
+            <span className="bal-kpi-icono"><Wallet size={18} aria-hidden="true" /></span>
+            <h2>Abonos por entregar</h2>
+          </header>
+          <Valor cargando={loading}>
+            <p className="bal-kpi-valor">{formatoMoneda(summary.anticiposClientes || 0)}</p>
+            <span className="bal-kpi-nota">Anticipos de clientes con pedidos pendientes</span>
+          </Valor>
+        </article>
+      </section>
 
-      <div className="tab-controls">
+      <div className="bal-tabs" role="tablist" aria-label="Movimientos">
         <button
-          className={`tab-button ${mostrarTabla === 'ingresos' ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={mostrarTabla === 'ingresos'}
+          className={`bal-tab${mostrarTabla === 'ingresos' ? ' activo' : ''}`}
           onClick={() => handleCambiarTab('ingresos')}
         >
-          <TrendingUp size={14} />
+          <TrendingUp size={15} aria-hidden="true" />
           <span>Ingresos</span>
         </button>
         <button
-          className={`tab-button ${mostrarTabla === 'egresos' ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={mostrarTabla === 'egresos'}
+          className={`bal-tab${mostrarTabla === 'egresos' ? ' activo' : ''}`}
           onClick={() => handleCambiarTab('egresos')}
         >
-          <TrendingDown size={14} />
+          <TrendingDown size={15} aria-hidden="true" />
           <span>Egresos</span>
         </button>
       </div>
 
-      <div className="table-container">
+      <div className="table-container" role="tabpanel">
         {mostrarTabla === 'ingresos'
           ? <TablaIngresos from={range.from} to={range.to} />
           : <TablaEgresos from={range.from} to={range.to} />}
