@@ -51,3 +51,22 @@
 @media (max-width: 480px) {
   .main-content { padding: 1rem 0.625rem; }
 }
+
+/* Enlace para saltar el menú con el teclado: solo aparece al enfocarlo */
+.saltar-contenido {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 300;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.saltar-contenido:focus { transform: translateY(0); outline: 2px solid #fff; outline-offset: 2px; }
+
+.main-content:focus { outline: none; }

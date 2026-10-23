@@ -13,6 +13,7 @@ function Dashboard() {
 
   return (
     <>
+      <a className="saltar-contenido" href="#contenido">Saltar al contenido</a>
       <div className="dashboard-container">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         {sidebarOpen && (
@@ -20,7 +21,7 @@ function Dashboard() {
         )}
         <div className="dashboard-main">
           <Navbar onToggleSidebar={() => setSidebarOpen((o) => !o)} />
-          <main className="main-content">
+          <main className="main-content" id="contenido" tabIndex={-1}>
             <Outlet />
           </main>
         </div>

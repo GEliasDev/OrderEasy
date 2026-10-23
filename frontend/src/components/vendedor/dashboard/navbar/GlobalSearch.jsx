@@ -160,7 +160,7 @@ function GlobalSearch() {
       { title: 'Ventas', items: ventas },
       { title: 'Egresos', items: egresos },
     ].filter((g) => g.items.length > 0);
-  }, [query, navigate]);
+  }, [query, navigate, loading]);
 
   // Lista plana para navegación con flechas
   const flat = useMemo(() => grupos.flatMap((g) => g.items), [grupos]);
@@ -184,31 +184,37 @@ function GlobalSearch() {
 
   return (
     <>
-      <button className="navbar-search-trigger" onClick={abrir} aria-label="Buscar">
-        <Search size={16} />
+      <button type="button" className="navbar-search-trigger" onClick={abrir} aria-label="Buscar" aria-haspopup="dialog" aria-keyshortcuts="Control+K">
+        <Search size={16} aria-hidden="true" />
         <span className="navbar-search-text">Buscar movimientos, clientes, productos…</span>
         <kbd className="navbar-search-kbd">Ctrl K</kbd>
       </button>
 
       {open && (
         <div className="gsearch-overlay" onMouseDown={cerrar}>
-          <div className="gsearch-panel" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="gsearch-panel" role="dialog" aria-modal="true" aria-label="Buscar en toda la tienda" onMouseDown={(e) => e.stopPropagation()}>
             <div className="gsearch-input-row">
               <Search size={18} className="gsearch-input-icon" />
               <input
                 ref={inputRef}
                 className="gsearch-input"
                 type="text"
+                role="combobox"
+                aria-expanded={flat.length > 0}
+                aria-controls="gsearch-lista"
+                aria-autocomplete="list"
+                aria-activedescendant={flat.length > 0 ? `gsearch-op-${active}` : undefined}
+                aria-label="Buscar"
                 placeholder="Buscar clientes, productos, proveedores, ventas, egresos…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onInputKey}
               />
               {loading && <Loader2 size={16} className="gsearch-spin" />}
-              <button className="gsearch-close" onClick={cerrar} aria-label="Cerrar"><X size={16} /></button>
+              <button type="button" className="gsearch-close" onClick={cerrar} aria-label="Cerrar búsqueda"><X size={16} aria-hidden="true" /></button>
             </div>
 
-            <div className="gsearch-results">
+            <div className="gsearch-results" id="gsearch-lista" role="listbox" aria-label="Resultados">
               {!query.trim() ? (
                 <div className="gsearch-hint">Escribe para buscar en toda la tienda…</div>
               ) : loading && flat.length === 0 ? (
@@ -217,20 +223,25 @@ function GlobalSearch() {
                 <div className="gsearch-hint">Sin resultados para “{query}”.</div>
               ) : (
                 grupos.map((g) => (
-                  <div className="gsearch-group" key={g.title}>
-                    <div className="gsearch-group-title">{g.title}</div>
+                  <div className="gsearch-group" key={g.title} role="group" aria-label={g.title}>
+                    <div className="gsearch-group-title" aria-hidden="true">{g.title}</div>
                     {g.items.map((item) => {
                       runningIndex += 1;
                       const idx = runningIndex;
                       const Icon = item.icon;
                       return (
                         <button
+                          type="button"
                           key={item.key}
+                          id={`gsearch-op-${idx}`}
+                          role="option"
+                          aria-selected={idx === active}
+                          tabIndex={-1}
                           className={`gsearch-item ${idx === active ? 'active' : ''}`}
                           onMouseEnter={() => setActive(idx)}
                           onClick={() => seleccionar(item)}
                         >
-                          <span className="gsearch-item-icon"><Icon size={15} /></span>
+                          <span className="gsearch-item-icon"><Icon size={15} aria-hidden="true" /></span>
                           <span className="gsearch-item-text">
                             <span className="gsearch-item-label">{item.label}</span>
                             <span className="gsearch-item-sub">{item.sub}</span>
