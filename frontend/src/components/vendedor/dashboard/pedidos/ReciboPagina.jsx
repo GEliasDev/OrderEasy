@@ -3,6 +3,7 @@ import { FileDown, Image as ImagenIcono, MessageCircle, Printer } from 'lucide-r
 import { toast } from 'sonner';
 import { exportarRecibo } from '../../../../utils/exportarRecibo';
 import { abrirWhatsApp, mensajeRecibo } from '../../../../utils/whatsapp';
+import { imagenUrl } from '../../../../config';
 import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import './Pedidos.css';
 import './Recibo.css';
@@ -88,16 +89,20 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
       <div className="recibo-contenedor">
         <article className="recibo-hoja" ref={hojaRef}>
           <header className="recibo-encabezado">
-            <h2>{nombreNegocio || 'OrderEasy'}</h2>
-            {(negocio?.nit || negocio?.telefono) && (
-              <p>{[negocio?.nit && `NIT ${negocio.nit}`, negocio?.telefono && `Tel. ${negocio.telefono}`].filter(Boolean).join(' · ')}</p>
+            {negocio?.logo && (
+              <img className="recibo-logo" src={imagenUrl(negocio.logo)} alt={`Logo de ${nombreNegocio}`} crossOrigin="anonymous" />
             )}
-            {negocio?.direccion && <p>{negocio.direccion}</p>}
+            <div className="recibo-negocio">
+              <h2>{nombreNegocio || 'OrderEasy'}</h2>
+              {negocio?.nit && <p>NIT {negocio.nit}</p>}
+              {negocio?.direccion && <p>{negocio.direccion}</p>}
+              {negocio?.telefono && <p>Tel. {negocio.telefono}</p>}
+            </div>
           </header>
 
           <div className="recibo-titulo">
             <strong>{tipo.titulo}</strong>
-            <span>N° {String(pago.pagoid).padStart(5, '0')}</span>
+            <span className="recibo-numero">N° {String(pago.pagoid).padStart(5, '0')}</span>
           </div>
 
           <dl className="recibo-datos">
@@ -108,10 +113,12 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
             {pago.nota && <div><dt>Nota</dt><dd>{pago.nota}</dd></div>}
           </dl>
 
-          <p className="recibo-concepto">
-            {tipo.verbo} <strong>{cliente}</strong> la suma de:
-          </p>
-          <p className="recibo-monto">{formatoMoneda(pago.monto)}</p>
+          <div className="recibo-importe">
+            <p className="recibo-concepto">
+              {tipo.verbo} <strong>{cliente}</strong> la suma de
+            </p>
+            <p className="recibo-monto">{formatoMoneda(pago.monto)}</p>
+          </div>
 
           <table className="recibo-productos">
             <thead><tr><th>Producto del pedido</th><th>Cant.</th><th>Valor</th></tr></thead>
@@ -135,7 +142,10 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
             <div><span>Recibió</span></div>
             <div><span>Cliente</span></div>
           </div>
-          <p className="recibo-pie">Gracias por tu compra.</p>
+          <p className="recibo-pie">
+            Gracias por tu compra{nombreNegocio ? ` en ${nombreNegocio}` : ''}.
+            {negocio?.telefono && <span> Consultas: {negocio.telefono}</span>}
+          </p>
         </article>
       </div>
     </div>

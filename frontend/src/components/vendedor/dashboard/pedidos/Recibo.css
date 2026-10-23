@@ -5,7 +5,7 @@
 /* La hoja del recibo se muestra como un papel centrado */
 .recibo-contenedor {
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   border: 1px solid var(--neutral-200, #E2E8F0);
   border-radius: 12px;
   box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.1));
@@ -21,41 +21,64 @@
   font-size: 0.8rem;
 }
 
-.recibo-encabezado { text-align: center; margin-bottom: 12px; }
-.recibo-encabezado h2 { margin: 0; font-size: 1.1rem; }
-.recibo-encabezado p { margin: 2px 0 0; font-size: 0.72rem; color: #475569; }
+.recibo-encabezado {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: -20px -22px 14px;
+  padding: 16px 22px;
+  background: #0F172A;
+  color: #fff;
+}
+.recibo-logo {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  object-fit: contain;
+  padding: 4px;
+  border-radius: 10px;
+  background: #fff;
+}
+.recibo-negocio { min-width: 0; }
+.recibo-negocio h2 { margin: 0 0 2px; font-size: 1.15rem; line-height: 1.2; letter-spacing: 0.01em; }
+.recibo-negocio p { margin: 1px 0 0; font-size: 0.72rem; color: #CBD5E1; }
 
 .recibo-titulo {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
+  gap: 8px;
+  padding: 6px 0 8px;
   margin-bottom: 8px;
-  border-top: 2px solid #0F172A;
-  border-bottom: 1px solid #CBD5E1;
-  font-size: 0.85rem;
+  border-bottom: 2px solid #0F172A;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
+.recibo-numero { padding: 2px 10px; border-radius: 999px; background: #F1F5F9; font-size: 0.75rem; font-weight: 700; letter-spacing: 0; }
 
-.recibo-datos { margin: 0 0 10px; }
+.recibo-datos { margin: 0 0 12px; padding: 8px 10px; border-radius: 8px; background: #F8FAFC; border: 1px solid #E2E8F0; }
 .recibo-datos > div { display: flex; gap: 8px; padding: 2px 0; }
 .recibo-datos dt { width: 4.5rem; flex-shrink: 0; color: #64748B; }
 .recibo-datos dd { margin: 0; font-weight: 600; }
 
-.recibo-concepto { margin: 8px 0 2px; }
-.recibo-monto { margin: 0 0 12px; font-size: 1.7rem; font-weight: 800; text-align: center; }
+.recibo-importe { margin-bottom: 12px; padding: 10px; border: 1px solid #0F172A; border-radius: 10px; text-align: center; }
+.recibo-concepto { margin: 0 0 2px; color: #475569; }
+.recibo-monto { margin: 0; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.01em; }
 
 .recibo-productos { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 0.72rem; }
-.recibo-productos th { text-align: left; padding: 4px 0; border-bottom: 1px solid #CBD5E1; color: #64748B; font-weight: 600; }
-.recibo-productos td { padding: 3px 0; border-bottom: 1px dotted #E2E8F0; }
+.recibo-productos th { text-align: left; padding: 5px 6px; background: #F1F5F9; color: #475569; font-weight: 700; }
+.recibo-productos td { padding: 4px 6px; border-bottom: 1px solid #E2E8F0; }
 .recibo-productos th:nth-child(n+2), .recibo-productos td:nth-child(n+2) { text-align: right; }
 
 .recibo-resumen { padding: 8px 10px; border-radius: 8px; background: #F1F5F9; }
 .recibo-resumen > div { display: flex; justify-content: space-between; padding: 2px 0; }
+.recibo-resumen > div:last-child { margin-top: 2px; padding-top: 4px; border-top: 1px solid #CBD5E1; font-size: 0.9rem; }
 
 .recibo-firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 34px; }
 .recibo-firmas > div { padding-top: 4px; border-top: 1px solid #0F172A; text-align: center; font-size: 0.7rem; color: #475569; }
 
-.recibo-pie { margin: 14px 0 0; text-align: center; font-size: 0.7rem; color: #64748B; }
+.recibo-pie { margin: 16px 0 0; padding-top: 8px; border-top: 1px dashed #CBD5E1; text-align: center; font-size: 0.7rem; color: #64748B; }
 
 /* Al imprimir solo sale la hoja del recibo */
 @media print {
@@ -63,5 +86,7 @@
   .recibo-contenedor, .recibo-contenedor * { visibility: visible !important; }
   .recibo-contenedor { position: absolute !important; left: 0; top: 0; width: 100%; max-width: none !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; }
   .recibo-hoja { max-width: 160mm; margin: 0 auto; padding: 12mm 14mm !important; }
+  .recibo-encabezado { margin: -12mm -14mm 6mm !important; padding: 8mm 14mm !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .recibo-datos, .recibo-resumen, .recibo-numero, .recibo-productos th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .no-imprimir { display: none !important; }
 }
