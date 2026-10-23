@@ -113,7 +113,7 @@ function NuevoPedido() {
         const coincideCategoria = categoriaSeleccionada
           ? String(producto.categoriaid) === String(categoriaSeleccionada)
           : true;
-        return coincideBusqueda && coincideCategoria;
+        return producto.activo !== false && coincideBusqueda && coincideCategoria;
       })
       .map((producto) => ({
         ...producto,

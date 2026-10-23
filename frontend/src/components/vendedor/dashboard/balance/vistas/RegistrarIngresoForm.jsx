@@ -58,7 +58,7 @@ const RegistrarIngresoForm = () => {
       .filter(p => {
         const coincideBusqueda = p.nombre.toLowerCase().includes(busqueda.toLowerCase());
         const coincideCategoria = categoriaSeleccionada ? String(p.categoriaid) === String(categoriaSeleccionada) : true;
-        return coincideBusqueda && coincideCategoria;
+        return p.activo !== false && coincideBusqueda && coincideCategoria;
       })
       .map(p => ({
         ...p,
