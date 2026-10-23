@@ -1,5 +1,7 @@
-import { MessageCircle, Printer } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { FileDown, Image as ImagenIcono, MessageCircle, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportarRecibo } from '../../../../utils/exportarRecibo';
 import { abrirWhatsApp, mensajeRecibo } from '../../../../utils/whatsapp';
 import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import './Pedidos.css';
@@ -33,6 +35,22 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
   const cliente = pedido.cliente?.nombreCliente || 'Cliente';
   const fecha = new Date(pago.createdAt).toLocaleString('es-CO', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+  const hojaRef = useRef(null);
+  const [exportando, setExportando] = useState(null);
+
+  const exportar = async (formato) => {
+    if (!hojaRef.current) return;
+    const nombreArchivo = `Recibo-${String(pago.pagoid).padStart(5, '0')}-${cliente.replace(/[^\p{L}\p{N}]+/gu, '_')}`;
+    try {
+      setExportando(formato);
+      await exportarRecibo(hojaRef.current, nombreArchivo, formato);
+    } catch {
+      toast.error('No se pudo generar el archivo del recibo.');
+    } finally {
+      setExportando(null);
+    }
+  };
+
   const enviar = () => {
     const ok = abrirWhatsApp(pedido.cliente?.telefono, mensajeRecibo({
       negocio: nombreNegocio,
@@ -55,6 +73,12 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
           <button className="pedidos-btn pedidos-btn-secundario" onClick={enviar}>
             <MessageCircle size={14} /><span>Enviar por WhatsApp</span>
           </button>
+          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => exportar('pdf')} disabled={Boolean(exportando)}>
+            <FileDown size={14} /><span>{exportando === 'pdf' ? 'Generando...' : 'Descargar PDF'}</span>
+          </button>
+          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => exportar('png')} disabled={Boolean(exportando)}>
+            <ImagenIcono size={14} /><span>{exportando === 'png' ? 'Generando...' : 'Descargar imagen'}</span>
+          </button>
           <button className="pedidos-btn pedidos-btn-primary" onClick={() => window.print()}>
             <Printer size={14} /><span>Imprimir</span>
           </button>
@@ -62,7 +86,7 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
       </div>
 
       <div className="recibo-contenedor">
-        <article className="recibo-hoja">
+        <article className="recibo-hoja" ref={hojaRef}>
           <header className="recibo-encabezado">
             <h2>{nombreNegocio || 'OrderEasy'}</h2>
             {(negocio?.nit || negocio?.telefono) && (
