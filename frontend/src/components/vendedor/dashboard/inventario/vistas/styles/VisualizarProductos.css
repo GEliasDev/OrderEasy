@@ -120,3 +120,17 @@
 }
 
 .inventario-products .producto-tallas { color: var(--color-primary, #1565C0); font-weight: 600; }
+
+/* Producto inactivo */
+.producto-card-inactivo .producto-imagen-container { opacity: 0.5; }
+.producto-badge-inactivo {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  vertical-align: middle;
+  background: var(--neutral-200, #E2E8F0);
+  color: var(--neutral-600, #475569);
+}

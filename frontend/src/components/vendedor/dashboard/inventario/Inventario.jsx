@@ -26,6 +26,7 @@ function Inventario() {
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategoriaId, setSelectedCategoriaId] = useState(() => localStorage.getItem('invFilterCategory') || '');
+  const [filtroEstado, setFiltroEstado] = useState(() => localStorage.getItem('invFilterEstado') || '');
   const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem('invSearchTerm') || '');
   const [currentPage, setCurrentPage] = useState(() => parseInt(localStorage.getItem('invCurrentPage')) || 1);
   const [gridMetrics, setGridMetrics] = useState({ columns: 5, rows: 2 });
@@ -45,7 +46,7 @@ function Inventario() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, selectedCategoriaId]);
+  }, [debouncedSearch, selectedCategoriaId, filtroEstado]);
 
   useEffect(() => {
     const element = productsRef.current;
@@ -81,7 +82,10 @@ function Inventario() {
     const coincideNombre = debouncedSearch
       ? producto.nombre.toLowerCase().includes(debouncedSearch.toLowerCase())
       : true;
-    return coincideCategoria && coincideNombre;
+    const coincideEstado = filtroEstado
+      ? (filtroEstado === 'activo') === (producto.activo !== false)
+      : true;
+    return coincideCategoria && coincideNombre && coincideEstado;
   });
 
   const totalFilas = Math.ceil(productosFiltrados.length / gridMetrics.columns);
@@ -122,6 +126,11 @@ function Inventario() {
     localStorage.setItem('invFilterCategory', val);
   };
 
+  const handleSetEstado = (val) => {
+    setFiltroEstado(val);
+    localStorage.setItem('invFilterEstado', val);
+  };
+
   return (
     <div className="inventario-main">
       <style>{`@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
@@ -138,6 +147,15 @@ function Inventario() {
         </div>
 
         <div className="inventario-filters-right">
+          <select
+            className="inventario-select"
+            value={filtroEstado}
+            onChange={(e) => handleSetEstado(e.target.value)}
+          >
+            <option value="">Todos los estados</option>
+            <option value="activo">Activos</option>
+            <option value="inactivo">Inactivos</option>
+          </select>
           <select
             className="inventario-select"
             value={selectedCategoriaId}

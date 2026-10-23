@@ -27,7 +27,7 @@ function VisualizarProductos({ productos }) {
       {productos.map((producto) => (
         <div
           key={producto.productoid}
-          className="producto-card"
+          className={`producto-card${producto.activo === false ? ' producto-card-inactivo' : ''}`}
           onClick={() => handleProductoClick(producto.productoid)}
         >
           <div className="producto-imagen-container">
@@ -46,7 +46,10 @@ function VisualizarProductos({ productos }) {
               />
             )}
           </div>
-          <h3 className="producto-nombre">{producto.nombre}</h3>
+          <h3 className="producto-nombre">
+            {producto.nombre}
+            {producto.activo === false && <span className="producto-badge-inactivo">Inactivo</span>}
+          </h3>
           <p className="producto-cantidad">
             Stock: {formatearCantidad(producto.cantidadDisponible, producto.unidadMedida)}
             {producto.usaTallas && <span className="producto-tallas"> · {producto.variantes?.length || 0} tallas</span>}

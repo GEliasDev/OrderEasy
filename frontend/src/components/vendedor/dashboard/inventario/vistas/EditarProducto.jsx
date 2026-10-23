@@ -32,6 +32,7 @@ function EditarProducto() {
   const [categoriaId, setCategoriaId] = useState('');
   const [codigoBarras, setCodigoBarras] = useState('');
   const [tasaIva, setTasaIva] = useState(0);
+  const [activo, setActivo] = useState(true);
   const [categorias, setCategorias] = useState([]);
   const [imagenes, setImagenes] = useState([]);
   const [preview, setPreview] = useState([]);
@@ -72,6 +73,7 @@ function EditarProducto() {
         setCategoriaId(producto.categoriaid || '');
         setCodigoBarras(producto.codigoBarras || '');
         setTasaIva(producto.tasaIva ?? 0);
+        setActivo(producto.activo !== false);
         setPreview(
           (producto.imagenes || []).map((img) =>
             img.startsWith('http') ? img : `${API_URL}/uploads/${img}`
@@ -118,6 +120,7 @@ function EditarProducto() {
       formData.append('categoria_nombre', cat.nombre);
       formData.append('codigoBarras', codigoBarras.trim());
       formData.append('tasaIva', tasaIva);
+      formData.append('activo', activo);
       imagenes.forEach((img) => formData.append('imagenes', img));
 
       await updateProduct(id, formData);
@@ -220,6 +223,14 @@ function EditarProducto() {
                     ))}
                   </select>
                 </div>
+              </div>
+              <div className="form-group-minimal">
+                <label>Estado</label>
+                <select value={activo ? 'activo' : 'inactivo'} onChange={(e) => setActivo(e.target.value === 'activo')}>
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                </select>
+                <span className="price-hint">Un producto inactivo no aparece al crear pedidos ni ingresos.</span>
               </div>
             </div>
 

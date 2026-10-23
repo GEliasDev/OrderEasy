@@ -26,6 +26,7 @@ const Productos = () => {
   const navigate = useNavigate();
   const [seleccionado, setSeleccionado] = useState(null);
   const [filtroStock, setFiltroStock] = useState('todos');
+  const [filtroEstado, setFiltroEstado] = useState('todos');
   const [cargadoMovil, setCargadoMovil] = useState(false);
   const [productos, setProductos] = useState([]);
   const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem("prodSearchTerm") || "");
@@ -80,7 +81,8 @@ const Productos = () => {
   const productosFiltrados = productos.filter((p) => {
     const coincideNombre = p.nombre?.toLowerCase().includes(searchTerm.toLowerCase());
     const coincideCategoria = categoriaFiltro === 'Todas' || p.categoriaNombre === categoriaFiltro;
-    return coincideNombre && coincideCategoria;
+    const coincideEstado = filtroEstado === 'todos' || (filtroEstado === 'activo') === (p.activo !== false);
+    return coincideNombre && coincideCategoria && coincideEstado;
   });
 
   // En celular: orden alfabético y filtro rápido por existencias
@@ -111,6 +113,15 @@ const Productos = () => {
           <p className="productos-subtitle">Inventario de productos, precios y existencias por categoría</p>
         </div>
         <div className="productos-header-right">
+          <select
+            className="productos-select"
+            value={filtroEstado}
+            onChange={(e) => { setFiltroEstado(e.target.value); setPaginaActual(1); }}
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="activo">Activos</option>
+            <option value="inactivo">Inactivos</option>
+          </select>
           <select
             className="productos-select"
             value={categoriaFiltro}
@@ -204,7 +215,7 @@ const Productos = () => {
                       </span>
                     )}
                     <div className="tbl-cell-texts">
-                      <span className="tbl-cell-primary">{p.nombre}</span>
+                      <span className="tbl-cell-primary">{p.nombre}{p.activo === false && <span className="tbl-badge" style={{ marginLeft: '0.4rem' }}>Inactivo</span>}</span>
                       <span className="tbl-cell-secondary">{p.categoriaNombre || 'Sin categoría'}</span>
                     </div>
                   </div>
