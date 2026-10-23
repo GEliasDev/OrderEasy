@@ -20,11 +20,6 @@ export const updatePedido = async (id, payload) => {
   return data;
 };
 
-export const confirmarPedido = async (id) => {
-  const { data } = await axiosInstance.post(`/api/pedidos/${id}/confirmar`);
-  return data;
-};
-
 // payload: { abonos: 'devolver' | 'saldo_a_favor', metodoDevolucion }
 export const anularPedido = async (id, payload = {}) => {
   const { data } = await axiosInstance.post(`/api/pedidos/${id}/anular`, payload);
@@ -55,16 +50,6 @@ export const getSaldoFavor = async (clienteid) => {
 
 export const usarSaldoFavor = async (id, monto) => {
   const { data } = await axiosInstance.post(`/api/pedidos/${id}/usar-saldo`, monto ? { monto } : {});
-  return data;
-};
-
-export const convertirPedidoAVenta = async (id) => {
-  const { data } = await axiosInstance.post(`/api/pedidos/${id}/convertir-venta`);
-  return data;
-};
-
-export const generarOrdenCompra = async (id, payload) => {
-  const { data } = await axiosInstance.post(`/api/pedidos/${id}/orden-compra`, payload);
   return data;
 };
 

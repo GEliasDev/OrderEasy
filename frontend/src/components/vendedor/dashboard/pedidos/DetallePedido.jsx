@@ -1,23 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Check, ClipboardList, Edit2, FileText, Hash, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, ShoppingBag, Trash2, Truck, Undo2, User, Wallet, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, ClipboardList, Edit2, FileText, Hash, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, ShoppingBag, Trash2, Truck, Undo2, User, Wallet, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  anularOrdenCompra,
   deletePedido,
   anularPedido,
-  confirmarPedido,
   devolverProductosPedido,
   entregarPedido,
   getSaldoFavor,
   registrarPagoPedido,
   usarSaldoFavor,
-  generarOrdenCompra,
   getPedidoById,
   updatePedido,
 } from '../../../../services/pedidoService';
 import { getClientes } from '../../../../services/clienteService';
-import { getProveedores } from '../../../../services/proveedorService';
 import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import { imagenUrl } from '../../../../config';
 import ReciboPagina from './ReciboPagina';
@@ -54,7 +50,6 @@ const puedeEditarProductosDe = (pedido) => {
   if (ordenesVinculadas.length > 0) return false;
 
   if (pedido.pedidoProveedor?.estado === 'abierta') return true;
-  if (!pedido.ordenid && ['pendiente', 'confirmado'].includes(pedido.estado)) return true;
   return false;
 };
 
@@ -110,14 +105,6 @@ const ESTADOS = {
   anulado: { label: 'Anulado', clase: 'anulado' },
 };
 
-const ESTADOS_ORDEN = {
-  borrador: { label: 'Borrador', clase: 'pendiente' },
-  enviada: { label: 'Enviada', clase: 'en-compra' },
-  recibida_parcial: { label: 'Recibida parcial', clase: 'confirmado' },
-  recibida: { label: 'Recibida', clase: 'recibido' },
-  anulada: { label: 'Anulada', clase: 'anulado' },
-};
-
 const formatoMoneda = (valor) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(valor) || 0);
 
@@ -130,7 +117,7 @@ const formatearFecha = (fecha, conHora = false) => {
 };
 
 // Pantallas de formulario del pedido (antes ventanas emergentes): cada una es una ruta /dashboard/pedido/:id/<vista>
-const VISTAS = ['editar', 'orden', 'pago', 'entrega', 'devolucion', 'anular', 'recibo'];
+const VISTAS = ['editar', 'pago', 'entrega', 'devolucion', 'anular', 'recibo'];
 
 function DetallePedido() {
   const { id, vista, pagoid } = useParams();
@@ -150,7 +137,6 @@ function DetallePedido() {
   const volver = () => setModal(null);
   const [pedido, setPedido] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [proveedores, setProveedores] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [guardando, setGuardando] = useState(false);
   const [editForm, setEditForm] = useState({ clienteid: '', fechaEntrega: '', descripcion: '' });
@@ -167,7 +153,6 @@ function DetallePedido() {
   useEffect(() => {
     getNegocio().then(setNegocio).catch(() => setNegocio(null));
   }, []);
-  const [ocForm, setOcForm] = useState({ proveedorid: '', descripcion: '' });
 
   const cargarPedido = useCallback(async (silencioso = false) => {
     try {
@@ -192,10 +177,9 @@ function DetallePedido() {
   }, [cargarPedido]);
 
   useEffect(() => {
-    Promise.all([getClientes(), getProveedores()])
-      .then(([clientesData, proveedoresData]) => {
+    getClientes()
+      .then((clientesData) => {
         if (Array.isArray(clientesData)) setClientes(clientesData);
-        if (Array.isArray(proveedoresData)) setProveedores(proveedoresData);
       })
       .catch(() => {});
   }, []);
@@ -215,21 +199,6 @@ function DetallePedido() {
       descripcion: pedido.descripcion || '',
     });
     setModal('editar');
-  };
-
-  const abrirOrdenCompra = () => {
-    setOcForm({ proveedorid: '', descripcion: `Compra para pedido #${pedido.pedidoid}` });
-    setModal('orden');
-  };
-
-  const handleConfirmar = async () => {
-    try {
-      await confirmarPedido(pedido.pedidoid);
-      toast.success('Pedido confirmado y stock reservado.');
-      cargarPedido(true);
-    } catch (error) {
-      toast.error(error?.response?.data?.mensaje || 'No se pudo confirmar el pedido.');
-    }
   };
 
   // ───── Pagos ─────
@@ -466,7 +435,6 @@ function DetallePedido() {
     if (!pedido || !modal || location.state?.desde) return;
     sinNavegar.current = true;
     if (modal === 'editar') abrirEditar();
-    if (modal === 'orden') abrirOrdenCompra();
     if (modal === 'pago') abrirPago(searchParams.get('tipo') === 'devolucion' ? 'devolucion' : 'abono');
     if (modal === 'entrega') abrirEntrega();
     if (modal === 'devolucion') abrirDevolucion(searchParams.get('detalle'));
@@ -492,46 +460,6 @@ function DetallePedido() {
     } finally {
       setGuardando(false);
     }
-  };
-
-  const handleGenerarOrden = async (e) => {
-    e.preventDefault();
-    try {
-      setGuardando(true);
-      const orden = await generarOrdenCompra(pedido.pedidoid, {
-        proveedorid: ocForm.proveedorid || null,
-        descripcion: ocForm.descripcion,
-      });
-      setModal(null);
-      toast.success(`Orden de compra #${orden.ordenid} generada por los faltantes.`);
-      cargarPedido(true);
-    } catch (error) {
-      toast.error(error?.response?.data?.mensaje || 'No se pudo generar la orden de compra.');
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  // La recepción se hace en la pantalla de la compra, donde se elige a qué cliente corresponde lo que llega
-  const handleRecibirOrden = (orden) => navigate(`/dashboard/pedidos/${orden.ordenid}?accion=recibir`);
-
-  const handleAnularOrden = (orden) => {
-    toast(`¿Anular la orden #${orden.ordenid}?`, {
-      description: 'No se modificará el stock ya recibido.',
-      action: {
-        label: 'Sí, anular',
-        onClick: async () => {
-          try {
-            await anularOrdenCompra(orden.ordenid);
-            toast.success('Orden de compra anulada.');
-            cargarPedido(true);
-          } catch (error) {
-            toast.error(error?.response?.data?.mensaje || 'No se pudo anular la orden.');
-          }
-        },
-      },
-      cancel: { label: 'Cancelar', onClick: () => {} },
-    });
   };
 
   if (loading) return <div className="view-loading"><div className="loader-spinner-dark" /></div>;
@@ -564,7 +492,6 @@ function DetallePedido() {
   const entregaCubierto = Math.min(entregaValor, resumen.disponibleAbonos);
   const entregaPorCobrar = Math.max(0, Math.round((entregaValor - entregaCubierto) * 100) / 100);
   const puedeEditar = !['entregado', 'anulado'].includes(pedido.estado);
-  const puedeGenerarCompra = ['confirmado', 'en_compra'].includes(pedido.estado) && !pedido.ordenid;
   // Dentro de un pedido al proveedor no hay paso de confirmar: la compra simplemente está en el pedido
   const estadoConfig = pedido.ordenid && pedido.estado === 'confirmado'
     ? { label: 'En el pedido', clase: 'pendiente' }
@@ -596,9 +523,6 @@ function DetallePedido() {
         </div>
         {esMovil ? (
           <div className="pedido-detalle-acciones pedido-acciones-compactas">
-            {pedido.estado === 'pendiente' && !pedido.ordenid && (
-              <button className="pedidos-btn pedidos-btn-primary" onClick={handleConfirmar}><Check size={14} /><span>Confirmar</span></button>
-            )}
             {puedeConvertir && (
               <button className="pedidos-btn pedidos-btn-verde" onClick={abrirEntrega}><ShoppingBag size={14} /><span>Entregar</span></button>
             )}
@@ -611,18 +535,6 @@ function DetallePedido() {
           </div>
         ) : (
         <div className="pedido-detalle-acciones">
-          {pedido.estado === 'pendiente' && !pedido.ordenid && (
-            <button className="pedidos-btn pedidos-btn-primary" onClick={handleConfirmar}>
-              <Check size={14} />
-              <span>Confirmar</span>
-            </button>
-          )}
-          {puedeGenerarCompra && (
-            <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirOrdenCompra}>
-              <Truck size={14} />
-              <span>Generar compra</span>
-            </button>
-          )}
           {puedeConvertir && (
             <button className="pedidos-btn pedidos-btn-verde" onClick={abrirEntrega}>
               <ShoppingBag size={14} />
@@ -663,9 +575,6 @@ function DetallePedido() {
 
       <PanelInferior abierto={menuMas} onCerrar={() => setMenuMas(false)} titulo="Más acciones" subtitulo={`Compra #${pedido.pedidoid}`} nombreAvatar={pedido.cliente?.nombreCliente || 'Compra'}>
         <div className="pi-lista-acciones">
-          {puedeGenerarCompra && (
-            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirOrdenCompra(); }}><Truck size={15} /> Generar compra al proveedor</button>
-          )}
           {puedeDevolver && (
             <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirDevolucion(); }}><Undo2 size={15} /> Registrar devolución de productos</button>
           )}
@@ -695,9 +604,7 @@ function DetallePedido() {
         <div className="pedido-alerta-stock">
           <Truck size={16} />
           <span>
-            {pedido.ordenid
-              ? `Faltan ${itemsSinStock.length} línea(s) por llegar del proveedor.${hayParaEntregar ? ' Puedes entregar ahora lo que ya llegó.' : ' Podrás entregar cuando llegue la mercancía.'}`
-              : `Faltan ${itemsSinStock.length} línea(s) por recibir.${hayParaEntregar ? ' Puedes entregar ahora lo que ya tienes en stock.' : ' Genera o recibe la compra para poder entregar.'}`}
+            {`Faltan ${itemsSinStock.length} línea(s) por llegar del proveedor.${hayParaEntregar ? ' Puedes entregar ahora lo que ya llegó.' : ' Podrás entregar cuando llegue la mercancía.'}`}
           </span>
         </div>
       )}
@@ -932,7 +839,6 @@ function DetallePedido() {
         </div>
       </div>
 
-      {pedido.ordenid ? (
         <div className="pedido-ordenes-section">
           <div className="pedido-ordenes-header">
             <div>
@@ -945,80 +851,6 @@ function DetallePedido() {
             </button>
           </div>
         </div>
-      ) : (
-      <div className="pedido-ordenes-section">
-        <div className="pedido-ordenes-header">
-          <div>
-            <h2><Truck size={16} /> Órdenes de compra</h2>
-            <p>Solo se compra al proveedor lo que falta para cubrir este pedido.</p>
-          </div>
-          {puedeGenerarCompra && (
-            <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirOrdenCompra}>
-              <Truck size={14} />
-              <span>Nueva orden</span>
-            </button>
-          )}
-        </div>
-
-        {(pedido.ordenes || []).length === 0 ? (
-          <div className="pedido-ordenes-vacio">
-            <Truck size={32} />
-            <p>No hay órdenes de compra para este pedido.</p>
-          </div>
-        ) : (
-          <div className="pedido-ordenes-lista">
-            {pedido.ordenes.map((orden) => {
-              const pendiente = ['borrador', 'enviada', 'recibida_parcial'].includes(orden.estado)
-                && orden.detalles?.some((detalle) => Number(detalle.cantidadRecibida) < Number(detalle.cantidad));
-              const anulable = !['recibida', 'anulada'].includes(orden.estado);
-              const ordenEstadoConfig = ESTADOS_ORDEN[orden.estado] || { label: orden.estado, clase: 'anulado' };
-              return (
-                <div key={orden.ordenid} className="pedido-orden-card">
-                  <div className="pedido-orden-top">
-                    <div>
-                      <strong>Orden #{orden.ordenid}</strong>
-                      <span>{orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial || 'Sin proveedor'}</span>
-                    </div>
-                    <div className="pedido-orden-meta">
-                      <span className={`pedido-estado pedido-estado-${ordenEstadoConfig.clase}`}>{ordenEstadoConfig.label}</span>
-                      <strong>{formatoMoneda(orden.total)}</strong>
-                    </div>
-                  </div>
-                  <div className="pedido-orden-items">
-                    {(orden.detalles || []).map((detalle) => (
-                      <div key={detalle.detalleid} className="pedido-orden-item">
-                        <span>{detalle.productoNombre}{detalle.talla ? ` · Talla ${detalle.talla}` : ''}</span>
-                        <span>{detalle.cantidadRecibida}/{detalle.cantidad}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="pedido-orden-acciones">
-                    <span className="pedido-orden-fecha">
-                      Creada el {formatearFecha(orden.createdAt)} ·{' '}
-                      <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>Ver pedido #{orden.ordenid}</button>
-                    </span>
-                    <div>
-                      {pendiente && (
-                        <button className="pedidos-btn pedidos-btn-verde pedidos-btn-sm" onClick={() => handleRecibirOrden(orden)}>
-                          <Check size={13} />
-                          <span>Recibir</span>
-                        </button>
-                      )}
-                      {anulable && (
-                        <button className="pedidos-btn pedidos-btn-peligro pedidos-btn-sm" onClick={() => handleAnularOrden(orden)}>
-                          <XCircle size={13} />
-                          <span>Anular</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-      )}
 
       </>)}
 
@@ -1065,46 +897,6 @@ function DetallePedido() {
                 <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
                 <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={guardando}>
                   {guardando ? 'Guardando...' : 'Guardar cambios'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {modal === 'orden' && (
-        <div className="pedido-pagina">
-          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Generar orden de compra</EncabezadoPagina>
-          <div className="pedido-pagina-card">
-            <form className="pedido-modal-form" onSubmit={handleGenerarOrden}>
-              <p className="pedido-modal-texto">
-                La orden incluirá automáticamente solo los productos que faltan para cubrir el pedido.
-              </p>
-              <div className="pedido-form-group">
-                <label>Proveedor</label>
-                <select
-                  value={ocForm.proveedorid}
-                  onChange={(e) => setOcForm({ ...ocForm, proveedorid: e.target.value })}
-                >
-                  <option value="">Sin proveedor asignado</option>
-                  {proveedores.map((proveedor) => (
-                    <option key={proveedor.proveedorid} value={proveedor.proveedorid}>
-                      {proveedor.nombreProveedor || proveedor.razonSocial}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="pedido-form-group">
-                <label>Descripción</label>
-                <input
-                  value={ocForm.descripcion}
-                  onChange={(e) => setOcForm({ ...ocForm, descripcion: e.target.value })}
-                />
-              </div>
-              <div className="pedido-modal-footer">
-                <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
-                <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={guardando}>
-                  {guardando ? 'Generando...' : 'Generar orden'}
                 </button>
               </div>
             </form>

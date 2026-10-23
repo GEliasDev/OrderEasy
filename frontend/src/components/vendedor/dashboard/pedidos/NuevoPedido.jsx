@@ -29,6 +29,12 @@ function NuevoPedido() {
   const editarid = Number(searchParams.get('editar')) || null;
   // ?tipo=stock: en vez de una compra de cliente, se eligen productos que se piden de más para el stock
   const paraStock = !editarid && Boolean(ordenid) && searchParams.get('tipo') === 'stock';
+  // Las compras de clientes solo se crean dentro de un pedido al proveedor
+  useEffect(() => {
+    if (ordenid || editarid) return;
+    toast.error('Las compras se crean dentro de un pedido. Abre un pedido y agrega la compra desde ahí.');
+    navigate('/dashboard/pedidos', { replace: true });
+  }, [ordenid, editarid, navigate]);
   const destino = ordenid ? `/dashboard/pedidos/${ordenid}` : '/dashboard/pedidos';
   const volverA = editarid ? `/dashboard/pedido/${editarid}` : destino;
   const [productos, setProductos] = useState([]);
