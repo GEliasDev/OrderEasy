@@ -56,3 +56,7 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 ## Estado del producto
 
 - `productos.activo` (boolean, por defecto `true`, migración 011). `PUT /api/productos/:id` acepta `activo`. `GET /api/productos` devuelve todos; el frontend oculta los inactivos al armar pedidos e ingresos. El backend no bloquea ventas de productos inactivos.
+
+## Compras de clientes
+
+- No existen compras sueltas: `POST /api/pedidos` exige `ordenid` (pedido al proveedor abierto) y la compra nace `confirmado`. Se eliminaron `/:id/confirmar`, `/:id/convertir-venta` y `/:id/orden-compra`.

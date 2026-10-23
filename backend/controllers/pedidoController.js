@@ -112,11 +112,11 @@ const createPedido = async (req, res) => {
     const { clienteid, descripcion, fechaEntrega, items, abono, ordenid } = req.body;
     const { usuarioid, negocioid } = req.usuario;
 
-    if (ordenid) {
-      const orden = await OrdenCompra.findOne({ where: { ordenid, negocioid }, transaction: t });
-      if (!orden) throw new ErrorPedido('Pedido al proveedor no encontrado', 404);
-      if (orden.estado !== 'abierta') throw new ErrorPedido('Ese pedido ya fue enviado al proveedor; crea otro pedido para agregar más compras');
-    }
+    // Las compras de clientes solo se crean dentro de un pedido al proveedor
+    if (!ordenid) throw new ErrorPedido('Las compras se crean dentro de un pedido al proveedor');
+    const orden = await OrdenCompra.findOne({ where: { ordenid, negocioid }, transaction: t });
+    if (!orden) throw new ErrorPedido('Pedido al proveedor no encontrado', 404);
+    if (orden.estado !== 'abierta') throw new ErrorPedido('Ese pedido ya fue enviado al proveedor; crea otro pedido para agregar más compras');
 
     if (!clienteid) {
       throw new ErrorPedido('Selecciona el cliente del pedido');
@@ -129,8 +129,8 @@ const createPedido = async (req, res) => {
       usuarioid,
       negocioid,
       clienteid: clienteid || null,
-      ordenid: ordenid || null,
-      estado: ordenid ? 'confirmado' : 'pendiente',
+      ordenid,
+      estado: 'confirmado',
       descripcion: descripcion || '',
       fechaEntrega: fechaEntrega || null,
       total: 0,
@@ -424,50 +424,6 @@ const updatePedido = async (req, res) => {
   } catch (error) {
     if (!transaccionFinalizada) await t.rollback();
     responderError(res, error, 'Error al actualizar el pedido');
-  }
-};
-
-const confirmarPedido = async (req, res) => {
-  const t = await sequelize.transaction();
-  try {
-    const { id } = req.params;
-    const { negocioid } = req.usuario;
-
-    const pedido = await Pedido.findOne({
-      where: { pedidoid: id, negocioid },
-      transaction: t,
-      lock: true,
-    });
-    if (!pedido) throw new ErrorPedido('Pedido no encontrado', 404);
-    if (pedido.estado !== 'pendiente') {
-      throw new ErrorPedido('Solo se pueden confirmar pedidos pendientes');
-    }
-    if (pedido.ordenid) {
-      throw new ErrorPedido('Las compras de un pedido al proveedor no se confirman: no usan tu inventario');
-    }
-
-    const detalles = await PedidoDetalle.findAll({ where: { pedidoid: id }, transaction: t });
-    for (const detalle of detalles) {
-      if (!detalle.productoid) continue;
-      const producto = await Producto.findOne({
-        where: { productoid: detalle.productoid, negocioid },
-        transaction: t,
-        lock: true,
-      });
-      if (!producto) throw new ErrorPedido(`Producto no encontrado: ${detalle.productoNombre}`);
-
-      const stock = await resolverStockDeDetalle(producto, detalle, t);
-      await guardarStock(producto, stock, {
-        cantidadReservada: Number(stock.cantidadReservada) + Number(detalle.cantidad),
-      }, t);
-    }
-
-    await pedido.update({ estado: 'confirmado' }, { transaction: t });
-    await t.commit();
-    res.json(await cargarPedido(id, negocioid));
-  } catch (error) {
-    await t.rollback();
-    responderError(res, error, 'Error al confirmar el pedido');
   }
 };
 
@@ -783,47 +739,6 @@ const usarSaldo = async (req, res) => {
   }
 };
 
-const generarOrdenCompra = async (req, res) => {
-  const t = await sequelize.transaction();
-  try {
-    const { id } = req.params;
-    const { negocioid, usuarioid } = req.usuario;
-    const { proveedorid, descripcion } = req.body || {};
-
-    const pedido = await Pedido.findOne({
-      where: { pedidoid: id, negocioid },
-      transaction: t,
-      lock: true,
-    });
-    if (!pedido) throw new ErrorPedido('Pedido no encontrado', 404);
-    if (!['confirmado', 'en_compra', 'recibido'].includes(pedido.estado)) {
-      throw new ErrorPedido('Confirma el pedido antes de generar la orden de compra');
-    }
-
-    // Mismo cálculo que la compra por lote (con un solo pedido): descuenta stock libre y compras en curso
-    const orden = await crearOrdenDesdePedidos({
-      pedidoids: [Number(id)],
-      proveedorid,
-      descripcion: descripcion || `Pedido #${id}`,
-      negocioid,
-      usuarioid,
-      transaction: t,
-    });
-    await t.commit();
-
-    const ordenCompleta = await OrdenCompra.findByPk(orden.ordenid, {
-      include: [
-        { model: OrdenCompraDetalle, as: 'detalles' },
-        { model: Proveedor, as: 'proveedor', attributes: ['proveedorid', 'nombreProveedor', 'razonSocial'] },
-      ],
-    });
-    res.status(201).json(ordenCompleta);
-  } catch (error) {
-    await t.rollback();
-    responderError(res, error, 'Error al generar la orden de compra');
-  }
-};
-
 // Elimina una compra de cliente en cualquier estado. Se libera el stock que tenía reservado, se borran sus abonos y su reparto
 // del pedido al proveedor. Las ventas de entregas ya hechas NO se borran (son ventas reales): solo se desvinculan de la compra.
 const deletePedido = async (req, res) => {
@@ -880,14 +795,11 @@ module.exports = {
   getSaldoPorCobrar,
   getPedidoById,
   updatePedido,
-  confirmarPedido,
   anularPedido,
-  convertirAVenta: entregarPedido,
   entregarPedido,
   registrarPago,
   devolverProductos,
   getSaldoFavor,
   usarSaldo,
-  generarOrdenCompra,
   deletePedido,
 };
