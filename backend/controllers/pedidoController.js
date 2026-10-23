@@ -150,6 +150,7 @@ const createPedido = async (req, res) => {
         productoNombre: producto.nombre,
         cantidad,
         precioUnitario: producto.precioVenta,
+        precioCompra: producto.precioCompra,
         subtotal,
         categoriaid: producto.categoriaid,
         ...datosTalla(producto, stock),
@@ -343,6 +344,12 @@ const updatePedido = async (req, res) => {
           .map((detalle) => [Number(detalle.productoid), Number(detalle.precioUnitario)])
       );
 
+      const costosActuales = new Map(
+        detallesActuales
+          .filter((detalle) => detalle.productoid && detalle.precioCompra !== null && detalle.precioCompra !== undefined)
+          .map((detalle) => [Number(detalle.productoid), Number(detalle.precioCompra)])
+      );
+
       const itemsPorProducto = new Map();
       for (const item of items) {
         const producto = await buscarProducto(item, negocioid, t);
@@ -373,6 +380,7 @@ const updatePedido = async (req, res) => {
           productoNombre: producto.nombre,
           cantidad,
           precioUnitario,
+          precioCompra: costosActuales.get(Number(producto.productoid)) ?? Number(producto.precioCompra),
           subtotal,
           categoriaid: producto.categoriaid,
           ...datosTalla(producto, stock),

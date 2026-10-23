@@ -99,12 +99,19 @@ const calcularFaltantes = async ({ pedidoids, negocioid, transaction, ignorarSto
     const reservadoOtros = Math.max(0, Number(stock.cantidadReservada) - sumaPendiente);
     let libre = ignorarStock ? 0 : Math.max(0, Number(stock.cantidadDisponible) - reservadoOtros);
 
+    // Cada línea se cotiza con el costo que tenía al crear la compra; si es anterior a ese dato, con el precio actual
+    const costoDe = (detalle) => (detalle.precioCompra !== null && detalle.precioCompra !== undefined
+      ? Number(detalle.precioCompra)
+      : Number(producto.precioCompra));
+    let costoFaltante = 0;
+
     const detalleLineas = lineasGrupo.map(({ pedido, detalle }) => {
       const pendiente = pendienteDe(detalle);
       const cubiertoStock = redondear(Math.min(libre, pendiente));
       libre = redondear(libre - cubiertoStock);
       const yaEnCompra = enCompra.get(detalle.detalleid)?.enCompra || 0;
       const faltante = Math.max(0, redondear(pendiente - cubiertoStock - yaEnCompra));
+      costoFaltante += faltante * costoDe(detalle);
       return {
         pedidoid: pedido.pedidoid,
         cliente: pedido.cliente?.nombreCliente || 'Sin cliente',
@@ -126,10 +133,11 @@ const calcularFaltantes = async ({ pedidoids, negocioid, transaction, ignorarSto
       varianteid: primero.varianteid || null,
       categoriaid: producto.categoriaid,
       unidadMedida: producto.unidadMedida,
-      precioCompra: Number(producto.precioCompra),
+      // Precio promedio de lo que falta (si las compras se hicieron con costos distintos); el costo total es exacto
+      precioCompra: totalFaltante > 0 ? dos(costoFaltante / totalFaltante) : Number(producto.precioCompra),
       lineas: detalleLineas,
       totalFaltante,
-      costo: dos(totalFaltante * Number(producto.precioCompra)),
+      costo: dos(costoFaltante),
     });
   }
 
@@ -335,7 +343,10 @@ const enviarOrden = async ({ ordenid, negocioid, transaction }) => {
   for (const grupo of grupos) {
     let detalle = lineasStock.find((d) => Number(d.productoid) === Number(grupo.productoid) && Number(d.varianteid || 0) === Number(grupo.varianteid || 0));
     if (detalle) {
-      await detalle.update({ cantidad: redondear(Number(detalle.cantidad) + grupo.totalFaltante) }, { transaction });
+      // Cada unidad conserva su precio: el de la línea de stock y el de las compras de clientes se promedian
+      const nuevaCantidad = redondear(Number(detalle.cantidad) + grupo.totalFaltante);
+      const precio = dos((Number(detalle.cantidad) * Number(detalle.precioUnitario) + grupo.totalFaltante * grupo.precioCompra) / nuevaCantidad);
+      await detalle.update({ cantidad: nuevaCantidad, precioUnitario: precio }, { transaction });
     } else {
       detalle = await OrdenCompraDetalle.create({
         ordenid, productoid: grupo.productoid, productoNombre: grupo.productoNombre, cantidad: grupo.totalFaltante, cantidadRecibida: 0,
@@ -349,11 +360,9 @@ const enviarOrden = async ({ ordenid, negocioid, transaction }) => {
 
   let total = 0;
   for (const detalle of await OrdenCompraDetalle.findAll({ where: { ordenid }, transaction })) {
-    // El costo usa el precio de compra vigente del producto
-    const producto = detalle.productoid ? await Producto.findByPk(detalle.productoid, { transaction }) : null;
-    const precio = producto ? Number(producto.precioCompra) : Number(detalle.precioUnitario);
-    const subtotal = dos(Number(detalle.cantidad) * precio);
-    await detalle.update({ precioUnitario: precio, subtotal }, { transaction });
+    // El costo usa el precio guardado en cada línea (el de cuando se creó la compra o se agregó el producto), no el actual del inventario
+    const subtotal = dos(Number(detalle.cantidad) * Number(detalle.precioUnitario));
+    await detalle.update({ subtotal }, { transaction });
     total += subtotal;
   }
   await orden.update({ estado: 'enviada', total: dos(total) }, { transaction });
@@ -388,7 +397,11 @@ const agregarLineaStock = async ({ ordenid, negocioid, item, transaction }) => {
   });
   const nueva = redondear(Number(existente?.cantidad || 0) + cantidad);
   const valores = { cantidad: nueva, subtotal: dos(nueva * Number(producto.precioCompra)) };
-  if (existente) return existente.update(valores, { transaction });
+  if (existente) {
+    // Lo que ya estaba conserva su precio; solo lo nuevo se cotiza al precio actual
+    const precio = dos((Number(existente.cantidad) * Number(existente.precioUnitario) + cantidad * Number(producto.precioCompra)) / nueva);
+    return existente.update({ cantidad: nueva, precioUnitario: precio, subtotal: dos(nueva * precio) }, { transaction });
+  }
   return OrdenCompraDetalle.create({
     ordenid, productoid: producto.productoid, productoNombre: producto.nombre, cantidadRecibida: 0,
     precioUnitario: producto.precioCompra, categoriaid: producto.categoriaid, talla, varianteid, ...valores,

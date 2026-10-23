@@ -54,6 +54,11 @@ const PedidoDetalle = sequelize.define('PedidoDetalle', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
+  // Costo al proveedor vigente cuando se creó la línea: no cambia si luego se edita el precio de compra del producto
+  precioCompra: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
+  },
   categoriaid: {
     type: DataTypes.INTEGER,
     allowNull: true

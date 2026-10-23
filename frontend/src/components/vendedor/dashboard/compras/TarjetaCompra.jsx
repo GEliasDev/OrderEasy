@@ -194,7 +194,9 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
         </div>
         {detalles.map((d) => {
           const situacion = situacionDe(d, { anulada, pedidoAbierto });
-          const costo = costos?.get(`${d.productoid}:${d.varianteid || ''}`);
+          const costo = d.precioCompra !== null && d.precioCompra !== undefined
+            ? Number(d.precioCompra)
+            : costos?.get(`${d.productoid}:${d.varianteid || ''}`);
           return (
             <div key={d.detalleid} className="compras-cliente-linea">
               <span className="compras-cliente-producto">
