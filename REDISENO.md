@@ -39,6 +39,7 @@ Genera capturas en `capturas/` (ignorada por git) y avisa de desbordes horizonta
 | Inicio | `/dashboard/inicio` | Saludo con accesos rápidos (venta, pedido, egreso), 5 indicadores (ventas hoy, balance del mes, por cobrar, productos, stock crítico), gráfica de ventas de los últimos 7 días, stock crítico y últimas ventas clicables. Los ingresos usan lo cobrado, igual que Balance; el stock crítico ignora productos inactivos. |
 | Categorías | `/dashboard/categorias` | Resumen (categorías, con y sin productos), búsqueda, tabla con conteo de productos, crear y editar como página (`/categorias/nueva`, `/categorias/:id/editar`). |
 | Productos | `/dashboard/productos` | Resumen (productos, valor del inventario a costo, stock bajo, sin stock), filtros por categoría, estado y stock, exportación a Excel, tabla con miniaturas y filas clicables. |
+| Menú lateral y barra superior | todas las pantallas | Menú con ficha del negocio (logo y nombre), opciones activas también en subpantallas (por ejemplo Balance en Registrar venta), `aria-current`, panel móvil con Esc, sin scroll de fondo y oculto al teclado cuando está cerrado. Barra con el nombre de la pantalla, menú de cuenta accesible (Esc, `aria-expanded`), objetivos de 44 px en móvil y enlace "Saltar al contenido". Buscador Ctrl+K con roles de diálogo y combobox. |
 | Recibo de abono (dentro de Pedidos) | `/dashboard/pedido/:id/recibo/:pagoid` | Cabecera con logo y datos del negocio, importe en números y letras, resumen con saldo, listo para imprimir y exportar. |
 
 ## Módulos pendientes de rediseño
@@ -50,7 +51,6 @@ No tienen rediseño registrado todavía. Se aplican las reglas de arriba.
 | Inventario (tarjetas, crear y editar producto, detalle) | `/dashboard/inventario` |
 | Pedidos (lista, detalle, crear pedido al proveedor, carrito) | `/dashboard/pedidos` |
 | Registrar venta y egreso (carrito del Balance) | `/dashboard/nueva-venta`, `/dashboard/nuevo-egreso` |
-| Navbar y menú lateral | todas las pantallas |
 | Login y registro | `/login`, `/registro` |
 | Landing pública | `/` |
 
