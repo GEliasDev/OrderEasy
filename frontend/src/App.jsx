@@ -16,6 +16,8 @@ const Balance = lazy(() => import('./components/vendedor/dashboard/balance/Balan
 const Estadisticas = lazy(() => import('./components/vendedor/dashboard/estadisticas/Estadisticas'));
 const Clientes = lazy(() => import('./components/vendedor/dashboard/clientes/Clientes'));
 const Proveedores = lazy(() => import('./components/vendedor/dashboard/proveedores/Proveedores'));
+const ProveedorForm = lazy(() => import('./components/vendedor/dashboard/proveedores/ProveedorForm'));
+const ClienteForm = lazy(() => import('./components/vendedor/dashboard/clientes/ClienteForm'));
 const NuevoPedido = lazy(() => import('./components/vendedor/dashboard/pedidos/NuevoPedido'));
 const DetallePedido = lazy(() => import('./components/vendedor/dashboard/pedidos/DetallePedido'));
 const Compras = lazy(() => import('./components/vendedor/dashboard/compras/Compras'));
@@ -96,6 +98,8 @@ function App() {
                 <Route path="venta/:id" element={<SeccionRoute seccion="balance"><DetalleVenta /></SeccionRoute>} />
                 <Route path="egreso/:id" element={<SeccionRoute seccion="balance"><DetalleEgreso /></SeccionRoute>} />
                 <Route path="proveedores" element={<SeccionRoute seccion="proveedores"><Proveedores /></SeccionRoute>} />
+                <Route path="proveedores/nuevo" element={<SeccionRoute seccion="proveedores"><ProveedorForm /></SeccionRoute>} />
+                <Route path="proveedores/:id/editar" element={<SeccionRoute seccion="proveedores"><ProveedorForm /></SeccionRoute>} />
 
                 {/* Solo administrador del sistema */}
                 <Route path="configuracion" element={<AdminRoute><Configuracion /></AdminRoute>} />
@@ -105,6 +109,8 @@ function App() {
                 {/* Accesibles por todos los roles autenticados */}
                 <Route path="producto/:id" element={<DetalleProducto />} />
                 <Route path="clientes" element={<Clientes />} />
+                <Route path="clientes/nuevo" element={<ClienteForm />} />
+                <Route path="clientes/:id/editar" element={<ClienteForm />} />
                 <Route path="perfil" element={<Perfil />} />
               </Route>
 

@@ -1,72 +1,49 @@
-import { useState, useEffect } from 'react';
-import { Plus, Truck, Search, Edit2, Trash2, Phone, MessageCircle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Truck, Search, Edit2, Trash2, Phone, MessageCircle, CheckCircle2, PauseCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDebounce } from '../../../../hooks/useDebounce';
-import { getProveedores, createProveedor, updateProveedor, deleteProveedor } from '../../../../services/proveedorService';
+import { getProveedores, deleteProveedor } from '../../../../services/proveedorService';
+import { abrirWhatsApp } from '../../../../utils/whatsapp';
+import { colorAvatar, iniciales } from '../../../../utils/avatar';
 import { useEsMovil } from '../../../../hooks/useEsMovil';
+import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
 import ListaMovil, { ChipsFiltro } from '../../../comunes/ListaMovil';
 import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
-import { abrirWhatsApp } from '../../../../utils/whatsapp';
-import SeccionPlegable from '../../../comunes/SeccionPlegable';
-import './proveedores.css';
-import { useFilasPorPagina } from '../../../../hooks/useFilasPorPagina';
+import '../../../comunes/contactos.css';
 
-const ESTADO_OPTS = ['Activo', 'Inactivo'];
-const TIPO_CUENTA_OPTS = ['Ahorros', 'Corriente'];
-
-const formInicial = {
-  razonSocial: '', nombreProveedor: '', nit: '', telefono: '',
-  correo: '', direccion: '', banco: '', numeroCuenta: '',
-  tipoCuenta: '', categoriaSuministro: [], estado: 'Activo',
-};
-
-const AVATAR_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#06B6D4','#EF4444','#6366F1'];
-const colorAvatar = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 65) % AVATAR_COLORS.length];
-const iniciales = (name) => {
-  const parts = (name || '?').trim().split(/\s+/);
-  return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : (name || '?').slice(0, 2).toUpperCase();
-};
-
-const SkeletonRow = () => (
+const FilaEsqueleto = () => (
   <tr>
-    {[55, 40, 25, 30, 30, 15, 15].map((w, i) => (
-      <td key={i}>
-        <div style={{ height: 12, borderRadius: 4, background: 'linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.4s infinite', width: `${w}%` }} />
-      </td>
+    {[55, 30, 30, 30, 20, 10].map((w, i) => (
+      <td key={i}><span className="ct-esq" style={{ width: `${w}%` }} /></td>
     ))}
   </tr>
 );
 
 function Proveedores() {
+  const navigate = useNavigate();
   const esMovil = useEsMovil();
   const [seleccionado, setSeleccionado] = useState(null);
-  const [filtroMovil, setFiltroMovil] = useState('todos');
+  const [filtro, setFiltro] = useState('todos');
   const [proveedores, setProveedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState(() => localStorage.getItem('provSearchTerm') || '');
   const [paginaActual, setPaginaActual] = useState(() => parseInt(localStorage.getItem('provCurrentPage')) || 1);
   const { wrapRef: tablaWrapRef, filasPorPagina: registrosPorPagina, medido } = useFilasPorPagina(proveedores.length, 10);
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [proveedorEditando, setProveedorEditando] = useState(null);
-  const [form, setForm] = useState(formInicial);
-  const [cargando, setCargando] = useState(false);
 
   const debouncedBusqueda = useDebounce(busqueda, 300);
 
   useEffect(() => {
-    fetchProveedores();
+    (async () => {
+      try {
+        setProveedores(await getProveedores());
+      } catch {
+        toast.error('Error al obtener proveedores.');
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
-
-  const fetchProveedores = async () => {
-    try {
-      const data = await getProveedores();
-      setProveedores(data);
-    } catch {
-      toast.error('Error al obtener proveedores.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSetBusqueda = (val) => {
     setBusqueda(val);
@@ -80,50 +57,13 @@ function Proveedores() {
     localStorage.setItem('provCurrentPage', val);
   };
 
-  const abrirCrear = () => {
-    setProveedorEditando(null);
-    setForm(formInicial);
-    setMostrarModal(true);
+  const handleSetFiltro = (val) => {
+    setFiltro(val);
+    handleSetPagina(1);
   };
 
-  const abrirEditar = (p) => {
-    setProveedorEditando(p);
-    setForm({
-      razonSocial: p.razonSocial || '', nombreProveedor: p.nombreProveedor || '',
-      nit: p.nit || '', telefono: p.telefono || '', correo: p.correo || '',
-      direccion: p.direccion || '', banco: p.banco || '', numeroCuenta: p.numeroCuenta || '',
-      tipoCuenta: p.tipoCuenta || '', categoriaSuministro: p.categoriaSuministro || [],
-      estado: p.estado || 'Activo',
-    });
-    setMostrarModal(true);
-  };
-
-  const cerrarModal = () => {
-    setMostrarModal(false);
-    setProveedorEditando(null);
-  };
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setCargando(true);
-    try {
-      if (proveedorEditando) {
-        await updateProveedor(proveedorEditando.proveedorid, form);
-        toast.success('Proveedor actualizado.');
-      } else {
-        await createProveedor(form);
-        toast.success('Proveedor registrado.');
-      }
-      await fetchProveedores();
-      cerrarModal();
-    } catch (error) {
-      toast.error(error.mensaje || 'Error al guardar.');
-    } finally {
-      setCargando(false);
-    }
-  };
+  const irACrear = () => navigate('/dashboard/proveedores/nuevo');
+  const irAEditar = (p) => navigate(`/dashboard/proveedores/${p.proveedorid}/editar`);
 
   const handleEliminar = (id, nombre) => {
     toast(`¿Eliminar a ${nombre}?`, {
@@ -143,16 +83,19 @@ function Proveedores() {
     });
   };
 
-  const filtrados = proveedores.filter((p) =>
-    p.nombreProveedor?.toLowerCase().includes(debouncedBusqueda.toLowerCase()) ||
-    p.razonSocial?.toLowerCase().includes(debouncedBusqueda.toLowerCase()) ||
-    p.nit?.includes(debouncedBusqueda)
-  );
+  const resumen = useMemo(() => {
+    const activos = proveedores.filter((p) => p.estado === 'Activo').length;
+    return { activos, inactivos: proveedores.length - activos };
+  }, [proveedores]);
 
-  // En celular: orden alfabético y filtro rápido por estado
-  const listaMovil = filtrados
-    .filter((p) => filtroMovil === 'todos' || (filtroMovil === 'activos' ? p.estado === 'Activo' : p.estado !== 'Activo'))
-    .sort((a, b) => String(a.razonSocial).localeCompare(String(b.razonSocial), 'es'));
+  const filtrados = proveedores
+    .filter((p) => {
+      const t = debouncedBusqueda.toLowerCase();
+      return p.nombreProveedor?.toLowerCase().includes(t) || p.razonSocial?.toLowerCase().includes(t) || p.nit?.includes(debouncedBusqueda);
+    })
+    .filter((p) => filtro === 'todos' || (filtro === 'activos' ? p.estado === 'Activo' : p.estado !== 'Activo'));
+
+  const listaMovil = [...filtrados].sort((a, b) => String(a.razonSocial).localeCompare(String(b.razonSocial), 'es'));
 
   const total = Math.ceil(filtrados.length / registrosPorPagina);
   const inicio = (paginaActual - 1) * registrosPorPagina;
@@ -169,125 +112,136 @@ function Proveedores() {
   }, [total, paginaActual]);
 
   return (
-    <div className="proveedores-main">
-      <style>{`@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
-
-      <div className="proveedores-header">
+    <div className="ct-pagina">
+      <header className="ct-encabezado">
         <div>
-          <h1 className="proveedores-titulo">Proveedores <span className="mod-count-badge">{proveedores.length}</span></h1>
-          <p className="proveedores-subtitle">Empresas y contactos a quienes les haces pedidos</p>
+          <h1>Proveedores <span className="mod-count-badge">{proveedores.length}</span></h1>
+          <p>Empresas y contactos a quienes les haces pedidos.</p>
         </div>
-        <button className="proveedores-btn-nuevo" onClick={abrirCrear}>
-          <Plus size={14} />
+        <button type="button" className="ct-btn ct-btn--primario" onClick={irACrear}>
+          <Plus size={16} aria-hidden="true" />
           <span>Nuevo proveedor</span>
         </button>
-      </div>
+      </header>
 
-      <div className="proveedores-search-wrap">
-        <Search size={14} className="proveedores-search-icon" />
-        <input
-          type="text"
-          className="proveedores-search"
-          placeholder="Buscar por nombre, razón social o NIT..."
-          value={busqueda}
-          onChange={(e) => handleSetBusqueda(e.target.value)}
+      <section className="ct-resumen" aria-label="Resumen de proveedores">
+        <div className="ct-dato">
+          <span className="ct-dato-icono"><Truck size={18} aria-hidden="true" /></span>
+          <div><span>Proveedores registrados</span><strong>{proveedores.length}</strong></div>
+        </div>
+        <div className="ct-dato ct-dato--ok">
+          <span className="ct-dato-icono"><CheckCircle2 size={18} aria-hidden="true" /></span>
+          <div><span>Activos</span><strong>{resumen.activos}</strong></div>
+        </div>
+        <div className={`ct-dato ${resumen.inactivos > 0 ? 'ct-dato--aviso' : ''}`}>
+          <span className="ct-dato-icono"><PauseCircle size={18} aria-hidden="true" /></span>
+          <div><span>Inactivos</span><strong>{resumen.inactivos}</strong></div>
+        </div>
+      </section>
+
+      <div className="ct-barra">
+        <div className="ct-busqueda">
+          <Search size={16} aria-hidden="true" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, razón social o NIT..."
+            aria-label="Buscar proveedores"
+            value={busqueda}
+            onChange={(e) => handleSetBusqueda(e.target.value)}
+          />
+        </div>
+        <ChipsFiltro
+          opciones={[{ id: 'todos', label: 'Todos' }, { id: 'activos', label: 'Activos' }, { id: 'inactivos', label: 'Inactivos' }]}
+          valor={filtro}
+          onCambiar={handleSetFiltro}
         />
       </div>
 
       {esMovil ? (
-        <>
-          <ChipsFiltro
-            opciones={[{ id: 'todos', label: 'Todos' }, { id: 'activos', label: 'Activos' }, { id: 'inactivos', label: 'Inactivos' }]}
-            valor={filtroMovil}
-            onCambiar={setFiltroMovil}
-          />
-          <ListaMovil
-            items={listaMovil}
-            clave={(p) => p.proveedorid}
-            cargando={loading}
-            letras
-            vacio="No se encontraron proveedores"
-            onAbrir={setSeleccionado}
-            fila={(p) => ({
-              titulo: p.razonSocial,
-              subtitulo: [p.nombreProveedor !== p.razonSocial ? p.nombreProveedor : null, p.telefono].filter(Boolean).join(' · ') || 'Sin datos de contacto',
-              insignia: p.estado,
-              tono: p.estado === 'Activo' ? 'ok' : 'aviso',
-            })}
-          />
-        </>
+        <ListaMovil
+          items={listaMovil}
+          clave={(p) => p.proveedorid}
+          cargando={loading}
+          letras
+          vacio="No se encontraron proveedores"
+          onAbrir={setSeleccionado}
+          fila={(p) => ({
+            titulo: p.razonSocial,
+            subtitulo: [p.nombreProveedor !== p.razonSocial ? p.nombreProveedor : null, p.telefono].filter(Boolean).join(' · ') || 'Sin datos de contacto',
+            insignia: p.estado,
+            tono: p.estado === 'Activo' ? 'ok' : 'aviso',
+          })}
+        />
       ) : (
-      <>
-      <div className="proveedores-table-wrap" ref={tablaWrapRef}>
-        <table className={`proveedores-table${paginaLlena ? ' proveedores-table-llena' : ''}`}>
-          <thead>
-            <tr>
-              <th>Proveedor</th>
-              <th>NIT</th>
-              <th>Teléfono</th>
-              <th>Banco</th>
-              <th>Estado</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-            ) : pagina.length > 0 ? pagina.map((p) => (
-              <tr key={p.proveedorid} data-fila>
-                <td className="proveedores-td-razon" data-label="Proveedor">
-                  <div className="tbl-main-cell">
-                    <span className="tbl-avatar" style={{ background: colorAvatar(p.razonSocial) }}>{iniciales(p.razonSocial)}</span>
-                    <div className="tbl-cell-texts">
-                      <span className="tbl-cell-primary">{p.razonSocial}</span>
-                      {p.nombreProveedor && p.nombreProveedor !== p.razonSocial && (
-                        <span className="tbl-cell-secondary">{p.nombreProveedor}</span>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td data-label="NIT">{p.nit || <span className="tbl-vacio">—</span>}</td>
-                <td data-label="Teléfono">{p.telefono || <span className="tbl-vacio">—</span>}</td>
-                <td data-label="Banco">{p.banco || <span className="tbl-vacio">—</span>}</td>
-                <td data-label="Estado">
-                  <span className={`tbl-badge ${p.estado === 'Activo' ? 'tbl-badge--ok' : 'tbl-badge--neutral'}`}>{p.estado}</span>
-                </td>
-                <td className="proveedores-td-acciones" data-label="">
-                  <div className="tbl-actions">
-                    {p.telefono && (
-                      <button className="tbl-icon-btn tbl-icon-btn--wa" title="WhatsApp" onClick={(e) => { e.stopPropagation(); if (!abrirWhatsApp(p.telefono, `Hola ${p.nombreProveedor || p.razonSocial}`)) toast.error('El teléfono no parece válido para WhatsApp.'); }}>
-                        <MessageCircle size={14} />
-                      </button>
-                    )}
-                    <button className="tbl-icon-btn tbl-icon-btn--editar" title="Editar" onClick={(e) => { e.stopPropagation(); abrirEditar(p); }}>
-                      <Edit2 size={14} />
-                    </button>
-                    <button className="tbl-icon-btn tbl-icon-btn--borrar" title="Eliminar" onClick={(e) => { e.stopPropagation(); handleEliminar(p.proveedorid, p.razonSocial); }}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )) : (
-              <tr>
-                <td colSpan="6" className="proveedores-empty">
-                  <Truck size={28} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
-                  <p>No se encontraron proveedores</p>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+        <>
+          <div className="ct-tabla-wrap" ref={tablaWrapRef}>
+            <table className={`ct-tabla${paginaLlena ? ' ct-tabla-llena' : ''}`}>
+              <thead>
+                <tr>
+                  <th>Proveedor</th>
+                  <th>NIT</th>
+                  <th>Teléfono</th>
+                  <th>Banco</th>
+                  <th>Estado</th>
+                  <th><span className="sr-only">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => <FilaEsqueleto key={i} />)
+                ) : pagina.length > 0 ? pagina.map((p) => (
+                  <tr key={p.proveedorid} data-fila>
+                    <td>
+                      <div className="tbl-main-cell">
+                        <span className="tbl-avatar" style={{ background: colorAvatar(p.razonSocial) }}>{iniciales(p.razonSocial)}</span>
+                        <div className="tbl-cell-texts">
+                          <span className="tbl-cell-primary">{p.razonSocial}</span>
+                          {p.nombreProveedor && p.nombreProveedor !== p.razonSocial && (
+                            <span className="tbl-cell-secondary">{p.nombreProveedor}</span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td>{p.nit || <span className="tbl-vacio">—</span>}</td>
+                    <td>{p.telefono || <span className="tbl-vacio">—</span>}</td>
+                    <td>{p.banco || <span className="tbl-vacio">—</span>}</td>
+                    <td><span className={`tbl-badge ${p.estado === 'Activo' ? 'tbl-badge--ok' : 'tbl-badge--neutral'}`}>{p.estado}</span></td>
+                    <td className="ct-acciones">
+                      <div className="tbl-actions">
+                        {p.telefono && (
+                          <button type="button" className="tbl-icon-btn tbl-icon-btn--wa" title="WhatsApp" aria-label={`WhatsApp a ${p.razonSocial}`} onClick={() => { if (!abrirWhatsApp(p.telefono, `Hola ${p.nombreProveedor || p.razonSocial}`)) toast.error('El teléfono no parece válido para WhatsApp.'); }}>
+                            <MessageCircle size={14} />
+                          </button>
+                        )}
+                        <button type="button" className="tbl-icon-btn tbl-icon-btn--editar" title="Editar" aria-label={`Editar a ${p.razonSocial}`} onClick={() => irAEditar(p)}>
+                          <Edit2 size={14} />
+                        </button>
+                        <button type="button" className="tbl-icon-btn tbl-icon-btn--borrar" title="Eliminar" aria-label={`Eliminar a ${p.razonSocial}`} onClick={() => handleEliminar(p.proveedorid, p.razonSocial)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan="6" className="ct-vacio">
+                      <Truck size={28} style={{ opacity: 0.35 }} aria-hidden="true" />
+                      <p>{busqueda || filtro !== 'todos' ? 'No hay proveedores con esos filtros' : 'Aún no tienes proveedores registrados'}</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-      {!loading && total > 1 && (
-        <div className="proveedores-paginacion">
-          <button onClick={() => handleSetPagina(paginaActual - 1)} disabled={paginaActual === 1}>Anterior</button>
-          <span>Página {paginaActual} de {total}</span>
-          <button onClick={() => handleSetPagina(paginaActual + 1)} disabled={paginaActual === total}>Siguiente</button>
-        </div>
-      )}
-      </>
+          {!loading && total > 1 && (
+            <nav className="ct-paginacion" aria-label="Paginación">
+              <button type="button" onClick={() => handleSetPagina(paginaActual - 1)} disabled={paginaActual === 1}>Anterior</button>
+              <span>Página {paginaActual} de {total}</span>
+              <button type="button" onClick={() => handleSetPagina(paginaActual + 1)} disabled={paginaActual === total}>Siguiente</button>
+            </nav>
+          )}
+        </>
       )}
 
       <PanelInferior
@@ -303,7 +257,7 @@ function Proveedores() {
                 <MessageCircle size={15} /> WhatsApp
               </button>
             )}
-            <button type="button" className="pi-accion pi-accion-primaria" onClick={() => { const p = seleccionado; setSeleccionado(null); abrirEditar(p); }}><Edit2 size={15} /> Editar</button>
+            <button type="button" className="pi-accion pi-accion-primaria" onClick={() => { const p = seleccionado; setSeleccionado(null); irAEditar(p); }}><Edit2 size={15} /> Editar</button>
             <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const p = seleccionado; setSeleccionado(null); handleEliminar(p.proveedorid, p.razonSocial); }}><Trash2 size={15} /> Eliminar</button>
           </>
         )}
@@ -321,56 +275,6 @@ function Proveedores() {
           </>
         )}
       </PanelInferior>
-
-      {mostrarModal && (
-        <div className="proveedores-overlay" onClick={cerrarModal}>
-          <div className="proveedores-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="proveedores-modal-header">
-              <h3>{proveedorEditando ? 'Editar Proveedor' : 'Nuevo Proveedor'}</h3>
-              <button className="proveedores-modal-close" onClick={cerrarModal}>✕</button>
-            </div>
-            <form onSubmit={handleSubmit} className="proveedores-form">
-              <div className="proveedores-form-row">
-                <div className="proveedores-form-group"><label>Nombre / Razón Social *</label><input name="razonSocial" value={form.razonSocial} onChange={handleChange} required /></div>
-                <div className="proveedores-form-group"><label>Nombre Contacto <span className="campo-opcional">(opcional)</span></label><input name="nombreProveedor" value={form.nombreProveedor} onChange={handleChange} /></div>
-              </div>
-              <SeccionPlegable titulo="Contacto y ubicación" resumen="NIT, teléfono, correo, dirección">
-              <div className="proveedores-form-row">
-                <div className="proveedores-form-group"><label>NIT <span className="campo-opcional">(opcional)</span></label><input name="nit" value={form.nit} onChange={handleChange} /></div>
-                <div className="proveedores-form-group"><label>Teléfono <span className="campo-opcional">(opcional)</span></label><input name="telefono" value={form.telefono} onChange={handleChange} /></div>
-              </div>
-              <div className="proveedores-form-row">
-                <div className="proveedores-form-group"><label>Correo <span className="campo-opcional">(opcional)</span></label><input name="correo" type="email" value={form.correo} onChange={handleChange} /></div>
-                <div className="proveedores-form-group"><label>Dirección <span className="campo-opcional">(opcional)</span></label><input name="direccion" value={form.direccion} onChange={handleChange} /></div>
-              </div>
-              </SeccionPlegable>
-              <SeccionPlegable titulo="Datos bancarios" resumen="Banco y cuenta">
-              <div className="proveedores-form-row">
-                <div className="proveedores-form-group"><label>Banco <span className="campo-opcional">(opcional)</span></label><input name="banco" value={form.banco} onChange={handleChange} /></div>
-                <div className="proveedores-form-group"><label>Cuenta <span className="campo-opcional">(opcional)</span></label><input name="numeroCuenta" value={form.numeroCuenta} onChange={handleChange} /></div>
-              </div>
-              <div className="proveedores-form-group">
-                <label>Tipo Cuenta <span className="campo-opcional">(opcional)</span></label>
-                <select name="tipoCuenta" value={form.tipoCuenta} onChange={handleChange}>
-                  <option value="">Sin especificar</option>
-                  {TIPO_CUENTA_OPTS.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              </SeccionPlegable>
-              <div className="proveedores-form-group">
-                <label>Estado *</label>
-                <select name="estado" value={form.estado} onChange={handleChange} required>
-                  {ESTADO_OPTS.map(e => <option key={e} value={e}>{e}</option>)}
-                </select>
-              </div>
-              <div className="proveedores-form-actions">
-                <button type="button" className="proveedores-btn-cancelar" onClick={cerrarModal}>Cancelar</button>
-                <button type="submit" className="proveedores-btn-guardar" disabled={cargando}>{cargando ? 'Guardando...' : 'Guardar'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
