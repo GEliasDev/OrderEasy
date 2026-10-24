@@ -182,6 +182,9 @@ function TarjetaCompra({ compra, pedidoAbierto, costos, rutaPedido, negocio, onE
               <ShoppingBag size={13} /><span>Entregar</span>
             </button>
           )}
+          <button type="button" className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => ir('comprobante')} title="Resumen de la compra para enviarle al cliente">
+            <Receipt size={13} /><span>Recibo</span>
+          </button>
           <button
             type="button"
             className={`pedidos-btn pedidos-btn-secundario pedidos-btn-sm compras-cliente-toggle${expandida ? ' abierto' : ''}`}

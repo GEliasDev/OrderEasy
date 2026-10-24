@@ -176,7 +176,7 @@ function NuevoPedido() {
         navigate(volverA);
         return;
       }
-      await createPedido({
+      const creada = await createPedido({
         clienteid: clienteId,
         ordenid: ordenid || undefined,
         descripcion,
@@ -184,7 +184,16 @@ function NuevoPedido() {
         abono: Number(abonoMonto) > 0 ? { monto: Number(abonoMonto), metodo: abonoMetodo } : undefined,
         items,
       });
-      toast.success(ordenid ? `Compra agregada al pedido #${ordenid}.` : 'Compra creada. Confírmala para reservar el stock.');
+      const mensaje = ordenid ? `Compra agregada al pedido #${ordenid}.` : 'Compra creada. Confírmala para reservar el stock.';
+      // Con la compra creada se ofrece el recibo para enviárselo al cliente
+      if (creada?.pedidoid) {
+        toast.success(mensaje, {
+          duration: 8000,
+          action: { label: 'Ver recibo', onClick: () => navigate(`/dashboard/pedido/${creada.pedidoid}/comprobante`, { state: { volverA: destino } }) },
+        });
+      } else {
+        toast.success(mensaje);
+      }
       navigate(destino);
     } catch (error) {
       toast.error(error?.response?.data?.mensaje || (editarid ? 'No se pudo actualizar la compra.' : 'No se pudo crear el pedido.'));

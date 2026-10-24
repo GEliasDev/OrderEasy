@@ -17,6 +17,7 @@ import { getClientes } from '../../../../services/clienteService';
 import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import { imagenUrl } from '../../../../config';
 import ReciboPagina from './ReciboPagina';
+import ComprobanteCompra from './ComprobanteCompra';
 import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import { getNegocio } from '../../../../services/negocioService';
 import { abrirWhatsApp, mensajeListoParaEntregar, mensajeRecordatorioSaldo } from '../../../../utils/whatsapp';
@@ -117,7 +118,7 @@ const formatearFecha = (fecha, conHora = false) => {
 };
 
 // Pantallas de formulario del pedido (antes ventanas emergentes): cada una es una ruta /dashboard/pedido/:id/<vista>
-const VISTAS = ['editar', 'pago', 'entrega', 'devolucion', 'anular', 'recibo'];
+const VISTAS = ['editar', 'pago', 'entrega', 'devolucion', 'anular', 'recibo', 'comprobante'];
 
 function DetallePedido() {
   const { id, vista, pagoid } = useParams();
@@ -541,6 +542,10 @@ function DetallePedido() {
               <span>Entregar</span>
             </button>
           )}
+          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal('comprobante')} title="Resumen de la compra para enviarle al cliente">
+            <Receipt size={14} />
+            <span>Recibo de compra</span>
+          </button>
           {puedeDevolver && (
             <button className="pedidos-btn pedidos-btn-secundario" onClick={() => abrirDevolucion()} title="El cliente devuelve productos que ya recibió">
               <Undo2 size={14} />
@@ -575,6 +580,7 @@ function DetallePedido() {
 
       <PanelInferior abierto={menuMas} onCerrar={() => setMenuMas(false)} titulo="Más acciones" subtitulo={`Compra #${pedido.pedidoid}`} nombreAvatar={pedido.cliente?.nombreCliente || 'Compra'}>
         <div className="pi-lista-acciones">
+          <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); setModal('comprobante'); }}><Receipt size={15} /> Recibo de compra</button>
           {puedeDevolver && (
             <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirDevolucion(); }}><Undo2 size={15} /> Registrar devolución de productos</button>
           )}
@@ -1193,6 +1199,10 @@ function DetallePedido() {
             </form>
           </div>
         </div>
+      )}
+
+      {modal === 'comprobante' && (
+        <ComprobanteCompra pedido={pedido} negocio={negocio} onVolver={volver} />
       )}
 
       {modal === 'recibo' && pagoRecibo && (

@@ -87,6 +87,17 @@
   .recibo-doc { align-items: flex-start; text-align: left; margin-left: 0; }
 }
 
+/* Comprobante de compra */
+.comprobante-importe { text-align: center; }
+.comprobante-importe--pagado { background: #ECFDF5; }
+.comprobante-importe--pagado .recibo-monto { font-size: 1.5rem; color: #047857; }
+.recibo-productos th:nth-child(n+3), .recibo-productos td:nth-child(n+3) { text-align: right; }
+.comprobante-abonos { margin-top: 14px; }
+.comprobante-abonos h3 { margin: 0 0 6px; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--recibo-gris); }
+.comprobante-abonos ul { margin: 0; padding: 0; list-style: none; }
+.comprobante-abonos li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--recibo-linea); font-size: 0.75rem; }
+.comprobante-abonos li span { color: var(--recibo-gris); }
+
 /* Al imprimir solo sale la hoja del recibo */
 @media print {
   body * { visibility: hidden !important; }
