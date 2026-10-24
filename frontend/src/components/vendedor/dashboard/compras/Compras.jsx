@@ -11,8 +11,6 @@ const BADGE_ORDEN = {
   anulada: 'tbl-badge--neutral',
 };
 
-const ORDEN_COLORS = ['#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#06B6D4','#EF4444','#6366F1'];
-const colorOrden = (id) => ORDEN_COLORS[(Number(id) || 0) % ORDEN_COLORS.length];
 import { toast } from 'sonner';
 import { eliminarPedidoProveedor, getOrdenesCompra, getSaldoPorCobrar } from '../../../../services/pedidoService';
 import { ESTADOS_COMPRA, formatearFecha, formatoMoneda, nombrePedido } from './comprasUtils';
@@ -174,7 +172,6 @@ function Compras() {
             return {
               nombre: nombrePedido(orden),
               icono: Package,
-              color: colorOrden(orden.ordenid),
               titulo: nombrePedido(orden),
               subtitulo: [
                 proveedor || 'Sin proveedor',
@@ -224,7 +221,7 @@ function Compras() {
                   <tr key={orden.ordenid} data-fila onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
                     <td data-label="Pedido">
                       <div className="tbl-main-cell">
-                        <span className="caja-icono" style={{ '--caja': colorOrden(orden.ordenid) }} aria-hidden="true"><Package size={20} /></span>
+                        <span className="caja-icono" aria-hidden="true"><Package size={20} /></span>
                         <div className="tbl-cell-texts">
                           <span className="tbl-cell-primary">{nombrePedido(orden)}</span>
                           <span className="tbl-cell-secondary">#{orden.ordenid} · {formatearFecha(orden.createdAt)}{orden.descripcion ? ` · ${orden.descripcion}` : ''}</span>
