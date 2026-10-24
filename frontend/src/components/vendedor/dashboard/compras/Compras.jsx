@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, Eye, PackageCheck, Plus, Trash2, Truck } from 'lucide-react';
+import { ClipboardList, Eye, Package, PackageCheck, Plus, Trash2, Truck } from 'lucide-react';
 
 const BADGE_ORDEN = {
   abierta: 'tbl-badge--warning',
@@ -173,6 +173,8 @@ function Compras() {
             const compras = orden.resumenCompras?.cantidad || 0;
             return {
               nombre: nombrePedido(orden),
+              icono: Package,
+              color: colorOrden(orden.ordenid),
               titulo: nombrePedido(orden),
               subtitulo: [
                 proveedor || 'Sin proveedor',
@@ -222,12 +224,10 @@ function Compras() {
                   <tr key={orden.ordenid} data-fila onClick={() => navigate(`/dashboard/pedidos/${orden.ordenid}`)}>
                     <td data-label="Pedido">
                       <div className="tbl-main-cell">
-                        <span className="tbl-avatar" style={{ background: colorOrden(orden.ordenid), fontSize: '0.65rem' }}>
-                          #{orden.ordenid}
-                        </span>
+                        <span className="caja-icono" style={{ '--caja': colorOrden(orden.ordenid) }} aria-hidden="true"><Package size={20} /></span>
                         <div className="tbl-cell-texts">
                           <span className="tbl-cell-primary">{nombrePedido(orden)}</span>
-                          <span className="tbl-cell-secondary">{formatearFecha(orden.createdAt)}{orden.descripcion ? ` · ${orden.descripcion}` : ''}</span>
+                          <span className="tbl-cell-secondary">#{orden.ordenid} · {formatearFecha(orden.createdAt)}{orden.descripcion ? ` · ${orden.descripcion}` : ''}</span>
                         </div>
                       </div>
                     </td>

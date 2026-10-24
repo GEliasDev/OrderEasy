@@ -336,3 +336,17 @@
 .sp-flecha { color: var(--neutral-400, #94A3B8); transition: transform 0.15s; }
 .sp-abierta .sp-flecha { transform: rotate(180deg); }
 .sp-cuerpo { padding: 0.25rem 0.75rem 0.25rem; border-top: 1px solid var(--neutral-100, #F0F4FA); }
+
+/* Cajita cuadrada con ícono: representa cosas (pedidos), a diferencia del círculo con iniciales de las personas */
+.caja-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: var(--caja, var(--color-primary, #1565C0));
+  background: color-mix(in srgb, var(--caja, var(--color-primary, #1565C0)) 12%, var(--surface, #fff));
+  border: 1px solid color-mix(in srgb, var(--caja, var(--color-primary, #1565C0)) 35%, transparent);
+}

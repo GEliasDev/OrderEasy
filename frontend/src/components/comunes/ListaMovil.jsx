@@ -53,6 +53,7 @@ export function ChipsFiltro({ opciones, valor, onCambiar }) {
  * Lista compacta para celular: una fila por elemento (avatar, título, línea secundaria y dato clave), que al tocarla abre su detalle.
  * Muestra los elementos por tandas ("Mostrar más") para que listas largas no obliguen a un scroll interminable.
  *
+ * icono?: componente de lucide; con él la fila muestra una cajita cuadrada (para cosas, no personas) en lugar del círculo con iniciales; color? tiñe la cajita.
  * fila(item) => { nombre, imagen?, titulo, subtitulo?, derecha?, derechaSecundaria?, tono?: 'peligro' | 'ok' | 'aviso', insignia? }
  */
 function ListaMovil({ items, clave, fila, onAbrir, paso = 30, letras = false, cargando = false, vacio = 'No hay resultados.' }) {
@@ -88,7 +89,11 @@ function ListaMovil({ items, clave, fila, onAbrir, paso = 30, letras = false, ca
           <div key={clave(item)} role="listitem">
             {cabecera && <div className="lm-letra">{cabecera}</div>}
             <button type="button" className="lm-fila" onClick={() => onAbrir(item)}>
-              <Avatar nombre={datos.nombre ?? datos.titulo} imagen={datos.imagen} />
+              {datos.icono ? (
+                <span className="caja-icono" style={{ '--caja': datos.color }} aria-hidden="true"><datos.icono size={20} /></span>
+              ) : (
+                <Avatar nombre={datos.nombre ?? datos.titulo} imagen={datos.imagen} />
+              )}
               <span className="lm-textos">
                 <span className="lm-titulo">{datos.titulo}</span>
                 {datos.subtitulo && <span className="lm-subtitulo">{datos.subtitulo}</span>}
