@@ -16,6 +16,7 @@ const Cliente = require('../models/clientModel');
 const sequelize = require('../config/database');
 const { resolverStock, resolverStockDeDetalle, guardarStock, validarCantidad, datosTalla } = require('./stockService');
 const { dos } = require('./pedidoPagoService');
+const { aplicarEscalonesAlEnviar } = require('./preciosPorCantidadService');
 
 class ErrorCompra extends Error {
   constructor(mensaje, status = 400) {
@@ -357,6 +358,9 @@ const enviarOrden = async ({ ordenid, negocioid, transaction }) => {
       await Asignacion.create({ ordendetalleid: detalle.detalleid, pedidodetalleid: linea.detalleid, cantidad: linea.faltante }, { transaction });
     }
   }
+
+  // Precio por cantidad del proveedor: si el total del producto alcanza un escalón, todas sus unidades salen a ese precio
+  await aplicarEscalonesAlEnviar({ orden, detalles: await OrdenCompraDetalle.findAll({ where: { ordenid }, transaction }), transaction });
 
   let total = 0;
   for (const detalle of await OrdenCompraDetalle.findAll({ where: { ordenid }, transaction })) {

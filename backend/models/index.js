@@ -15,6 +15,7 @@ require('./egresoDetalleModel');
 require('./clientModel');
 require('./ventaPagoModel');
 require('./proveedorModel');
+require('./proveedorPrecioEscalonadoModel');
 require('./pedidoModel');
 require('./pedidoPagoModel');
 require('./pedidoDevolucionModel');

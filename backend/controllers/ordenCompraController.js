@@ -19,6 +19,7 @@ const {
   calcularFaltantes, crearOrdenDesdePedidos, repartirRecepcion, sincronizarEstadoPedido, pedidoidsDeOrden,
   resumenComprasPorDetalle, enviarOrden, previewOrden, agregarLineaStock, asignarCompras,
 } = require('../services/compraLoteService');
+const { estimarConEscalones } = require('../services/preciosPorCantidadService');
 
 class ErrorOrden extends Error {
   constructor(mensaje, status = 400) {
@@ -128,15 +129,15 @@ const comprasDeOrdenes = async (ordenids) => {
 const conCostoEstimado = async (json) => {
   if (json.estado !== 'abierta') return;
   // Las líneas de stock conservan el precio con que se agregaron; las compras de clientes, el costo con que se crearon
-  let costoStock = 0;
-  for (const detalle of json.detalles || []) {
-    detalle.subtotal = Math.round(Number(detalle.cantidad) * Number(detalle.precioUnitario) * 100) / 100;
-    costoStock += detalle.subtotal;
-  }
   const clientes = (json.compras || []).some((c) => c.estado !== 'anulado' && c.estado !== 'entregado')
     ? await previewOrden({ ordenid: json.ordenid, negocioid: json.negocioid })
-    : { total: 0 };
-  json.costoEstimado = Math.round((costoStock + Number(clientes.total || 0)) * 100) / 100;
+    : { total: 0, grupos: [] };
+  // Con los precios por cantidad del proveedor (si los tiene), según lo que se pide en total de cada producto
+  const estimado = await estimarConEscalones({
+    proveedorid: json.proveedorid, negocioid: json.negocioid, detalles: json.detalles || [], grupos: clientes.grupos || [],
+  });
+  json.costoEstimado = Math.round((estimado.costoStock + estimado.costoClientes) * 100) / 100;
+  json.preciosPorCantidad = estimado.avisos;
 };
 
 const conCompras = async (jsons) => {

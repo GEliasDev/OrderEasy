@@ -32,6 +32,11 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 
 - `GET/PUT /api/usuarios/me` (cualquier usuario autenticado) lee y edita el perfil propio: nombres, correo (único) y teléfono; no cambia rol ni negocio y devuelve un token nuevo porque el JWT lleva el correo. La información de la empresa (`PUT /api/negocio`) también la puede editar cualquier usuario.
 
+## Precios por cantidad de proveedores
+
+- Tabla `proveedor_precios_escalonados` (migración 012): por proveedor y producto, `desde_cantidad` → `precio`. `GET /api/proveedores/:id/precios` y `PUT /api/proveedores/:id/precios/:productoid` (reemplaza los escalones del producto; lista vacía los quita).
+- `services/preciosPorCantidadService.js`: cuenta la cantidad por producto (suma tallas, compras de clientes y stock del pedido); al llegar a un escalón TODAS las unidades salen a ese precio. Pedido abierto: `costoEstimado` y `preciosPorCantidad` (avisos) en la respuesta; al enviar (`enviarOrden`) se fija el precio en cada línea. Solo afecta lo que se paga al proveedor, no el precio de venta ni `precioCompra` de las compras de clientes.
+
 ## Tallas y unidades de medida
 
 - `productos.usaTallas = true` → el stock vive en `producto_variantes` (una fila por talla, con `cantidadDisponible`/`cantidadReservada`) y `productos.cantidadDisponible/cantidadReservada` guardan el **total** (suma de tallas), así listados y estadísticas no cambian. Sin tallas, el stock sigue en el propio producto.

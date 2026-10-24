@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, ChevronDown, Hash, Package, PackageCheck, Pencil, Plus, Send, Trash2, FileText, Truck, User, Users, XCircle, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronDown, Hash, Package, PackageCheck, Pencil, Plus, Send, Trash2, FileText, Truck, User, Users, XCircle, ClipboardList, Tags } from 'lucide-react';
 import { toast } from 'sonner';
 import { imagenUrl } from '../../../../config';
 import {
@@ -502,6 +502,21 @@ function DetalleCompra() {
 
       {orden.descripcion && (
         <div className="compras-nota-bloque"><FileText size={14} /><span>{orden.descripcion}</span></div>
+      )}
+
+      {abierto && (orden.preciosPorCantidad || []).length > 0 && (
+        <ul className="pedido-precios-cantidad" aria-label="Precios por cantidad del proveedor">
+          {orden.preciosPorCantidad.map((a) => (
+            <li key={a.productoid}>
+              <Tags size={14} aria-hidden="true" />
+              <span>
+                <strong>{a.productoNombre}</strong>: {cantidad(a.cantidad)} und
+                {a.precio !== null ? <> a {formatoMoneda(a.precio)} c/u</> : <> (aún sin descuento)</>}
+                {a.siguiente && <> · con {cantidad(a.siguiente.desde)} und baja a {formatoMoneda(a.siguiente.precio)} c/u (faltan {cantidad(a.siguiente.faltan)})</>}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
 
       <div className="mod-seccion">

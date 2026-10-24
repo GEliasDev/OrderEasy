@@ -17,6 +17,7 @@ const Estadisticas = lazy(() => import('./components/vendedor/dashboard/estadist
 const Clientes = lazy(() => import('./components/vendedor/dashboard/clientes/Clientes'));
 const Proveedores = lazy(() => import('./components/vendedor/dashboard/proveedores/Proveedores'));
 const ProveedorForm = lazy(() => import('./components/vendedor/dashboard/proveedores/ProveedorForm'));
+const PreciosProveedor = lazy(() => import('./components/vendedor/dashboard/proveedores/PreciosProveedor'));
 const ClienteForm = lazy(() => import('./components/vendedor/dashboard/clientes/ClienteForm'));
 const NuevoPedido = lazy(() => import('./components/vendedor/dashboard/pedidos/NuevoPedido'));
 const DetallePedido = lazy(() => import('./components/vendedor/dashboard/pedidos/DetallePedido'));
@@ -105,6 +106,7 @@ function App() {
                 <Route path="proveedores" element={<SeccionRoute seccion="proveedores"><Proveedores /></SeccionRoute>} />
                 <Route path="proveedores/nuevo" element={<SeccionRoute seccion="proveedores"><ProveedorForm /></SeccionRoute>} />
                 <Route path="proveedores/:id/editar" element={<SeccionRoute seccion="proveedores"><ProveedorForm /></SeccionRoute>} />
+                <Route path="proveedores/:id/precios" element={<SeccionRoute seccion="proveedores"><PreciosProveedor /></SeccionRoute>} />
 
                 {/* Solo administrador del sistema */}
                 <Route path="configuracion" element={<AdminRoute><Configuracion /></AdminRoute>} />

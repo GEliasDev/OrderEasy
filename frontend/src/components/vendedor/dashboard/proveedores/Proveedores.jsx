@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Truck, Search, Edit2, Trash2, Phone, MessageCircle, CheckCircle2, PauseCircle } from 'lucide-react';
+import { Plus, Truck, Search, Edit2, Trash2, Phone, MessageCircle, CheckCircle2, PauseCircle, Tags } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { getProveedores, deleteProveedor } from '../../../../services/proveedorService';
@@ -64,6 +64,7 @@ function Proveedores() {
 
   const irACrear = () => navigate('/dashboard/proveedores/nuevo');
   const irAEditar = (p) => navigate(`/dashboard/proveedores/${p.proveedorid}/editar`);
+  const irAPrecios = (p) => navigate(`/dashboard/proveedores/${p.proveedorid}/precios`);
 
   const handleEliminar = (id, nombre) => {
     toast(`¿Eliminar a ${nombre}?`, {
@@ -213,6 +214,9 @@ function Proveedores() {
                             <MessageCircle size={14} />
                           </button>
                         )}
+                        <button type="button" className="tbl-icon-btn" title="Precios por cantidad" aria-label={`Precios por cantidad de ${p.razonSocial}`} onClick={() => irAPrecios(p)}>
+                          <Tags size={14} />
+                        </button>
                         <button type="button" className="tbl-icon-btn tbl-icon-btn--editar" title="Editar" aria-label={`Editar a ${p.razonSocial}`} onClick={() => irAEditar(p)}>
                           <Edit2 size={14} />
                         </button>
@@ -257,6 +261,7 @@ function Proveedores() {
                 <MessageCircle size={15} /> WhatsApp
               </button>
             )}
+            <button type="button" className="pi-accion" onClick={() => { const p = seleccionado; setSeleccionado(null); irAPrecios(p); }}><Tags size={15} /> Precios por cantidad</button>
             <button type="button" className="pi-accion pi-accion-primaria" onClick={() => { const p = seleccionado; setSeleccionado(null); irAEditar(p); }}><Edit2 size={15} /> Editar</button>
             <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { const p = seleccionado; setSeleccionado(null); handleEliminar(p.proveedorid, p.razonSocial); }}><Trash2 size={15} /> Eliminar</button>
           </>

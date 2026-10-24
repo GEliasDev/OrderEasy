@@ -9,7 +9,9 @@ const {
   createProveedor,
   getProveedores,
   updateProveedor,
-  deleteProveedor
+  deleteProveedor,
+  getPrecios,
+  guardarPrecios
 } = require('../controllers/proveedorController');
 
 // Importamos el middleware para verificar el token de autenticación
@@ -41,6 +43,10 @@ router.patch('/:id', verificarToken, updateProveedor);
 // ===============================================
 // Ruta: DELETE /api/proveedores/:id
 router.delete('/:id', verificarToken, deleteProveedor);
+
+// Precios por cantidad: GET /api/proveedores/:id/precios y PUT /api/proveedores/:id/precios/:productoid
+router.get('/:id/precios', verificarToken, getPrecios);
+router.put('/:id/precios/:productoid', verificarToken, guardarPrecios);
 
 // Exportamos el router para usarlo en index.js
 module.exports = router;
