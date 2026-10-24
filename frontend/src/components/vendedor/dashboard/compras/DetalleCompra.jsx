@@ -387,18 +387,21 @@ function DetalleCompra() {
     if (paraStock > 0) lineasStock.push({ detalle, cantidad: paraStock });
   }
 
-  // Todas las acciones del pedido viven en un solo menú ("Pedido"); en celular se abre como panel inferior
+  // Crear compra, Enviar y Registrar recepción van como botones; las demás viven en el menú "Pedido" (panel inferior en celular)
   const editable = !['recibida', 'anulada'].includes(orden.estado);
   const accionesPedido = [
-    abierto && { clave: 'compra', etiqueta: 'Crear compra', icono: Plus, ir: () => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}`) },
+    abierto && { clave: 'compra', principal: true, etiqueta: 'Crear compra', icono: Plus, ir: () => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}`) },
     abierto && { clave: 'stock', etiqueta: 'Productos para stock', icono: Package, ir: () => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}&tipo=stock`) },
     abierto && { clave: 'existente', etiqueta: 'Agregar compra existente', icono: Users, ir: abrirExistentes },
-    abierto && { clave: 'enviar', etiqueta: 'Enviar al proveedor', icono: Send, ir: abrirEnviar, desactivada: compras.length === 0 && detalles.length === 0 },
-    puedeRecibir && { clave: 'recepcion', etiqueta: 'Registrar recepción', icono: PackageCheck, ir: () => abrirRecepcion(orden) },
+    abierto && { clave: 'enviar', principal: true, etiqueta: 'Enviar al proveedor', icono: Send, ir: abrirEnviar, desactivada: compras.length === 0 && detalles.length === 0 },
+    puedeRecibir && { clave: 'recepcion', principal: true, etiqueta: 'Registrar recepción', icono: PackageCheck, ir: () => abrirRecepcion(orden) },
     editable && { clave: 'nombre', etiqueta: 'Cambiar nombre', icono: Pencil, ir: () => { setNombreEdicion(orden.nombre || ''); setModal('nombre'); } },
     puedeAnular && { clave: 'anular', etiqueta: 'Anular pedido', icono: XCircle, ir: handleAnular },
     { clave: 'eliminar', etiqueta: 'Eliminar pedido', icono: Trash2, ir: handleEliminar, peligro: true },
   ].filter(Boolean);
+  // Las acciones del día a día van a la vista; el resto queda en el menú "Pedido"
+  const accionesPrincipales = accionesPedido.filter((a) => a.principal);
+  const accionesMenu = accionesPedido.filter((a) => !a.principal);
   const ejecutar = (accion) => { setMenuAbierto(false); setMasAbierto(false); accion.ir(); };
 
   return (
@@ -415,11 +418,20 @@ function DetalleCompra() {
           </div>
           <div className="detalle-tx-breadcrumb">Pedidos / <span className="active">{orden.nombre ? `${orden.nombre} · #${orden.ordenid}` : `Pedido #${orden.ordenid}`}</span></div>
         </div>
+        <div className="pedido-acciones-cabecera">
+          {accionesPrincipales.map((a, i) => {
+            const Icono = a.icono;
+            return (
+              <button key={a.clave} type="button" className={`pedidos-btn ${i === 0 ? 'pedidos-btn-primary' : 'pedidos-btn-secundario'}`} disabled={a.desactivada} onClick={() => ejecutar(a)}>
+                <Icono size={15} aria-hidden="true" /><span>{a.etiqueta}</span>
+              </button>
+            );
+          })}
         <div className="pedido-menu" ref={menuRef}>
           <button
             type="button"
             ref={botonMenuRef}
-            className="pedidos-btn pedidos-btn-primary pedido-menu-boton"
+            className="pedidos-btn pedidos-btn-secundario pedido-menu-boton"
             aria-haspopup="menu"
             aria-expanded={esMovil ? masAbierto : menuAbierto}
             onClick={() => (esMovil ? setMasAbierto(true) : setMenuAbierto((o) => !o))}
@@ -430,7 +442,7 @@ function DetalleCompra() {
           </button>
           {!esMovil && menuAbierto && (
             <div className="pedido-menu-lista" role="menu" aria-label="Acciones del pedido">
-              {accionesPedido.map((a) => {
+              {accionesMenu.map((a) => {
                 const Icono = a.icono;
                 return (
                   <button
@@ -447,6 +459,7 @@ function DetalleCompra() {
               })}
             </div>
           )}
+        </div>
         </div>
       </div>
 
@@ -623,7 +636,7 @@ function DetalleCompra() {
 
       <PanelInferior abierto={masAbierto} onCerrar={() => setMasAbierto(false)} titulo="Pedido" subtitulo={nombrePedido(orden)} nombreAvatar="Pedido">
         <div className="pi-lista-acciones">
-          {accionesPedido.map((a) => {
+          {accionesMenu.map((a) => {
             const Icono = a.icono;
             return (
               <button key={a.clave} type="button" className={`pi-accion${a.peligro ? ' pi-accion-peligro' : ''}`} disabled={a.desactivada} onClick={() => ejecutar(a)}>

@@ -1446,3 +1446,11 @@
 .detalle-tx-stat-alerta { border-color: var(--color-danger); }
 .pedido-entregas-fila { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem 1rem; padding: 0.7rem 1.1rem; border-top: 1px solid var(--neutral-100); font-size: 0.8rem; color: var(--neutral-500); }
 @media (max-width: 560px) { .pedido-menu .pedidos-btn { min-height: 44px; } }
+
+.pedido-acciones-cabecera { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-left: auto; }
+.pedido-acciones-cabecera .pedido-menu { margin-left: 0; }
+@media (max-width: 900px) {
+  .detalle-tx-header .pedido-acciones-cabecera { flex: 1 1 100%; justify-content: flex-start; }
+  .pedido-acciones-cabecera .pedidos-btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+  .pedido-acciones-cabecera .pedido-menu { flex: 0 0 auto; }
+}
