@@ -520,7 +520,6 @@ function DetallePedido() {
   };
   // Todas las acciones de la compra, salvo Abonar y Entregar, viven en un solo menú
   const accionesMas = [
-    { clave: 'recibo', etiqueta: 'Recibo de compra', icono: Receipt, ir: () => setModal('comprobante') },
     puedeDevolver && { clave: 'devolucion', etiqueta: 'Devolución de productos', icono: Undo2, ir: () => abrirDevolucion() },
     resumen.disponibleAbonos > 0 && !anulada && { clave: 'dinero', etiqueta: 'Devolver dinero', icono: RotateCcw, ir: () => abrirPago('devolucion') },
     puedeAbonar && saldoFavor.total > 0 && { clave: 'saldo', etiqueta: `Usar saldo a favor (${formatoMoneda(saldoFavor.total)})`, icono: Wallet, ir: handleUsarSaldo },
@@ -565,6 +564,7 @@ function DetallePedido() {
           {puedeAbonar && (
             <button type="button" className="pedidos-btn pedidos-btn-primary" onClick={() => abrirPago('abono')}><Plus size={14} /><span>Abonar</span></button>
           )}
+          <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal('comprobante')}><Receipt size={14} /><span>Comprobante de Compra</span></button>
           <div className="pedido-menu" ref={menuRef}>
             <button
               type="button"

@@ -12,8 +12,6 @@ import './Recibo.css';
 const formatoMoneda = (valor) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(valor) || 0);
 
-const METODOS = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' };
-
 const fechaLarga = (fecha, conHora = false) => {
   if (!fecha) return '';
   const f = new Date(`${fecha}`.length === 10 ? `${fecha}T12:00:00` : fecha);
@@ -23,7 +21,7 @@ const fechaLarga = (fecha, conHora = false) => {
 };
 
 /**
- * Comprobante de una compra de cliente: lo que pidió, lo que ha abonado y lo que le falta por pagar.
+ * Comprobante de una compra de cliente: solo lo que pidió y el total. No es un estado de cuenta (abonos y saldos no van aquí).
  * Es el documento que se le envía al cliente al hacer la compra (PDF, imagen, impresión o WhatsApp).
  */
 function ComprobanteCompra({ pedido, negocio, onVolver }) {
@@ -32,16 +30,9 @@ function ComprobanteCompra({ pedido, negocio, onVolver }) {
 
   const nombreNegocio = negocio?.nombre || '';
   const cliente = pedido.cliente?.nombreCliente || 'Cliente';
-  const resumen = pedido.resumen || {};
   const total = Number(pedido.total) || 0;
-  const abonado = Number(resumen.abonado) || 0;
-  const saldo = Math.max(0, Number(resumen.saldo) || 0);
-  // Dinero que el cliente pagó de más (por ejemplo, tras devolver un producto ya pagado)
-  const aFavor = Math.max(0, (Number(resumen.disponibleAbonos) || 0) - (Number(resumen.porEntregar) || 0));
   const anulada = pedido.estado === 'anulado';
-  const pagada = !anulada && saldo <= 0;
   const detalles = (pedido.detalles || []).filter((d) => Number(d.cantidad) > 0);
-  const abonos = (pedido.pagos || []).filter((p) => p.tipo === 'abono');
   const numero = String(pedido.pedidoid).padStart(5, '0');
 
   const exportar = async (formato) => {
@@ -64,8 +55,6 @@ function ComprobanteCompra({ pedido, negocio, onVolver }) {
       compraid: pedido.pedidoid,
       lineas: detalles,
       total,
-      abonado,
-      saldo,
       fechaEntrega: pedido.fechaEntrega ? fechaLarga(pedido.fechaEntrega) : '',
     }));
     if (!ok) toast.error('Este cliente no tiene un teléfono válido para WhatsApp.');
@@ -133,43 +122,17 @@ function ComprobanteCompra({ pedido, negocio, onVolver }) {
             </tbody>
           </table>
 
-          <div className="recibo-resumen">
-            <div><span>Total de la compra</span><strong>{formatoMoneda(total)}</strong></div>
-            <div><span>Abonado</span><strong>{formatoMoneda(abonado)}</strong></div>
-            <div className="recibo-resumen-saldo"><span>Saldo por pagar</span><strong>{pagada ? 'Pagado' : formatoMoneda(saldo)}</strong></div>
-            {aFavor > 0.009 && <div><span>Saldo a tu favor</span><strong>{formatoMoneda(aFavor)}</strong></div>}
-          </div>
-
-          <section className={`recibo-importe comprobante-importe${pagada ? ' comprobante-importe--pagado' : ''}`}>
+          <section className="recibo-importe comprobante-importe">
             {anulada ? (
               <p className="recibo-concepto">Esta compra fue <strong>anulada</strong>.</p>
-            ) : pagada ? (
-              <>
-                <p className="recibo-concepto">Estado de la compra</p>
-                <p className="recibo-monto">Pagada en su totalidad</p>
-              </>
             ) : (
               <>
-                <p className="recibo-concepto">Te falta por pagar</p>
-                <p className="recibo-monto">{formatoMoneda(saldo)}</p>
-                <p className="recibo-letras">Son: {pesosEnLetras(saldo)} M/CTE.</p>
+                <p className="recibo-concepto">Total a pagar</p>
+                <p className="recibo-monto">{formatoMoneda(total)}</p>
+                <p className="recibo-letras">Son: {pesosEnLetras(total)} M/CTE.</p>
               </>
             )}
           </section>
-
-          {abonos.length > 0 && (
-            <section className="comprobante-abonos" aria-label="Abonos registrados">
-              <h3>Abonos registrados</h3>
-              <ul>
-                {abonos.map((a) => (
-                  <li key={a.pagoid}>
-                    <span>{fechaLarga(a.createdAt)} · {METODOS[a.metodo] || a.metodo}</span>
-                    <strong>{formatoMoneda(a.monto)}</strong>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
 
           <p className="recibo-pie">
             Gracias por tu compra{nombreNegocio ? ` en ${nombreNegocio}` : ''}.

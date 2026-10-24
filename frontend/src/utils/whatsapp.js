@@ -46,15 +46,12 @@ export const mensajeRecibo = ({ negocio, cliente, pedidoid, reciboid, tipo, mont
   + (saldo > 0 ? `Saldo pendiente: ${formatoMoneda(saldo)}.` : 'Tu pedido no tiene saldo pendiente ✅')
   + `\n\n¡Gracias!${firma(negocio)}`;
 
-export const mensajeComprobante = ({ negocio, cliente, compraid, lineas, total, abonado, saldo, fechaEntrega }) =>
+export const mensajeComprobante = ({ negocio, cliente, compraid, lineas, total, fechaEntrega }) =>
   `${saludo(cliente)} 👋 Este es el resumen de tu compra #${compraid}:
 ${listaProductos(lineas)}
 
 `
-  + `Total: ${formatoMoneda(total)}
-Abonado: ${formatoMoneda(abonado)}
-`
-  + (saldo > 0 ? `Saldo por pagar: ${formatoMoneda(saldo)}` : 'Tu compra está pagada en su totalidad ✅')
+  + `Total: ${formatoMoneda(total)}`
   + (fechaEntrega ? `
 Entrega estimada: ${fechaEntrega}.` : '')
   + `
