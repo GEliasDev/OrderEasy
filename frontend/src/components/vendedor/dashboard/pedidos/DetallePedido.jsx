@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, ClipboardList, Edit2, FileText, Hash, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, ShoppingBag, Trash2, Truck, Undo2, User, Wallet, XCircle } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Edit2, FileText, Hash, MessageCircle, MoreHorizontal, Package, Plus, Receipt, RotateCcw, ShoppingBag, Trash2, Undo2, User, Wallet, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   deletePedido,
@@ -18,6 +18,7 @@ import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import { imagenUrl } from '../../../../config';
 import ReciboPagina from './ReciboPagina';
 import ComprobanteCompra from './ComprobanteCompra';
+import '../compras/Compras.css';
 import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import { getNegocio } from '../../../../services/negocioService';
 import { abrirWhatsApp, mensajeListoParaEntregar, mensajeRecordatorioSaldo } from '../../../../utils/whatsapp';
@@ -149,6 +150,9 @@ function DetallePedido() {
   const [anularForm, setAnularForm] = useState({ abonos: 'devolver', metodo: 'efectivo' });
   const [devolForm, setDevolForm] = useState({ items: {}, motivo: '', nota: '', reingresar: true, reembolsar: false, metodo: 'efectivo' });
   const [negocio, setNegocio] = useState(null);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef(null);
+  const botonMenuRef = useRef(null);
 
   // Datos del negocio para los recibos y los mensajes de WhatsApp
   useEffect(() => {
@@ -176,6 +180,16 @@ function DetallePedido() {
   useEffect(() => {
     cargarPedido();
   }, [cargarPedido]);
+
+  // El menú "Más" (escritorio) se cierra al hacer clic fuera o con Esc, devolviendo el foco al botón
+  useEffect(() => {
+    if (!menuAbierto) return undefined;
+    const alHacerClic = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuAbierto(false); };
+    const alTeclear = (e) => { if (e.key === 'Escape') { setMenuAbierto(false); botonMenuRef.current?.focus(); } };
+    document.addEventListener('mousedown', alHacerClic);
+    document.addEventListener('keydown', alTeclear);
+    return () => { document.removeEventListener('mousedown', alHacerClic); document.removeEventListener('keydown', alTeclear); };
+  }, [menuAbierto]);
 
   useEffect(() => {
     getClientes()
@@ -468,9 +482,6 @@ function DetallePedido() {
 
   const totalItems = (pedido.detalles || []).reduce((sum, detalle) => sum + Number(detalle.cantidad), 0);
   const resumen = pedido.resumen || { total: 0, abonado: 0, entregado: 0, porEntregar: 0, saldo: 0, disponibleAbonos: 0 };
-  const itemsSinStock = (pedido.detalles || []).filter(
-    (detalle) => pendienteDe(detalle) > stockFisicoDe(detalle)
-  );
   // Se puede entregar en cuanto haya al menos una línea con stock (entrega parcial)
   const hayParaEntregar = (pedido.detalles || []).some((d) => pendienteDe(d) > 0 && stockFisicoDe(d) > 0);
   const puedeConvertir = ['confirmado', 'en_compra', 'recibido'].includes(pedido.estado) && hayParaEntregar;
@@ -493,6 +504,33 @@ function DetallePedido() {
   const entregaCubierto = Math.min(entregaValor, resumen.disponibleAbonos);
   const entregaPorCobrar = Math.max(0, Math.round((entregaValor - entregaCubierto) * 100) / 100);
   const puedeEditar = !['entregado', 'anulado'].includes(pedido.estado);
+  const anulada = pedido.estado === 'anulado';
+  const pedidoAbierto = pedido.pedidoProveedor?.estado === 'abierta';
+  // Dinero que el cliente pagó de más (p. ej. tras devolver mercancía ya pagada)
+  const aFavor = Math.max(0, Number(resumen.disponibleAbonos || 0) - Number(resumen.porEntregar || 0));
+  // En qué va cada producto: esperando al proveedor, listo para entregar, entregado o devuelto
+  const situacionDe = (d, devuelta) => {
+    if (anulada) return { texto: 'Compra cancelada', clase: 'cancelado' };
+    if (devuelta > 0 && Number(d.cantidad) <= 0) return { texto: 'Devolución', clase: 'devolucion' };
+    if (Number(d.cantidadEntregada || 0) >= Number(d.cantidad)) return { texto: 'Entregado', clase: 'entregado' };
+    if (pedidoAbierto) return { texto: 'En el pedido', clase: 'espera' };
+    if (Number(d.recibidoCompra || 0) >= Number(d.cantidad)) return { texto: 'Listo para entregar', clase: 'listo' };
+    if (Number(d.recibidoCompra || 0) > 0) return { texto: 'Llegó parte', clase: 'parcial' };
+    return { texto: 'Esperando al proveedor', clase: 'espera' };
+  };
+  // Todas las acciones de la compra, salvo Abonar y Entregar, viven en un solo menú
+  const accionesMas = [
+    { clave: 'recibo', etiqueta: 'Recibo de compra', icono: Receipt, ir: () => setModal('comprobante') },
+    puedeDevolver && { clave: 'devolucion', etiqueta: 'Devolución de productos', icono: Undo2, ir: () => abrirDevolucion() },
+    resumen.disponibleAbonos > 0 && !anulada && { clave: 'dinero', etiqueta: 'Devolver dinero', icono: RotateCcw, ir: () => abrirPago('devolucion') },
+    puedeAbonar && saldoFavor.total > 0 && { clave: 'saldo', etiqueta: `Usar saldo a favor (${formatoMoneda(saldoFavor.total)})`, icono: Wallet, ir: handleUsarSaldo },
+    puedeConvertir && pedido.cliente?.telefono && { clave: 'listo', etiqueta: 'Avisar por WhatsApp que está listo', icono: MessageCircle, ir: avisarListo },
+    puedeAbonar && pedido.cliente?.telefono && { clave: 'recordar', etiqueta: 'Recordar saldo por WhatsApp', icono: MessageCircle, ir: recordarSaldo },
+    puedeEditar && { clave: 'editar', etiqueta: 'Editar compra', icono: Edit2, ir: abrirEditar },
+    puedeEditar && { clave: 'anular', etiqueta: 'Anular compra', icono: XCircle, ir: handleAnular },
+    { clave: 'eliminar', etiqueta: 'Eliminar compra', icono: Trash2, ir: handleEliminar, peligro: true },
+  ].filter(Boolean);
+  const ejecutarMas = (accion) => { setMenuAbierto(false); setMenuMas(false); accion.ir(); };
   // Dentro de un pedido al proveedor no hay paso de confirmar: la compra simplemente está en el pedido
   const estadoConfig = pedido.ordenid && pedido.estado === 'confirmado'
     ? { label: 'En el pedido', clase: 'pendiente' }
@@ -502,361 +540,218 @@ function DetallePedido() {
     <div className="detalle-tx-view detalle-ancho">
       {!modal && (<>
       <div className="detalle-tx-header">
-        <button className="btn-circle-back" onClick={() => navigate(pedido.ordenid ? `/dashboard/pedidos/${pedido.ordenid}` : '/dashboard/pedidos')}>
+        <button className="btn-circle-back" onClick={() => navigate(pedido.ordenid ? `/dashboard/pedidos/${pedido.ordenid}` : '/dashboard/pedidos')} aria-label="Volver">
           <ArrowLeft size={18} />
         </button>
         <div className="detalle-tx-header-text">
           <div className="pedido-titulo-linea">
-            <h1>Compra #{pedido.pedidoid}</h1>
+            <h1>{pedido.cliente?.nombreCliente || 'Consumidor final'} <span className="pedido-titulo-numero">· Compra #{pedido.pedidoid}</span></h1>
             <span className={`pedido-estado pedido-estado-${estadoConfig.clase}`}>{estadoConfig.label}</span>
           </div>
           <div className="detalle-tx-breadcrumb">
-            {pedido.ordenid ? (
+            <button className="pedido-link-venta" onClick={() => navigate('/dashboard/pedidos')}>Pedidos</button>
+            {pedido.ordenid && (
               <>
-                <button className="pedido-link-venta" onClick={() => navigate('/dashboard/pedidos')}>Pedidos</button>
                 {' / '}
-                <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedidos/${pedido.ordenid}`)}>Pedido #{pedido.ordenid}</button>
-                {' / '}
+                <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedidos/${pedido.ordenid}`)}>{pedido.pedidoProveedor?.nombre || `Pedido #${pedido.ordenid}`}</button>
               </>
-            ) : 'Pedidos / '}
-            <span className="active">Compra #{pedido.pedidoid}</span>
+            )}
           </div>
         </div>
-        {esMovil ? (
-          <div className="pedido-detalle-acciones pedido-acciones-compactas">
-            {puedeConvertir && (
-              <button className="pedidos-btn pedidos-btn-verde" onClick={abrirEntrega}><ShoppingBag size={14} /><span>Entregar</span></button>
-            )}
-            {puedeAbonar && (
-              <button className="pedidos-btn pedidos-btn-primary" onClick={() => abrirPago('abono')}><Plus size={14} /><span>Abonar</span></button>
-            )}
-            <button className="pedidos-btn pedidos-btn-secundario pedido-btn-mas" onClick={() => setMenuMas(true)} aria-label="Más acciones">
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
-        ) : (
         <div className="pedido-detalle-acciones">
           {puedeConvertir && (
-            <button className="pedidos-btn pedidos-btn-verde" onClick={abrirEntrega}>
-              <ShoppingBag size={14} />
-              <span>Entregar</span>
-            </button>
+            <button type="button" className="pedidos-btn pedidos-btn-verde" onClick={abrirEntrega}><ShoppingBag size={14} /><span>Entregar</span></button>
           )}
-          <button className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal('comprobante')} title="Resumen de la compra para enviarle al cliente">
-            <Receipt size={14} />
-            <span>Recibo de compra</span>
-          </button>
-          {puedeDevolver && (
-            <button className="pedidos-btn pedidos-btn-secundario" onClick={() => abrirDevolucion()} title="El cliente devuelve productos que ya recibió">
-              <Undo2 size={14} />
-              <span>Devolución</span>
-            </button>
+          {puedeAbonar && (
+            <button type="button" className="pedidos-btn pedidos-btn-primary" onClick={() => abrirPago('abono')}><Plus size={14} /><span>Abonar</span></button>
           )}
-          {puedeConvertir && pedido.cliente?.telefono && (
-            <button className="pedidos-btn pedidos-btn-secundario" onClick={avisarListo} title="Avisar por WhatsApp que ya puede recogerlo">
-              <MessageCircle size={14} />
-              <span>Avisar</span>
+          <div className="pedido-menu" ref={menuRef}>
+            <button
+              type="button"
+              ref={botonMenuRef}
+              className="pedidos-btn pedidos-btn-secundario"
+              aria-haspopup="menu"
+              aria-expanded={esMovil ? menuMas : menuAbierto}
+              onClick={() => (esMovil ? setMenuMas(true) : setMenuAbierto((o) => !o))}
+            >
+              <MoreHorizontal size={16} aria-hidden="true" />
+              <span>Más</span>
             </button>
-          )}
-          {puedeEditar && (
-            <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirEditar}>
-              <Edit2 size={14} />
-              <span>Editar</span>
-            </button>
-          )}
-          {puedeEditar && (
-            <button className="pedidos-btn pedidos-btn-secundario" onClick={handleAnular}>
-              <XCircle size={14} />
-              <span>Anular</span>
-            </button>
-          )}
-          <button className="pedidos-btn pedidos-btn-peligro" onClick={handleEliminar}>
-            <Trash2 size={14} />
-            <span>Eliminar</span>
-          </button>
+            {!esMovil && menuAbierto && (
+              <div className="pedido-menu-lista" role="menu" aria-label="Acciones de la compra">
+                {accionesMas.map((a) => {
+                  const Icono = a.icono;
+                  return (
+                    <button key={a.clave} type="button" role="menuitem" className={`pedido-menu-item${a.peligro ? ' peligro' : ''}`} onClick={() => ejecutarMas(a)}>
+                      <Icono size={15} aria-hidden="true" /><span>{a.etiqueta}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-        )}
       </div>
 
-      <PanelInferior abierto={menuMas} onCerrar={() => setMenuMas(false)} titulo="Más acciones" subtitulo={`Compra #${pedido.pedidoid}`} nombreAvatar={pedido.cliente?.nombreCliente || 'Compra'}>
+      <PanelInferior abierto={menuMas} onCerrar={() => setMenuMas(false)} titulo="Compra" subtitulo={`Compra #${pedido.pedidoid}`} nombreAvatar={pedido.cliente?.nombreCliente || 'Compra'}>
         <div className="pi-lista-acciones">
-          <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); setModal('comprobante'); }}><Receipt size={15} /> Recibo de compra</button>
-          {puedeDevolver && (
-            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirDevolucion(); }}><Undo2 size={15} /> Registrar devolución de productos</button>
-          )}
-          {puedeConvertir && pedido.cliente?.telefono && (
-            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); avisarListo(); }}><MessageCircle size={15} /> Avisar por WhatsApp que está listo</button>
-          )}
-          {puedeAbonar && pedido.cliente?.telefono && (
-            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); recordarSaldo(); }}><MessageCircle size={15} /> Recordar saldo por WhatsApp</button>
-          )}
-          {puedeAbonar && saldoFavor.total > 0 && (
-            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); handleUsarSaldo(); }}><Wallet size={15} /> Usar saldo a favor ({formatoMoneda(saldoFavor.total)})</button>
-          )}
-          {resumen.disponibleAbonos > 0 && pedido.estado !== 'anulado' && (
-            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirPago('devolucion'); }}><RotateCcw size={15} /> Devolver dinero</button>
-          )}
-          {puedeEditar && (
-            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); abrirEditar(); }}><Edit2 size={15} /> Editar compra</button>
-          )}
-          {puedeEditar && (
-            <button type="button" className="pi-accion" onClick={() => { setMenuMas(false); handleAnular(); }}><XCircle size={15} /> Anular compra</button>
-          )}
-          <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { setMenuMas(false); handleEliminar(); }}><Trash2 size={15} /> Eliminar compra</button>
+          {accionesMas.map((a) => {
+            const Icono = a.icono;
+            return (
+              <button key={a.clave} type="button" className={`pi-accion${a.peligro ? ' pi-accion-peligro' : ''}`} onClick={() => ejecutarMas(a)}>
+                <Icono size={15} /> {a.etiqueta}
+              </button>
+            );
+          })}
         </div>
       </PanelInferior>
 
-      {itemsSinStock.length > 0 && ['confirmado', 'en_compra', 'recibido'].includes(pedido.estado) && (
-        <div className="pedido-alerta-stock">
-          <Truck size={16} />
-          <span>
-            {`Faltan ${itemsSinStock.length} línea(s) por llegar del proveedor.${hayParaEntregar ? ' Puedes entregar ahora lo que ya llegó.' : ' Podrás entregar cuando llegue la mercancía.'}`}
-          </span>
-        </div>
-      )}
-
       <div className="detalle-tx-summary">
         <div className="detalle-tx-stat">
-          <div className="detalle-tx-stat-label"><ClipboardList size={11} /> Total del pedido</div>
-          <div className="detalle-tx-stat-value amount income">{formatoMoneda(pedido.total)}</div>
-        </div>
-        <div className="detalle-tx-stat">
           <div className="detalle-tx-stat-label"><User size={11} /> Cliente</div>
-          <div className={`detalle-tx-stat-value ${!pedido.cliente ? 'muted' : ''}`}>
-            {pedido.cliente?.nombreCliente || 'Consumidor Final'}
+          <div className={`detalle-tx-stat-value ${!pedido.cliente ? 'muted' : ''}`}>{pedido.cliente?.nombreCliente || 'Consumidor final'}</div>
+          <div className="detalle-tx-stat-sub">
+            {pedido.cliente?.telefono ? `${pedido.cliente.telefono} · ` : ''}Entrega: {pedido.fechaEntrega ? formatearFecha(pedido.fechaEntrega) : 'sin fecha'}
           </div>
         </div>
         <div className="detalle-tx-stat">
-          <div className="detalle-tx-stat-label"><Calendar size={11} /> Fecha del pedido</div>
-          <div className="detalle-tx-stat-value">{formatearFecha(pedido.createdAt)}</div>
+          <div className="detalle-tx-stat-label"><ClipboardList size={11} /> Total</div>
+          <div className="detalle-tx-stat-value amount income">{formatoMoneda(pedido.total)}</div>
+          <div className="detalle-tx-stat-sub">{totalItems} {totalItems === 1 ? 'unidad' : 'unidades'}</div>
         </div>
         <div className="detalle-tx-stat">
-          <div className="detalle-tx-stat-label"><Hash size={11} /> Items</div>
-          <div className="detalle-tx-stat-value">
-            {totalItems} <small style={{ fontWeight: 500, fontSize: '0.72rem', color: 'var(--neutral-500)' }}>unds.</small>
+          <div className="detalle-tx-stat-label"><Wallet size={11} /> Abonado</div>
+          <div className="detalle-tx-stat-value">{formatoMoneda(resumen.abonado)}</div>
+        </div>
+        <div className={`detalle-tx-stat ${resumen.saldo > 0 && !anulada ? 'detalle-tx-stat-alerta' : ''}`}>
+          <div className="detalle-tx-stat-label"><Hash size={11} /> Saldo por cobrar</div>
+          <div className={`detalle-tx-stat-value amount ${resumen.saldo > 0 && !anulada ? 'expense' : ''}`}>
+            {anulada ? '—' : resumen.saldo > 0 ? formatoMoneda(resumen.saldo) : 'Pagado'}
           </div>
+          {aFavor > 0.009 && !anulada && <div className="detalle-tx-stat-sub">A favor del cliente: {formatoMoneda(aFavor)}</div>}
         </div>
       </div>
 
-      <div className="pedido-pagos">
-        <div className="pedido-pagos-grid">
-          <div className="pedido-pago-stat">
-            <span>Abonado</span>
-            <strong>{formatoMoneda(resumen.abonado)}</strong>
-          </div>
-          <div className={`pedido-pago-stat ${resumen.saldo > 0 && pedido.estado !== 'anulado' ? 'pedido-pago-stat-alerta' : ''}`}>
-            <span>Saldo por cobrar</span>
-            <strong>{pedido.estado === 'anulado' ? '—' : formatoMoneda(resumen.saldo)}</strong>
-          </div>
-          <div className="pedido-pago-stat">
-            <span>Entregado</span>
-            <strong>{formatoMoneda(resumen.entregado)}</strong>
-          </div>
-          <div className="pedido-pago-stat">
-            <span>Por entregar</span>
-            <strong>{formatoMoneda(resumen.porEntregar)}</strong>
-          </div>
-        </div>
+      {pedido.descripcion && (
+        <div className="compras-nota-bloque"><FileText size={14} /><span>{pedido.descripcion}</span></div>
+      )}
 
-        <div className="pedido-pagos-header">
-          <span><Wallet size={14} /> Pagos del cliente</span>
-          <div className="pedido-pagos-acciones">
-            {puedeAbonar && (
-              <button className="pedidos-btn pedidos-btn-primary pedidos-btn-sm" onClick={() => abrirPago('abono')}>
-                <Plus size={13} /><span>Registrar abono</span>
-              </button>
-            )}
-            {puedeAbonar && saldoFavor.total > 0 && (
-              <button className="pedidos-btn pedidos-btn-verde pedidos-btn-sm" onClick={handleUsarSaldo}>
-                <Wallet size={13} /><span>Usar saldo a favor ({formatoMoneda(saldoFavor.total)})</span>
-              </button>
-            )}
-            {puedeAbonar && pedido.cliente?.telefono && (
-              <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={recordarSaldo} title="Recordar el saldo por WhatsApp">
-                <MessageCircle size={13} /><span>Recordar saldo</span>
-              </button>
-            )}
-            {resumen.disponibleAbonos > 0 && pedido.estado !== 'anulado' && (
-              <button className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => abrirPago('devolucion')}>
-                <RotateCcw size={13} /><span>Devolver dinero</span>
-              </button>
-            )}
-          </div>
+      <div className="mod-seccion">
+        <span className="mod-seccion-icono"><Package size={16} /></span>
+        <div className="mod-seccion-textos">
+          <h2>Productos <span className="mod-count-badge">{(pedido.detalles || []).length}</span></h2>
         </div>
-
-        {(pedido.pagos || []).length === 0 ? (
-          <p className="pedido-pagos-vacio">Aún no hay abonos registrados en este pedido.</p>
-        ) : (
-          <div className="items-table-container">
-            <table className="items-table pedido-movimientos tabla-tarjetas">
-              <thead>
-                <tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th>Nota</th><th>Monto</th><th /></tr>
-              </thead>
-              <tbody>
-                {pedido.pagos.map((pago) => {
-                  const tipo = TIPO_MOVIMIENTO[pago.tipo] || TIPO_MOVIMIENTO.abono;
-                  const badgeMov = tipo.clase === 'abono' ? 'tbl-badge--ok' : tipo.clase === 'devolucion' ? 'tbl-badge--danger' : 'tbl-badge--neutral';
-                  return (
-                    <tr key={pago.pagoid}>
-                      <td>{formatearFecha(pago.createdAt, true)}</td>
-                      <td><span className={`tbl-badge ${badgeMov}`}>{tipo.label}</span></td>
-                      <td>{metodoLabel(pago.metodo)}</td>
-                      <td className="pedido-mov-nota">{pago.nota || <span className="tbl-vacio">—</span>}</td>
-                      <td className={`item-subtotal pedido-mov-monto-${tipo.clase}`}>{tipo.signo} {formatoMoneda(pago.monto)}</td>
-                      <td>
-                        <button className="tbl-icon-btn" style={{ background: 'var(--neutral-100)', color: 'var(--neutral-600)' }} onClick={() => setModal(`recibo/${pago.pagoid}`)} title="Ver o imprimir el recibo" aria-label={`Recibo ${pago.pagoid}`}>
-                          <Receipt size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="mod-seccion-chips">
+          <span className="tbl-badge tbl-badge--neutral">Entregado {formatoMoneda(resumen.entregado)}</span>
+          {resumen.porEntregar > 0 && !anulada && <span className="tbl-badge tbl-badge--warning">Por entregar {formatoMoneda(resumen.porEntregar)}</span>}
+        </div>
       </div>
 
-
-      <div className="pedido-datos-extra">
-        <div className="pedido-dato">
-          <span>Entrega</span>
-          <strong>{pedido.fechaEntrega ? formatearFecha(pedido.fechaEntrega) : 'Sin fecha definida'}</strong>
+      <div className="compras-cliente">
+        <div className="compras-cliente-lineas">
+          <div className="compras-cliente-linea compras-cliente-linea-cabecera" aria-hidden="true">
+            <span>Producto</span><span>Pidió</span><span>Llegó</span><span>Entregado</span><span>Situación</span><span />
+          </div>
+          {(pedido.detalles || []).map((d) => {
+            const devs = devolucionesPorLinea.get(d.detalleid) || [];
+            const devuelta = devs.reduce((acc, dev) => acc + Number(dev.cantidad), 0);
+            const pidio = Math.round((Number(d.cantidad) + devuelta) * 1000) / 1000;
+            const situacion = situacionDe(d, devuelta);
+            const unidad = d.producto?.unidadMedida;
+            return (
+              <div key={d.detalleid} className="compras-cliente-linea">
+                <span className="compras-cliente-producto">
+                  <span className="compras-producto-miniatura" aria-hidden="true">
+                    <Package size={15} />
+                    {d.producto?.imagenes?.[0] && (
+                      <img src={imagenUrl(d.producto.imagenes[0])} alt="" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    )}
+                  </span>
+                  <span className="compras-producto-info">
+                    <span className="compras-producto-nombre">
+                      {d.productoNombre}
+                      {d.talla && <span className="cart-item-talla" style={{ marginLeft: '0.4rem' }}>Talla {d.talla}</span>}
+                    </span>
+                    <span className="compras-producto-meta">{formatoMoneda(d.precioUnitario)} c/u · {formatoMoneda(d.subtotal)}</span>
+                    {devs.map((dev) => (
+                      <span key={dev.devolucionid} className="compras-producto-devolucion">
+                        <Undo2 size={11} />
+                        Devolución de {formatearCantidad(dev.cantidad, unidad)}: {etiquetaMotivo(dev.motivo)}
+                        {dev.nota ? ` · ${dev.nota}` : ''}
+                        {!dev.reingresaStock ? ' · No volvió al inventario' : ''}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+                <span className="compras-cliente-cifra" data-etiqueta="Pidió"><strong>{formatearCantidad(pidio, unidad)}</strong></span>
+                <span className="compras-cliente-cifra" data-etiqueta="Llegó"><strong>{pedidoAbierto ? '—' : formatearCantidad(Math.min(Number(d.recibidoCompra || 0), pidio), unidad)}</strong></span>
+                <span className="compras-cliente-cifra" data-etiqueta="Entregado"><strong>{formatearCantidad(d.cantidadEntregada || 0, unidad)}</strong></span>
+                <span className="compras-reparto-estado">
+                  <span className={`compras-situacion compras-situacion-${situacion.clase}`}>{situacion.texto}</span>
+                  {devuelta > 0 && situacion.clase !== 'devolucion' && (
+                    <span className="compras-situacion compras-situacion-devolucion">Devolución · {formatearCantidad(devuelta, unidad)}</span>
+                  )}
+                </span>
+                <span className="compras-reparto-accion">
+                  {!anulada && Number(d.cantidadEntregada) > 0 && (
+                    <button type="button" className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" title="El cliente devuelve este producto" onClick={() => abrirDevolucion(d.detalleid)}>
+                      <Undo2 size={13} /><span>Devolución</span>
+                    </button>
+                  )}
+                </span>
+              </div>
+            );
+          })}
         </div>
         {(pedido.ventas || []).length > 0 && (
-          <div className="pedido-dato">
+          <div className="pedido-entregas-fila">
             <span>Entregas realizadas</span>
-            <div className="pedido-entregas-lista">
-              {pedido.ventas.map((venta) => (
-                <button key={venta.ventaid} className="pedido-link-venta" onClick={() => navigate(`/dashboard/venta/${venta.ventaid}`)}>
-                  Venta #{venta.ventaid} · {formatoMoneda(venta.total)}
-                </button>
-              ))}
-            </div>
+            {pedido.ventas.map((venta) => (
+              <button key={venta.ventaid} type="button" className="pedido-link-venta" onClick={() => navigate(`/dashboard/venta/${venta.ventaid}`)}>
+                Venta #{venta.ventaid} · {formatoMoneda(venta.total)}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
-      <div className="detalle-tx-description">
-        <div className="detalle-tx-description-label"><FileText size={11} /> Notas</div>
-        <div className={`detalle-tx-description-text ${!pedido.descripcion ? 'muted' : ''}`}>
-          {pedido.descripcion || 'Sin notas registradas.'}
+      <div className="mod-seccion">
+        <span className="mod-seccion-icono"><Wallet size={16} /></span>
+        <div className="mod-seccion-textos">
+          <h2>Abonos y recibos <span className="mod-count-badge">{(pedido.pagos || []).length}</span></h2>
         </div>
       </div>
-
-      <div className="detalle-items-section">
-        <div className="detalle-items-header">
-          <Package size={15} /> Productos del pedido
-        </div>
+      {(pedido.pagos || []).length === 0 ? (
+        <p className="pedido-pagos-vacio">Aún no hay abonos registrados.</p>
+      ) : (
         <div className="items-table-container">
-          <table className="items-table tabla-tarjetas">
+          <table className="items-table pedido-movimientos tabla-tarjetas">
             <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cant.</th>
-                <th>Entregado</th>
-                <th>{pedido.ordenid ? 'Llegado' : 'Stock físico'}</th>
-                <th>Precio Unit.</th>
-                <th>Subtotal</th>
-              </tr>
+              <tr><th>Fecha</th><th>Movimiento</th><th>Método</th><th>Nota</th><th>Monto</th><th /></tr>
             </thead>
             <tbody>
-              {(pedido.detalles || []).map((item) => {
-                const stockFisico = stockFisicoDe(item);
-                const pendiente = pendienteDe(item);
-                const faltante = Math.max(0, pendiente - stockFisico);
-                const devs = devolucionesPorLinea.get(item.detalleid) || [];
-                const devuelta = devs.reduce((acc, dev) => acc + Number(dev.cantidad), 0);
-                const pidio = Math.round((Number(item.cantidad) + devuelta) * 1000) / 1000;
-                const todoDevuelto = devuelta > 0 && Number(item.cantidad) <= 0;
+              {pedido.pagos.map((pago) => {
+                const tipo = TIPO_MOVIMIENTO[pago.tipo] || TIPO_MOVIMIENTO.abono;
+                const badgeMov = tipo.clase === 'abono' ? 'tbl-badge--ok' : tipo.clase === 'devolucion' ? 'tbl-badge--danger' : 'tbl-badge--neutral';
                 return (
-                  <tr key={item.detalleid}>
-                    <td className="item-name">
-                      <div className="tbl-main-cell">
-                        <span className="tbl-avatar" style={{ background: '#6366F1', borderRadius: '10px', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-                          <Package size={14} style={{ opacity: item.producto?.imagenes?.[0] ? 0 : 1 }} />
-                          {item.producto?.imagenes?.[0] && (
-                            <img
-                              src={imagenUrl(item.producto.imagenes[0])}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }}
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                            />
-                          )}
-                        </span>
-                        <div className="tbl-cell-texts">
-                          <span className="tbl-cell-primary">
-                            {item.productoNombre}
-                            {item.talla && <span className="cart-item-talla" style={{ marginLeft: '0.4rem' }}>Talla {item.talla}</span>}
-                          </span>
-                          {devs.map((dev) => (
-                            <span key={dev.devolucionid} className="compras-producto-devolucion">
-                              <Undo2 size={11} />
-                              Devolución de {formatearCantidad(dev.cantidad, item.producto?.unidadMedida)}: {etiquetaMotivo(dev.motivo)}
-                              {dev.nota ? ` · ${dev.nota}` : ''}
-                              {!dev.reingresaStock ? ' · No volvió al inventario' : ''}
-                            </span>
-                          ))}
-                          {(Number(item.enCompra) > 0 || Number(item.recibidoCompra) > 0) && (
-                            <span className="tbl-cell-secondary">
-                              {Number(item.enCompra) > 0 && `En compra: ${item.enCompra}`}
-                              {Number(item.enCompra) > 0 && Number(item.recibidoCompra) > 0 && ' · '}
-                              {Number(item.recibidoCompra) > 0 && `Llegó: ${item.recibidoCompra}`}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="item-qty">{formatearCantidad(pidio, item.producto?.unidadMedida)}</td>
+                  <tr key={pago.pagoid}>
+                    <td>{formatearFecha(pago.createdAt, true)}</td>
+                    <td><span className={`tbl-badge ${badgeMov}`}>{tipo.label}</span></td>
+                    <td>{metodoLabel(pago.metodo)}</td>
+                    <td className="pedido-mov-nota">{pago.nota || <span className="tbl-vacio">—</span>}</td>
+                    <td className={`item-subtotal pedido-mov-monto-${tipo.clase}`}>{tipo.signo} {formatoMoneda(pago.monto)}</td>
                     <td>
-                      <span className={`pedido-entrega-estado ${pendiente <= 0 ? 'completa' : Number(item.cantidadEntregada) > 0 ? 'parcial' : ''}`}>
-                        {formatearCantidad(item.cantidadEntregada || 0, item.producto?.unidadMedida)} / {formatearCantidad(pidio, item.producto?.unidadMedida)}
-                      </span>
+                      <button type="button" className="pedidos-btn pedidos-btn-secundario pedidos-btn-sm" onClick={() => setModal(`recibo/${pago.pagoid}`)} title="Ver, imprimir o enviar el recibo" aria-label={`Recibo ${pago.pagoid}`}>
+                        <Receipt size={13} /><span>Recibo</span>
+                      </button>
                     </td>
-                    <td>
-                      {todoDevuelto ? (
-                        <span className="compras-situacion compras-situacion-devolucion">Devolución</span>
-                      ) : pendiente <= 0 ? (
-                        <>
-                          <span className="pedido-stock-ok">Entregado</span>
-                          {devuelta > 0 && <span className="compras-situacion compras-situacion-devolucion" style={{ marginLeft: '0.35rem' }}>Devolución · {formatearCantidad(devuelta, item.producto?.unidadMedida)}</span>}
-                        </>
-                      ) : faltante > 0 ? (
-                        <span className="pedido-stock-faltante">{pedido.ordenid ? 'Por llegar' : 'Faltan'} {formatearCantidad(faltante, item.producto?.unidadMedida)}</span>
-                      ) : (
-                        <span className="pedido-stock-ok">{formatearCantidad(stockFisico, item.producto?.unidadMedida)} {pedido.ordenid ? 'por entregar' : 'disp.'}</span>
-                      )}
-                    </td>
-                    <td className="item-price">{formatoMoneda(item.precioUnitario)}</td>
-                    <td className="item-subtotal">{formatoMoneda(item.subtotal)}</td>
                   </tr>
                 );
               })}
             </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan="5" className="footer-label">Total</td>
-                <td className="footer-value">{formatoMoneda(pedido.total)}</td>
-              </tr>
-            </tfoot>
           </table>
         </div>
-      </div>
-
-        <div className="pedido-ordenes-section">
-          <div className="pedido-ordenes-header">
-            <div>
-              <h2><Truck size={16} /> Pedido al proveedor</h2>
-              <p>Esta compra va dentro del pedido #{pedido.ordenid}: lo que falta se pide al proveedor desde allí y lo que llega se reparte entre los clientes.</p>
-            </div>
-            <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate(`/dashboard/pedidos/${pedido.ordenid}`)}>
-              <Truck size={14} />
-              <span>Ver pedido #{pedido.ordenid}</span>
-            </button>
-          </div>
-        </div>
+      )}
 
       </>)}
 
