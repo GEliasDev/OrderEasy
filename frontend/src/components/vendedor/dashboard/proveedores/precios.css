@@ -19,3 +19,15 @@
   .pp-producto-acciones { flex-direction: column-reverse; }
   .pp-producto-acciones .ct-btn { width: 100%; min-height: 46px; }
 }
+
+.pp-categorias-aviso { margin: 0; padding: 0.6rem 0.8rem; border-radius: var(--radius-md); background: var(--color-primary-soft); font-size: 0.8rem; color: var(--neutral-700); }
+.pp-categorias-aviso--alerta { background: var(--color-warning-soft, #FEF3C7); color: var(--neutral-800); }
+.pp-enlace { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: var(--color-primary); text-decoration: underline; cursor: pointer; }
+
+/* Categorías que suministra el proveedor (casillas en el formulario) */
+.pf-categorias { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pf-categoria { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 38px; padding: 0 0.8rem; border: 1px solid var(--neutral-300); border-radius: 999px; background: var(--surface); font-size: 0.82rem; font-weight: 500; color: var(--neutral-700); cursor: pointer; }
+.pf-categoria:hover { background: var(--neutral-100); }
+.pf-categoria input { accent-color: var(--color-primary); }
+.pf-categoria--activa { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); }
+.pf-categoria:focus-within { outline: 2px solid var(--color-primary); outline-offset: 2px; }

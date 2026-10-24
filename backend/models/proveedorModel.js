@@ -59,11 +59,6 @@ const Proveedor = sequelize.define('Proveedor',{
     field: 'tipo_cuenta'
   },
 
-  categoriaSuministro: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    field: 'categoria_suministro'
-  },
-
   // Activo o Inactivo
   estado: {
     type: DataTypes.STRING(20),

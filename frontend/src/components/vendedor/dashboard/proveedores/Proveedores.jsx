@@ -276,7 +276,7 @@ function Proveedores() {
             <DatoPanel etiqueta="Dirección" valor={seleccionado.direccion} />
             <DatoPanel etiqueta="Banco" valor={seleccionado.banco} />
             <DatoPanel etiqueta="Cuenta" valor={[seleccionado.tipoCuenta, seleccionado.numeroCuenta].filter(Boolean).join(' · ')} />
-            <DatoPanel etiqueta="Suministra" valor={Array.isArray(seleccionado.categoriaSuministro) ? seleccionado.categoriaSuministro.join(', ') : seleccionado.categoriaSuministro} />
+            <DatoPanel etiqueta="Suministra" valor={(seleccionado.categorias || []).map((c) => c.nombre).join(', ')} />
           </>
         )}
       </PanelInferior>

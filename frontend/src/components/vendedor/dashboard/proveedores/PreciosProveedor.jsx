@@ -86,10 +86,22 @@ function PreciosProveedor() {
       <section className="ct-form-tarjeta pp-intro">
         <h2>{proveedor?.razonSocial}</h2>
         <p>
-          Si le pides más unidades en total a este proveedor, cada unidad baja de precio. Cuenta cualquier producto y talla del mismo pedido
-          (compras de clientes y productos para stock). Al llegar a una cantidad, <strong>todas</strong> las unidades salen a ese precio.
+          Si le pides más unidades en total a este proveedor, cada unidad baja de precio. Cuenta cualquier producto y talla de sus categorías en el mismo pedido
+          (compras de clientes y productos para stock). Al llegar a una cantidad, <strong>todas</strong> esas unidades salen a ese precio.
           Mientras no llegues al primer escalón, cada producto va a su precio normal. Solo cambia lo que le pagas al proveedor, no lo que cobras a tus clientes.
         </p>
+
+        {(proveedor?.categorias || []).length > 0 ? (
+          <p className="pp-categorias-aviso">
+            Aplica a las categorías: <strong>{proveedor.categorias.map((c) => c.nombre).join(', ')}</strong>.{' '}
+            <button type="button" className="pp-enlace" onClick={() => navigate(`/dashboard/proveedores/${id}/editar`)}>Cambiar categorías</button>
+          </p>
+        ) : (
+          <p className="pp-categorias-aviso pp-categorias-aviso--alerta" role="alert">
+            Este proveedor no tiene categorías, así que estos precios no se aplican todavía.{' '}
+            <button type="button" className="pp-enlace" onClick={() => navigate(`/dashboard/proveedores/${id}/editar`)}>Elegir categorías</button>
+          </p>
+        )}
 
         <div className="pp-escalones">
           <div className="pp-escalones-titulos" aria-hidden="true"><span>Desde (unidades en total)</span><span>Precio por unidad</span><span /></div>

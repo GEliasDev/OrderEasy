@@ -1,9 +1,35 @@
 const Proveedor = require('../models/proveedorModel');
 const ProveedorPrecioEscalonado = require('../models/proveedorPrecioEscalonadoModel');
+const ProveedorCategoria = require('../models/proveedorCategoriaModel');
+const Categoria = require('../models/categoryModel');
 const sequelize = require('../config/database');
 
 // Texto opcional: espacios -> null (así un campo se puede dejar vacío o borrar)
 const limpio = (valor) => (typeof valor === 'string' ? (valor.trim() || null) : (valor ?? null));
+
+// Reemplaza las categorías que suministra el proveedor (solo se aceptan categorías del mismo negocio)
+const guardarCategorias = async (proveedorid, negocioid, categoriaids, transaction) => {
+  const ids = [...new Set((Array.isArray(categoriaids) ? categoriaids : []).map(Number).filter(Boolean))];
+  const validas = ids.length ? await Categoria.findAll({ where: { categoriaid: ids, negocioid }, attributes: ['categoriaid'], transaction }) : [];
+  await ProveedorCategoria.destroy({ where: { proveedorid }, transaction });
+  if (validas.length) await ProveedorCategoria.bulkCreate(validas.map((c) => ({ proveedorid, categoriaid: c.categoriaid })), { transaction });
+};
+
+// Agrega a cada proveedor sus categorías: [{ categoriaid, nombre }]
+const conCategorias = async (proveedores, negocioid) => {
+  const ids = proveedores.map((p) => p.proveedorid);
+  const vinculos = ids.length ? await ProveedorCategoria.findAll({ where: { proveedorid: ids } }) : [];
+  const categorias = vinculos.length
+    ? await Categoria.findAll({ where: { categoriaid: [...new Set(vinculos.map((v) => v.categoriaid))], negocioid }, attributes: ['categoriaid', 'nombre'] })
+    : [];
+  const porId = new Map(categorias.map((c) => [c.categoriaid, { categoriaid: c.categoriaid, nombre: c.nombre }]));
+  return proveedores.map((p) => {
+    const json = typeof p.toJSON === 'function' ? p.toJSON() : p;
+    json.categorias = vinculos.filter((v) => v.proveedorid === json.proveedorid).map((v) => porId.get(v.categoriaid)).filter(Boolean)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    return json;
+  });
+};
 
 // ========================================================
 // ➕ Crear un nuevo proveedor
@@ -18,7 +44,7 @@ const createProveedor = async (req, res) => {
       banco,
       numeroCuenta,
       tipoCuenta,
-      categoriaSuministro,
+      categoriaids,
       estado
     } = req.body;
     const razonSocial = String(req.body.razonSocial ?? '').trim();
@@ -50,13 +76,13 @@ const createProveedor = async (req, res) => {
       banco: limpio(banco),
       numeroCuenta: limpio(numeroCuenta),
       tipoCuenta: limpio(tipoCuenta),
-      categoriaSuministro,
       estado: estado || 'Activo',
       usuarioid,
       negocioid
     });
+    await guardarCategorias(nuevoProveedor.proveedorid, negocioid, categoriaids);
 
-    res.status(201).json({ mensaje: 'Proveedor registrado exitosamente.', proveedor: nuevoProveedor });
+    res.status(201).json({ mensaje: 'Proveedor registrado exitosamente.', proveedor: (await conCategorias([nuevoProveedor], negocioid))[0] });
 
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al registrar al proveedor.' });
@@ -75,7 +101,7 @@ const getProveedores = async (req, res) => {
       order: [['razon_social', 'ASC']]
     });
 
-    res.status(200).json(proveedores);
+    res.status(200).json(await conCategorias(proveedores, negocioid));
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener los proveedores' });
   }
@@ -98,7 +124,7 @@ const updateProveedor = async (req, res) => {
       banco,
       numeroCuenta,
       tipoCuenta,
-      categoriaSuministro,
+      categoriaids,
       estado
     } = req.body;
 
@@ -120,11 +146,11 @@ const updateProveedor = async (req, res) => {
       banco: banco !== undefined ? limpio(banco) : proveedor.banco,
       numeroCuenta: numeroCuenta !== undefined ? limpio(numeroCuenta) : proveedor.numeroCuenta,
       tipoCuenta: tipoCuenta !== undefined ? limpio(tipoCuenta) : proveedor.tipoCuenta,
-      categoriaSuministro: categoriaSuministro || proveedor.categoriaSuministro,
       estado: estado || proveedor.estado,
     });
+    if (categoriaids !== undefined) await guardarCategorias(proveedor.proveedorid, negocioid, categoriaids);
 
-    res.status(200).json({ mensaje: 'Proveedor actualizado exitosamente.', proveedor });
+    res.status(200).json({ mensaje: 'Proveedor actualizado exitosamente.', proveedor: (await conCategorias([proveedor], negocioid))[0] });
 
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al actualizar el proveedor' });

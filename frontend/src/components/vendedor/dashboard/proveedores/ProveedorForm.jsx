@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getProveedores, createProveedor, updateProveedor } from '../../../../services/proveedorService';
+import { getCategoriesByUser } from '../../../../services/categoryServices';
 import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import '../../../comunes/contactos.css';
+import './precios.css';
 
 const ESTADO_OPTS = ['Activo', 'Inactivo'];
 const TIPO_CUENTA_OPTS = ['Ahorros', 'Corriente'];
@@ -12,7 +14,7 @@ const RUTA_LISTA = '/dashboard/proveedores';
 const VACIO = {
   razonSocial: '', nombreProveedor: '', nit: '', telefono: '',
   correo: '', direccion: '', banco: '', numeroCuenta: '',
-  tipoCuenta: '', categoriaSuministro: [], estado: 'Activo',
+  tipoCuenta: '', categoriaids: [], estado: 'Activo',
 };
 
 // Crear o editar un proveedor: pantalla completa (ruta), no ventana emergente
@@ -21,8 +23,13 @@ function ProveedorForm() {
   const navigate = useNavigate();
   const editando = Boolean(id);
   const [form, setForm] = useState(VACIO);
+  const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(editando);
   const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    getCategoriesByUser().then(setCategorias).catch(() => toast.error('No se pudieron cargar las categorías.'));
+  }, []);
 
   useEffect(() => {
     if (!editando) return;
@@ -38,7 +45,7 @@ function ProveedorForm() {
           razonSocial: p.razonSocial || '', nombreProveedor: p.nombreProveedor || '',
           nit: p.nit || '', telefono: p.telefono || '', correo: p.correo || '',
           direccion: p.direccion || '', banco: p.banco || '', numeroCuenta: p.numeroCuenta || '',
-          tipoCuenta: p.tipoCuenta || '', categoriaSuministro: p.categoriaSuministro || [],
+          tipoCuenta: p.tipoCuenta || '', categoriaids: (p.categorias || []).map((c) => c.categoriaid),
           estado: p.estado || 'Activo',
         });
       } catch {
@@ -51,6 +58,10 @@ function ProveedorForm() {
   }, [id, editando, navigate]);
 
   const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const alternarCategoria = (categoriaid) => setForm((f) => ({
+    ...f,
+    categoriaids: f.categoriaids.includes(categoriaid) ? f.categoriaids.filter((c) => c !== categoriaid) : [...f.categoriaids, categoriaid],
+  }));
 
   const guardar = async (e) => {
     e.preventDefault();
@@ -99,6 +110,23 @@ function ProveedorForm() {
               </select>
             </div>
           </div>
+        </section>
+
+        <section className="ct-form-tarjeta ct-form-tarjeta--ancha">
+          <h2>Categorías que suministra</h2>
+          <p>Los precios por cantidad de este proveedor solo cuentan los productos de estas categorías.</p>
+          {categorias.length === 0 ? (
+            <p className="campo-opcional">Aún no tienes categorías creadas.</p>
+          ) : (
+            <div className="pf-categorias" role="group" aria-label="Categorías que suministra">
+              {categorias.map((c) => (
+                <label key={c.categoriaid} className={`pf-categoria${form.categoriaids.includes(c.categoriaid) ? ' pf-categoria--activa' : ''}`}>
+                  <input type="checkbox" checked={form.categoriaids.includes(c.categoriaid)} onChange={() => alternarCategoria(c.categoriaid)} />
+                  <span>{c.nombre}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="ct-form-tarjeta">
