@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Hash, MoreHorizontal, Package, PackageCheck, Pencil, Plus, Send, Trash2, FileText, Truck, User, Users, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronDown, Hash, Package, PackageCheck, Pencil, Plus, Send, Trash2, FileText, Truck, User, Users, XCircle, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { imagenUrl } from '../../../../config';
 import {
@@ -34,9 +34,7 @@ import { useEsMovil } from '../../../../hooks/useEsMovil';
 import ListaMovil from '../../../comunes/ListaMovil';
 import PanelInferior, { DatoPanel } from '../../../comunes/PanelInferior';
 import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
-import { deletePedido } from '../../../../services/pedidoService';
-import { getNegocio } from '../../../../services/negocioService';
-import TarjetaCompra from './TarjetaCompra';
+import FilaCompra from './FilaCompra';
 import './Compras.css';
 
 const num = (valor) => Number(valor) || 0;
@@ -86,8 +84,9 @@ function DetalleCompra() {
   }, [navigate, rutaBase, location.state]);
   const volver = () => setModal(null);
   const [masAbierto, setMasAbierto] = useState(false);
-  const [negocio, setNegocio] = useState(null);
-  useEffect(() => { getNegocio().then(setNegocio).catch(() => setNegocio(null)); }, []);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef(null);
+  const botonMenuRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [orden, setOrden] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -112,6 +111,16 @@ function DetalleCompra() {
   }, [id, navigate]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  // El menú "Pedido" (escritorio) se cierra al hacer clic fuera o con Esc, devolviendo el foco al botón
+  useEffect(() => {
+    if (!menuAbierto) return undefined;
+    const alHacerClic = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuAbierto(false); };
+    const alTeclear = (e) => { if (e.key === 'Escape') { setMenuAbierto(false); botonMenuRef.current?.focus(); } };
+    document.addEventListener('mousedown', alHacerClic);
+    document.addEventListener('keydown', alTeclear);
+    return () => { document.removeEventListener('mousedown', alHacerClic); document.removeEventListener('keydown', alTeclear); };
+  }, [menuAbierto]);
 
   useEffect(() => {
     getProveedores().then((data) => { if (Array.isArray(data)) setProveedores(data); }).catch(() => {});
@@ -257,25 +266,6 @@ function DetalleCompra() {
     });
   };
 
-  const eliminarCompra = (compra) => {
-    toast(`¿Eliminar la compra de ${compra.cliente?.nombreCliente || 'este cliente'}?`, {
-      description: 'Se borran la compra y sus abonos. Las ventas de entregas ya hechas se conservan. No se puede deshacer.',
-      action: {
-        label: 'Sí, eliminar',
-        onClick: async () => {
-          try {
-            await deletePedido(compra.pedidoid);
-            toast.success('Compra eliminada.');
-            cargar(true);
-          } catch (error) {
-            toast.error(error?.response?.data?.mensaje || 'No se pudo eliminar la compra.');
-          }
-        },
-      },
-      cancel: { label: 'Cancelar', onClick: () => {} },
-    });
-  };
-
   const cambiarProveedor = async (valor) => {
     try {
       setOrden(await actualizarPedidoProveedor(orden.ordenid, { proveedorid: valor || null }));
@@ -389,14 +379,27 @@ function DetalleCompra() {
   const puedeCambiarProveedor = !['recibida', 'anulada'].includes(orden.estado);
   const resumen = orden.resumenCompras || { cantidad: 0, total: 0, abonado: 0, saldo: 0 };
 
-  // Costo al proveedor de cada producto (para mostrarlo junto al precio de venta de cada cliente) y lo que no tiene cliente (va al stock)
-  const costos = new Map(detalles.map((d) => [`${d.productoid}:${d.varianteid || ''}`, d.precioUnitario]));
+  // Lo que no tiene cliente (va al stock)
   const lineasStock = [];
   for (const detalle of detalles) {
     const activas = (detalle.asignaciones || []).filter(asignacionActiva);
     const paraStock = redondear(num(detalle.cantidad) - activas.reduce((s, a) => s + num(a.cantidad), 0));
     if (paraStock > 0) lineasStock.push({ detalle, cantidad: paraStock });
   }
+
+  // Todas las acciones del pedido viven en un solo menú ("Pedido"); en celular se abre como panel inferior
+  const editable = !['recibida', 'anulada'].includes(orden.estado);
+  const accionesPedido = [
+    abierto && { clave: 'compra', etiqueta: 'Crear compra', icono: Plus, ir: () => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}`) },
+    abierto && { clave: 'stock', etiqueta: 'Productos para stock', icono: Package, ir: () => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}&tipo=stock`) },
+    abierto && { clave: 'existente', etiqueta: 'Agregar compra existente', icono: Users, ir: abrirExistentes },
+    abierto && { clave: 'enviar', etiqueta: 'Enviar al proveedor', icono: Send, ir: abrirEnviar, desactivada: compras.length === 0 && detalles.length === 0 },
+    puedeRecibir && { clave: 'recepcion', etiqueta: 'Registrar recepción', icono: PackageCheck, ir: () => abrirRecepcion(orden) },
+    editable && { clave: 'nombre', etiqueta: 'Cambiar nombre', icono: Pencil, ir: () => { setNombreEdicion(orden.nombre || ''); setModal('nombre'); } },
+    puedeAnular && { clave: 'anular', etiqueta: 'Anular pedido', icono: XCircle, ir: handleAnular },
+    { clave: 'eliminar', etiqueta: 'Eliminar pedido', icono: Trash2, ir: handleEliminar, peligro: true },
+  ].filter(Boolean);
+  const ejecutar = (accion) => { setMenuAbierto(false); setMasAbierto(false); accion.ir(); };
 
   return (
     <div className="detalle-tx-view detalle-ancho">
@@ -408,69 +411,43 @@ function DetalleCompra() {
         <div className="detalle-tx-header-text">
           <div className="pedido-titulo-linea">
             <h1>{nombrePedido(orden)}</h1>
-            {!['recibida', 'anulada'].includes(orden.estado) && (
-              <button className="pedido-modal-close" title="Cambiar nombre" onClick={() => { setNombreEdicion(orden.nombre || ''); setModal('nombre'); }}>
-                <Pencil size={14} />
-              </button>
-            )}
             <span className={`pedido-estado pedido-estado-${estado.clase}`}>{estado.label}</span>
           </div>
           <div className="detalle-tx-breadcrumb">Pedidos / <span className="active">{orden.nombre ? `${orden.nombre} · #${orden.ordenid}` : `Pedido #${orden.ordenid}`}</span></div>
         </div>
-        {esMovil ? (
-          <div className="pedido-detalle-acciones pedido-acciones-compactas">
-            {abierto && (
-              <>
-                <button className="pedidos-btn pedidos-btn-primary" onClick={() => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}`)}>
-                  <Plus size={14} /><span>Crear compra</span>
-                </button>
-                <button className="pedidos-btn pedidos-btn-verde" onClick={abrirEnviar} disabled={compras.length === 0 && detalles.length === 0}>
-                  <Send size={14} /><span>Enviar</span>
-                </button>
-              </>
-            )}
-            {puedeRecibir && (
-              <button className="pedidos-btn pedidos-btn-verde" onClick={() => abrirRecepcion(orden)}>
-                <PackageCheck size={14} /><span>Registrar recepción</span>
-              </button>
-            )}
-            <button className="pedidos-btn pedidos-btn-secundario pedido-btn-mas" onClick={() => setMasAbierto(true)} aria-label="Más acciones">
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
-        ) : (
-        <div className="pedido-detalle-acciones">
-          {abierto && (
-            <>
-              <button className="pedidos-btn pedidos-btn-secundario" onClick={() => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}&tipo=stock`)}>
-                <Plus size={14} /><span>Para stock</span>
-              </button>
-              <button className="pedidos-btn pedidos-btn-secundario" onClick={abrirExistentes}>
-                <Users size={14} /><span>Agregar compra existente</span>
-              </button>
-              <button className="pedidos-btn pedidos-btn-primary" onClick={() => navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}`)}>
-                <Plus size={14} /><span>Crear compra</span>
-              </button>
-              <button className="pedidos-btn pedidos-btn-verde" onClick={abrirEnviar} disabled={compras.length === 0 && detalles.length === 0}>
-                <Send size={14} /><span>Enviar al proveedor</span>
-              </button>
-            </>
-          )}
-          {puedeRecibir && (
-            <button className="pedidos-btn pedidos-btn-verde" onClick={() => abrirRecepcion(orden)}>
-              <PackageCheck size={14} /><span>Registrar recepción</span>
-            </button>
-          )}
-          {puedeAnular && (
-            <button className="pedidos-btn pedidos-btn-secundario" onClick={handleAnular}>
-              <XCircle size={14} /><span>Anular</span>
-            </button>
-          )}
-          <button className="pedidos-btn pedidos-btn-peligro" onClick={handleEliminar}>
-            <Trash2 size={14} /><span>Eliminar</span>
+        <div className="pedido-menu" ref={menuRef}>
+          <button
+            type="button"
+            ref={botonMenuRef}
+            className="pedidos-btn pedidos-btn-primary pedido-menu-boton"
+            aria-haspopup="menu"
+            aria-expanded={esMovil ? masAbierto : menuAbierto}
+            onClick={() => (esMovil ? setMasAbierto(true) : setMenuAbierto((o) => !o))}
+          >
+            <ClipboardList size={15} aria-hidden="true" />
+            <span>Pedido</span>
+            <ChevronDown size={14} aria-hidden="true" />
           </button>
+          {!esMovil && menuAbierto && (
+            <div className="pedido-menu-lista" role="menu" aria-label="Acciones del pedido">
+              {accionesPedido.map((a) => {
+                const Icono = a.icono;
+                return (
+                  <button
+                    key={a.clave}
+                    type="button"
+                    role="menuitem"
+                    className={`pedido-menu-item${a.peligro ? ' peligro' : ''}`}
+                    disabled={a.desactivada}
+                    onClick={() => ejecutar(a)}
+                  >
+                    <Icono size={15} aria-hidden="true" /><span>{a.etiqueta}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-        )}
       </div>
 
       <div className="detalle-tx-summary">
@@ -517,12 +494,7 @@ function DetalleCompra() {
       <div className="mod-seccion">
         <span className="mod-seccion-icono"><Users size={16} /></span>
         <div className="mod-seccion-textos">
-          <h2>Clientes y lo pedido al proveedor <span className="mod-count-badge">{resumen.cantidad}</span></h2>
-          <p>
-            {abierto
-              ? 'Agrega las compras de tus clientes. Cada una trae sus abonos, recibos, entregas y devoluciones, y puedes editar sus productos mientras el pedido no se haya enviado.'
-              : 'Cada compra de cliente con sus productos: lo que pediste al proveedor, cuánto ha llegado y qué ya puedes entregar. Dentro de cada una registras abonos, entregas y devoluciones, y generas sus recibos. Al registrar la recepción eliges a quién corresponde lo que llegó.'}
-          </p>
+          <h2>Pedidos para clientes <span className="mod-count-badge">{resumen.cantidad}</span></h2>
         </div>
         <div className="mod-seccion-chips">
           {!abierto && pedidos > 0 && (
@@ -542,34 +514,26 @@ function DetalleCompra() {
       {compras.length === 0 && (abierto || lineasStock.length === 0) && (
         <div className="pedido-ordenes-vacio">
           <Users size={32} />
-          <p>Este pedido todavía no tiene compras de clientes.</p>
+          <p>Aún no hay pedidos para clientes.</p>
         </div>
       )}
 
-      {compras.map((compra) => (
-        <TarjetaCompra
-          key={compra.pedidoid}
-          compra={compra}
-          pedidoAbierto={abierto}
-          costos={costos}
-          rutaPedido={rutaBase}
-          negocio={negocio}
-          onEliminar={eliminarCompra}
-          onRecargar={() => cargar(true)}
-        />
-      ))}
+      {compras.length > 0 && (
+        <div className="filas-compra">
+          {compras.map((compra) => <FilaCompra key={compra.pedidoid} compra={compra} rutaPedido={rutaBase} />)}
+        </div>
+      )}
 
       {abierto ? (
         <>
           <div className="mod-seccion">
             <span className="mod-seccion-icono"><Package size={16} /></span>
             <div className="mod-seccion-textos">
-              <h2>Productos para stock <span className="mod-count-badge">{detalles.length}</span></h2>
-              <p>Pares extra que pides sin cliente asignado: al recibirlos suben directo al inventario.</p>
+              <h2>Pedidos para stock <span className="mod-count-badge">{detalles.length}</span></h2>
             </div>
           </div>
           {detalles.length === 0 ? (
-            <div className="pedido-ordenes-vacio"><p>No hay productos para stock en este pedido.</p></div>
+            <div className="pedido-ordenes-vacio"><p>Aún no hay pedidos para stock.</p></div>
           ) : (
             esMovil ? (
               <ListaMovil
@@ -624,8 +588,7 @@ function DetalleCompra() {
                 <div className="tbl-main-cell compras-cliente-id">
                   <span className="tbl-avatar compras-reparto-avatar-stock"><Package size={15} /></span>
                   <div className="tbl-cell-texts">
-                    <span className="tbl-cell-primary">Stock (sin cliente)</span>
-                    <span className="tbl-cell-secondary">Lo que no tiene cliente va directo al inventario</span>
+                    <span className="tbl-cell-primary">Pedidos para stock</span>
                   </div>
                 </div>
               </div>
@@ -658,21 +621,16 @@ function DetalleCompra() {
         </>
       )}
 
-      <PanelInferior abierto={masAbierto} onCerrar={() => setMasAbierto(false)} titulo="Más acciones" subtitulo={nombrePedido(orden)} nombreAvatar="Pedido">
+      <PanelInferior abierto={masAbierto} onCerrar={() => setMasAbierto(false)} titulo="Pedido" subtitulo={nombrePedido(orden)} nombreAvatar="Pedido">
         <div className="pi-lista-acciones">
-          {abierto && (
-            <button type="button" className="pi-accion" onClick={() => { setMasAbierto(false); navigate(`/dashboard/nuevo-pedido?pedido=${orden.ordenid}&tipo=stock`); }}><Plus size={15} /> Productos para stock</button>
-          )}
-          {abierto && (
-            <button type="button" className="pi-accion" onClick={() => { setMasAbierto(false); abrirExistentes(); }}><Users size={15} /> Agregar compra existente</button>
-          )}
-          {!['recibida', 'anulada'].includes(orden.estado) && (
-            <button type="button" className="pi-accion" onClick={() => { setMasAbierto(false); setNombreEdicion(orden.nombre || ''); setModal('nombre'); }}><Pencil size={15} /> Cambiar nombre</button>
-          )}
-          {puedeAnular && (
-            <button type="button" className="pi-accion" onClick={() => { setMasAbierto(false); handleAnular(); }}><XCircle size={15} /> Anular pedido</button>
-          )}
-          <button type="button" className="pi-accion pi-accion-peligro" onClick={() => { setMasAbierto(false); handleEliminar(); }}><Trash2 size={15} /> Eliminar pedido</button>
+          {accionesPedido.map((a) => {
+            const Icono = a.icono;
+            return (
+              <button key={a.clave} type="button" className={`pi-accion${a.peligro ? ' pi-accion-peligro' : ''}`} disabled={a.desactivada} onClick={() => ejecutar(a)}>
+                <Icono size={15} /> {a.etiqueta}
+              </button>
+            );
+          })}
         </div>
       </PanelInferior>
 
