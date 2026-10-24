@@ -33,7 +33,7 @@ function ComprobanteCompra({ pedido, negocio, onVolver }) {
   const total = Number(pedido.total) || 0;
   const anulada = pedido.estado === 'anulado';
   const detalles = (pedido.detalles || []).filter((d) => Number(d.cantidad) > 0);
-  const numero = String(pedido.pedidoid).padStart(5, '0');
+  const numero = String(pedido.numero).padStart(5, '0');
 
   const exportar = async (formato) => {
     if (!hojaRef.current) return;
@@ -52,7 +52,7 @@ function ComprobanteCompra({ pedido, negocio, onVolver }) {
     const ok = abrirWhatsApp(pedido.cliente?.telefono, mensajeComprobante({
       negocio: nombreNegocio,
       cliente,
-      compraid: pedido.pedidoid,
+      numero: pedido.numero,
       lineas: detalles,
       total,
       fechaEntrega: pedido.fechaEntrega ? fechaLarga(pedido.fechaEntrega) : '',
@@ -63,7 +63,7 @@ function ComprobanteCompra({ pedido, negocio, onVolver }) {
   return (
     <div className="pedido-pagina recibo-pagina">
       <div className="no-imprimir">
-        <EncabezadoPagina onVolver={onVolver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Comprobante de compra</EncabezadoPagina>
+        <EncabezadoPagina onVolver={onVolver} migas={<>Pedidos / Compra {pedido.numero}</>}>Comprobante de compra</EncabezadoPagina>
         <div className="recibo-barra-acciones">
           <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={enviar}>
             <MessageCircle size={14} /><span>Enviar por WhatsApp</span>

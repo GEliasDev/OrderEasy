@@ -16,6 +16,7 @@ const Proveedor = require('../models/proveedorModel');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 const { ErrorPago, dos, resumenPedido, registrarMovimiento, aplicarAbonosAVenta, saldoAFavorDeCliente, usarSaldoAFavor } = require('../services/pedidoPagoService');
+const { siguienteNumero } = require('../services/numeracionService');
 const { ErrorStock, validarCantidad, resolverStock, resolverStockDeDetalle, guardarStock, disponibleReal, datosTalla, etiquetaDetalle } = require('../services/stockService');
 
 class ErrorPedido extends Error {
@@ -51,7 +52,7 @@ const includePedido = [
     ],
   },
   // Pedido al proveedor que contiene esta compra (pedido.ordenid), para saber si aún se puede editar
-  { model: OrdenCompra, as: 'pedidoProveedor', attributes: ['ordenid', 'estado', 'nombre'] },
+  { model: OrdenCompra, as: 'pedidoProveedor', attributes: ['ordenid', 'numero', 'estado', 'nombre'] },
 ];
 
 // Pedido en JSON con el resumen de dinero (abonado, saldo, entregado...) y los movimientos en orden
@@ -128,6 +129,7 @@ const createPedido = async (req, res) => {
     const pedido = await Pedido.create({
       usuarioid,
       negocioid,
+      numero: await siguienteNumero(negocioid, 'compra', t),
       clienteid: clienteid || null,
       ordenid,
       estado: 'confirmado',
@@ -572,7 +574,7 @@ const entregarPedido = async (req, res) => {
       usuarioid,
       negocioid,
       clienteid: pedido.clienteid || null,
-      descripcion: pedido.descripcion || `Pedido #${pedido.pedidoid}`,
+      descripcion: pedido.descripcion || `Compra ${pedido.numero}`,
       total: 0,
       descuentoTotal: 0,
       descuentoTipoTotal: 'fijo',

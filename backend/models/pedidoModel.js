@@ -44,6 +44,11 @@ const Pedido = sequelize.define('Pedido', {
       key: 'ventaid'
     }
   },
+  // Número visible y consecutivo de la compra dentro del negocio (el id interno no se muestra)
+  numero: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   // Pedido al proveedor al que pertenece esta compra (sin FK en el modelo para evitar la dependencia cíclica con ordenes_compra)
   ordenid: {
     type: DataTypes.INTEGER,

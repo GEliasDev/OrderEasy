@@ -44,7 +44,8 @@ export const repartoSugerido = (detalle, llegaron) => {
 export const etiquetaTalla = (detalle) => (detalle.talla ? ` · Talla ${detalle.talla}` : '');
 
 // Nombre con el que se muestra un pedido al proveedor
-export const nombrePedido = (orden) => orden.nombre || `Pedido #${orden.ordenid}`;
+// Lo que se muestra de un pedido: su nombre y, si no tiene, "Pedido N" (N = número consecutivo del negocio; el id interno no se muestra)
+export const nombrePedido = (orden) => orden.nombre || `Pedido ${orden.numero}`;
 
 // Estado de una compra de cliente (dentro de un pedido al proveedor)
 export const ESTADOS_COMPRA_CLIENTE = {

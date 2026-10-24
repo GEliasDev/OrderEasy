@@ -215,7 +215,7 @@ function DetalleCompra() {
   };
 
   const handleAnular = () => {
-    toast(`¿Anular el pedido #${orden.ordenid}?`, {
+    toast(`¿Anular ${nombrePedido(orden)}?`, {
       description: 'Las compras de los clientes siguen vigentes pero quedan sin pedido.',
       action: {
         label: 'Sí, anular',
@@ -416,7 +416,7 @@ function DetalleCompra() {
             <h1>{nombrePedido(orden)}</h1>
             <span className={`pedido-estado pedido-estado-${estado.clase}`}>{estado.label}</span>
           </div>
-          <div className="detalle-tx-breadcrumb">Pedidos / <span className="active">{orden.nombre ? `${orden.nombre} · #${orden.ordenid}` : `Pedido #${orden.ordenid}`}</span></div>
+          <div className="detalle-tx-breadcrumb">Pedidos / <span className="active">N° {orden.numero}</span></div>
         </div>
         <div className="pedido-acciones-cabecera">
           {accionesPrincipales.map((a, i) => {
@@ -685,7 +685,7 @@ function DetalleCompra() {
             <form className="pedido-modal-form" onSubmit={guardarNombre}>
               <label>
                 Nombre
-                <input type="text" maxLength={120} autoFocus placeholder={`Pedido #${orden.ordenid}`} value={nombreEdicion} onChange={(e) => setNombreEdicion(e.target.value)} />
+                <input type="text" maxLength={120} autoFocus placeholder={`Pedido ${orden.numero}`} value={nombreEdicion} onChange={(e) => setNombreEdicion(e.target.value)} />
               </label>
               <div className="pedido-modal-footer">
                 <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
@@ -717,7 +717,7 @@ function DetalleCompra() {
                         })}
                       />
                       <div className="compras-pedido-info">
-                        <strong>#{c.pedidoid} · {c.cliente?.nombreCliente || 'Sin cliente'}</strong>
+                        <strong>{c.cliente?.nombreCliente || 'Sin cliente'} · Compra {c.numero}</strong>
                         <span>{resumenProductos(c)}</span>
                         <small>{formatoMoneda(c.total)} · {ESTADOS_COMPRA_CLIENTE[c.estado]}</small>
                       </div>
@@ -869,7 +869,7 @@ function DetalleCompra() {
                               <label key={asignacion.asignacionid} className={`compras-recepcion-reparto-fila ${pendiente <= 0 ? 'completo' : ''}`}>
                                 <span className="compras-recepcion-cliente">
                                   <strong>{asignacion.pedidoDetalle?.pedido?.cliente?.nombreCliente || 'Sin cliente'}</strong>
-                                  <small>Pedido #{asignacion.pedidoDetalle?.pedidoid || '—'} · pendiente {cantidad(pendiente)}</small>
+                                  <small>Compra {asignacion.pedidoDetalle?.pedido?.numero || '—'} · pendiente {cantidad(pendiente)}</small>
                                 </span>
                                 <span className="compras-recepcion-reparto-cantidad">
                                   <input

@@ -17,6 +17,7 @@ const sequelize = require('../config/database');
 const { resolverStock, resolverStockDeDetalle, guardarStock, validarCantidad, datosTalla } = require('./stockService');
 const { dos } = require('./pedidoPagoService');
 const { aplicarEscalonesAlEnviar } = require('./preciosPorCantidadService');
+const { siguienteNumero } = require('./numeracionService');
 
 class ErrorCompra extends Error {
   constructor(mensaje, status = 400) {
@@ -67,7 +68,7 @@ const calcularFaltantes = async ({ pedidoids, negocioid, transaction, ignorarSto
   if (pedidos.length !== ids.length) throw new ErrorCompra('Alguno de los pedidos no existe', 404);
   for (const pedido of pedidos) {
     if (!ESTADOS_COMPRABLES.includes(pedido.estado) && !(aceptarPendientes && pedido.estado === 'pendiente')) {
-      throw new ErrorCompra(`El pedido #${pedido.pedidoid} no está confirmado (${pedido.estado}); confírmalo antes de comprar`);
+      throw new ErrorCompra(`La compra ${pedido.numero} no está confirmada (${pedido.estado}); confírmala antes de comprar`);
     }
   }
 
@@ -148,6 +149,7 @@ const calcularFaltantes = async ({ pedidoids, negocioid, transaction, ignorarSto
   return {
     pedidos: pedidos.map((p) => ({
       pedidoid: p.pedidoid,
+      numero: p.numero,
       cliente: p.cliente?.nombreCliente || 'Sin cliente',
       estado: p.estado,
       conFaltante: pedidosConFaltante.has(p.pedidoid),
@@ -195,11 +197,12 @@ const crearOrdenDesdePedidos = async ({ pedidoids, proveedorid, descripcion, neg
   const ids = pedidos.map((p) => p.pedidoid);
   const orden = await OrdenCompra.create({
     negocioid,
+    numero: await siguienteNumero(negocioid, 'pedido', transaction),
     proveedorid: proveedorid || null,
     pedidoid: ids.length === 1 ? ids[0] : null,
     usuarioid,
     estado: 'enviada',
-    descripcion: descripcion || (ids.length === 1 ? `Pedido #${ids[0]}` : `Compra para pedidos ${ids.map((i) => `#${i}`).join(', ')}`),
+    descripcion: descripcion || (pedidos.length === 1 ? `Compra ${pedidos[0].numero}` : `Compras ${pedidos.map((p) => p.numero).join(', ')}`),
     total: 0,
   }, { transaction });
 
@@ -421,12 +424,12 @@ const asignarCompras = async ({ ordenid, negocioid, pedidoids, transaction }) =>
   const compras = await Pedido.findAll({ where: { pedidoid: ids, negocioid }, transaction, lock: true });
   if (compras.length !== ids.length) throw new ErrorCompra('Alguna de las compras no existe', 404);
   for (const c of compras) {
-    if (['entregado', 'anulado'].includes(c.estado)) throw new ErrorCompra(`La compra #${c.pedidoid} está ${c.estado}`);
-    if (c.ordenid && Number(c.ordenid) !== Number(ordenid)) throw new ErrorCompra(`La compra #${c.pedidoid} ya pertenece a otro pedido`);
+    if (['entregado', 'anulado'].includes(c.estado)) throw new ErrorCompra(`La compra ${c.numero} está ${c.estado}`);
+    if (c.ordenid && Number(c.ordenid) !== Number(ordenid)) throw new ErrorCompra(`La compra ${c.numero} ya pertenece a otro pedido`);
   }
   for (const c of compras) {
     const yaPedida = await Asignacion.count({ include: [{ model: PedidoDetalle, as: 'pedidoDetalle', where: { pedidoid: c.pedidoid }, attributes: [] }], transaction });
-    if (yaPedida > 0) throw new ErrorCompra(`La compra #${c.pedidoid} ya tiene una orden de compra; no se puede mover`);
+    if (yaPedida > 0) throw new ErrorCompra(`La compra ${c.numero} ya tiene una orden de compra; no se puede mover`);
     await liberarReserva(c, negocioid, transaction);
     await c.update({ ordenid, estado: 'confirmado' }, { transaction });
   }

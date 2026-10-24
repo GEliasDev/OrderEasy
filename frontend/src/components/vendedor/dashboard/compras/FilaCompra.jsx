@@ -37,13 +37,13 @@ function FilaCompra({ compra, rutaPedido }) {
       type="button"
       className={`fila-compra${anulada ? ' fila-compra--anulada' : ''}`}
       onClick={abrir}
-      aria-label={`Abrir la compra #${compra.pedidoid} de ${cliente}`}
+      aria-label={`Abrir la compra ${compra.numero} de ${cliente}`}
     >
       <span className="tbl-avatar" style={{ background: colorAvatar(cliente), opacity: anulada ? 0.5 : 1 }} aria-hidden="true">{iniciales(cliente)}</span>
 
       <span className="fila-compra-id">
         <strong>{cliente}</strong>
-        <small>Compra #{compra.pedidoid} · {cantidad(unidades)} {unidades === 1 ? 'unidad' : 'unidades'}<span className="fila-compra-estado-movil"> · {ESTADOS_COMPRA_CLIENTE[estado] || estado}</span></small>
+        <small>Compra {compra.numero} · {cantidad(unidades)} {unidades === 1 ? 'unidad' : 'unidades'}<span className="fila-compra-estado-movil"> · {ESTADOS_COMPRA_CLIENTE[estado] || estado}</span></small>
       </span>
 
       <span className={`tbl-badge fila-compra-estado ${BADGE_ESTADO[estado] || 'tbl-badge--neutral'}`}>{ESTADOS_COMPRA_CLIENTE[estado] || estado}</span>

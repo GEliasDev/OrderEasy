@@ -20,6 +20,7 @@ const {
   resumenComprasPorDetalle, enviarOrden, previewOrden, agregarLineaStock, asignarCompras,
 } = require('../services/compraLoteService');
 const { estimarConEscalones } = require('../services/preciosPorCantidadService');
+const { siguienteNumero } = require('../services/numeracionService');
 
 class ErrorOrden extends Error {
   constructor(mensaje, status = 400) {
@@ -46,7 +47,7 @@ const includeOrden = [
         include: [{
           model: Pedido,
           as: 'pedido',
-          attributes: ['pedidoid', 'estado', 'clienteid'],
+          attributes: ['pedidoid', 'numero', 'estado', 'clienteid'],
         }],
       }],
     }],
@@ -172,7 +173,7 @@ const crearPedido = async (req, res) => {
       if (!proveedor) throw new ErrorOrden('Proveedor no encontrado', 404);
     }
     const orden = await OrdenCompra.create({
-      negocioid, usuarioid, proveedorid: proveedorid || null, estado: 'abierta', nombre: String(nombre || '').trim().slice(0, 120) || null, descripcion: descripcion || '', total: 0,
+      negocioid, usuarioid, numero: await siguienteNumero(negocioid, 'pedido'), proveedorid: proveedorid || null, estado: 'abierta', nombre: String(nombre || '').trim().slice(0, 120) || null, descripcion: descripcion || '', total: 0,
     });
     res.status(201).json(await cargarPedidoCompleto(orden.ordenid));
   } catch (error) {
@@ -344,7 +345,7 @@ const recibirOrden = async (req, res) => {
       usuarioid,
       negocioid,
       proveedorid: orden.proveedorid || null,
-      descripcion: `Recepción orden de compra #${orden.ordenid}`,
+      descripcion: `Recepción del pedido ${orden.numero}`,
       total: 0,
     }, { transaction: t });
 

@@ -5,7 +5,8 @@ import { toast } from 'sonner';
 import { getCategoriesByUser } from '../../../../services/categoryServices';
 import { getAllProducts } from '../../../../services/productServices';
 import { getClientes } from '../../../../services/clienteService';
-import { agregarStockPedido, createPedido, getPedidoById, updatePedido } from '../../../../services/pedidoService';
+import { agregarStockPedido, createPedido, getOrdenCompra, getPedidoById, updatePedido } from '../../../../services/pedidoService';
+import { nombrePedido } from '../compras/comprasUtils';
 import { useEsMovil } from '../../../../hooks/useEsMovil';
 import BarraCarrito from '../../../comunes/BarraCarrito';
 import { useCarrito, pasoDe, minimoDe, claveItem } from '../../../../hooks/useCarrito';
@@ -55,17 +56,20 @@ function NuevoPedido() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
   const [cargando, setCargando] = useState(false);
   const [procesando, setProcesando] = useState(false);
+  const [pedidoProveedor, setPedidoProveedor] = useState(null);
 
   useEffect(() => {
     const cargarDatos = async () => {
       try {
         setCargando(true);
-        const [categoriasData, productosData, clientesData, compraData] = await Promise.all([
+        const [categoriasData, productosData, clientesData, compraData, ordenData] = await Promise.all([
           getCategoriesByUser(),
           getAllProducts(),
           getClientes(),
           editarid ? getPedidoById(editarid) : Promise.resolve(null),
+          ordenid ? getOrdenCompra(ordenid).catch(() => null) : Promise.resolve(null),
         ]);
+        if (ordenData) setPedidoProveedor(ordenData);
         const productosLista = Array.isArray(productosData) ? productosData : [];
         if (Array.isArray(categoriasData)) setCategorias(categoriasData);
         if (Array.isArray(productosData)) setProductos(productosData);
@@ -139,7 +143,7 @@ function NuevoPedido() {
       await agregarStockPedido(ordenid, {
         items: carrito.map((item) => ({ productoid: item.productoid, talla: item.talla, cantidad: item.cantidad })),
       });
-      toast.success(`Productos para stock agregados al pedido #${ordenid}.`);
+      toast.success('Productos para stock agregados al pedido.');
       navigate(destino);
     } catch (error) {
       toast.error(error?.response?.data?.mensaje || 'No se pudieron agregar los productos.');
@@ -184,7 +188,7 @@ function NuevoPedido() {
         abono: Number(abonoMonto) > 0 ? { monto: Number(abonoMonto), metodo: abonoMetodo } : undefined,
         items,
       });
-      const mensaje = ordenid ? `Compra agregada al pedido #${ordenid}.` : 'Compra creada. Confírmala para reservar el stock.';
+      const mensaje = ordenid ? 'Compra agregada al pedido.' : 'Compra creada. Confírmala para reservar el stock.';
       // Con la compra creada se ofrece el recibo para enviárselo al cliente
       if (creada?.pedidoid) {
         toast.success(mensaje, {
@@ -214,10 +218,10 @@ function NuevoPedido() {
               <ClipboardList size={24} style={{ color: 'var(--color-primary)' }} />
               <h2>
                 {editarid
-                  ? `Editar compra #${editarid}`
+                  ? `Editar compra ${compraEditada?.numero ?? ''}`.trim()
                   : paraStock
-                    ? `Productos para stock · Pedido #${ordenid}`
-                    : (ordenid ? `Nueva compra · Pedido #${ordenid}` : 'Nueva compra de cliente')}
+                    ? `Productos para stock · ${pedidoProveedor ? nombrePedido(pedidoProveedor) : 'Pedido'}`
+                    : (ordenid ? `Nueva compra · ${pedidoProveedor ? nombrePedido(pedidoProveedor) : 'Pedido'}` : 'Nueva compra de cliente')}
               </h2>
             </div>
           </div>

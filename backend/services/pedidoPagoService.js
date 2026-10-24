@@ -191,11 +191,11 @@ const usarSaldoAFavor = async ({ pedido, detalles, monto, usuarioid, transaction
 
     await registrarMovimiento({
       pedido: pedidoOrigen, detalles: detallesOrigen, tipo: 'traslado', monto: tomar,
-      metodo: abonoOrigen?.metodo, nota: `Saldo a favor trasladado al pedido #${pedido.pedidoid}`, usuarioid, transaction,
+      metodo: abonoOrigen?.metodo, nota: `Saldo a favor trasladado a la compra ${pedido.numero}`, usuarioid, transaction,
     });
     await registrarMovimiento({
       pedido, detalles, tipo: 'abono', monto: tomar,
-      metodo: abonoOrigen?.metodo, nota: `Saldo a favor del pedido #${origen.pedidoid}`, usuarioid, transaction,
+      metodo: abonoOrigen?.metodo, nota: `Saldo a favor de la compra ${pedidoOrigen.numero}`, usuarioid, transaction,
     });
     porUsar = dos(porUsar - tomar);
     usado = dos(usado + tomar);

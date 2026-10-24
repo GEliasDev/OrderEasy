@@ -31,23 +31,23 @@ const firma = (negocio) => (negocio ? `\n\n${negocio}` : '');
 const listaProductos = (lineas) =>
   lineas.map((l) => `• ${l.productoNombre}${l.talla ? ` (talla ${l.talla})` : ''} x${l.cantidad}`).join('\n');
 
-export const mensajeListoParaEntregar = ({ negocio, cliente, pedidoid, lineas, saldo }) =>
-  `${saludo(cliente)} 👋 Te escribimos de ${negocio || 'la tienda'}. Tu pedido #${pedidoid} ya está listo para entregar:\n${listaProductos(lineas)}`
+export const mensajeListoParaEntregar = ({ negocio, cliente, numero, lineas, saldo }) =>
+  `${saludo(cliente)} 👋 Te escribimos de ${negocio || 'la tienda'}. Tu compra N° ${numero} ya está lista para entregar:\n${listaProductos(lineas)}`
   + (saldo > 0 ? `\n\nSaldo pendiente: ${formatoMoneda(saldo)}.` : '')
   + `\n\n¿Cuándo te queda bien recibirlo? 😊${firma(negocio)}`;
 
-export const mensajeRecordatorioSaldo = ({ negocio, cliente, pedidoid, total, abonado, saldo }) =>
-  `${saludo(cliente)} 👋 Te recordamos que tu pedido #${pedidoid} tiene un saldo pendiente de ${formatoMoneda(saldo)} `
+export const mensajeRecordatorioSaldo = ({ negocio, cliente, numero, total, abonado, saldo }) =>
+  `${saludo(cliente)} 👋 Te recordamos que tu compra N° ${numero} tiene un saldo pendiente de ${formatoMoneda(saldo)} `
   + `(total ${formatoMoneda(total)}, abonado ${formatoMoneda(abonado)}).\n\n¡Gracias por tu compra! 🙏${firma(negocio)}`;
 
-export const mensajeRecibo = ({ negocio, cliente, pedidoid, reciboid, tipo, monto, metodo, saldo }) =>
+export const mensajeRecibo = ({ negocio, cliente, numero, reciboid, tipo, monto, metodo, saldo }) =>
   `${saludo(cliente)} 👋 ${tipo === 'abono' ? 'Recibimos tu abono' : 'Registramos la devolución'} de ${formatoMoneda(monto)} (${metodo}) `
-  + `del pedido #${pedidoid}. Recibo N° ${reciboid}.\n`
-  + (saldo > 0 ? `Saldo pendiente: ${formatoMoneda(saldo)}.` : 'Tu pedido no tiene saldo pendiente ✅')
+  + `de tu compra N° ${numero}. Recibo N° ${reciboid}.\n`
+  + (saldo > 0 ? `Saldo pendiente: ${formatoMoneda(saldo)}.` : 'Tu compra no tiene saldo pendiente ✅')
   + `\n\n¡Gracias!${firma(negocio)}`;
 
-export const mensajeComprobante = ({ negocio, cliente, compraid, lineas, total, fechaEntrega }) =>
-  `${saludo(cliente)} 👋 Este es el resumen de tu compra #${compraid}:
+export const mensajeComprobante = ({ negocio, cliente, numero, lineas, total, fechaEntrega }) =>
+  `${saludo(cliente)} 👋 Este es el resumen de tu compra N° ${numero}:
 ${listaProductos(lineas)}
 
 `

@@ -7,6 +7,17 @@ const Negocio = sequelize.define('Negocio', {
     autoIncrement: true,
     primaryKey: true,
   },
+  // Últimos números asignados a pedidos al proveedor y a compras de clientes (no se reutilizan)
+  ultimoNumeroPedido: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  ultimoNumeroCompra: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
   nombre: {
     type: DataTypes.STRING(100),
     allowNull: false,

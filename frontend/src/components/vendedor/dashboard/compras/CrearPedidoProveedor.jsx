@@ -45,7 +45,7 @@ function CrearPedidoProveedor() {
                 onChange={(e) => setNombre(e.target.value)}
               />
             </div>
-            <p className="pedido-ayuda">Si lo dejas vacío se llamará «Pedido #número». Puedes cambiarlo cuando quieras.</p>
+            <p className="pedido-ayuda">Si lo dejas vacío se llamará «Pedido N» (N es su número). Puedes cambiarlo cuando quieras.</p>
             <div className="pedido-modal-footer">
               <button type="button" className="pedidos-btn pedidos-btn-secundario" onClick={volver}>Cancelar</button>
               <button type="submit" className="pedidos-btn pedidos-btn-primary" disabled={creando}>{creando ? 'Creando...' : 'Crear pedido'}</button>

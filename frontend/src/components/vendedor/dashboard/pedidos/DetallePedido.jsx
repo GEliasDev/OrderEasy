@@ -18,6 +18,7 @@ import { stepCantidad, formatearCantidad } from '../../../../utils/unidades';
 import { imagenUrl } from '../../../../config';
 import ReciboPagina from './ReciboPagina';
 import ComprobanteCompra from './ComprobanteCompra';
+import { nombrePedido } from '../compras/comprasUtils';
 import '../compras/Compras.css';
 import EncabezadoPagina from '../../../comunes/EncabezadoPagina';
 import { getNegocio } from '../../../../services/negocioService';
@@ -367,7 +368,7 @@ function DetallePedido() {
 
   // Elimina la compra en cualquier estado (a diferencia de anular, no queda registro de ella)
   const handleEliminar = () => {
-    toast(`¿Eliminar la compra #${pedido.pedidoid}?`, {
+    toast(`¿Eliminar la compra ${pedido.numero}?`, {
       description: 'Se borran la compra y sus abonos. Las ventas de entregas ya hechas se conservan y el stock reservado se libera. Esta acción no se puede deshacer.',
       action: {
         label: 'Sí, eliminar',
@@ -413,7 +414,7 @@ function DetallePedido() {
     const ok = abrirWhatsApp(pedido.cliente?.telefono, mensajeListoParaEntregar({
       negocio: negocio?.nombre,
       cliente: pedido.cliente?.nombreCliente,
-      pedidoid: pedido.pedidoid,
+      numero: pedido.numero,
       lineas: listas,
       saldo: pedido.resumen?.saldo,
     }));
@@ -425,7 +426,7 @@ function DetallePedido() {
     const ok = abrirWhatsApp(pedido.cliente?.telefono, mensajeRecordatorioSaldo({
       negocio: negocio?.nombre,
       cliente: pedido.cliente?.nombreCliente,
-      pedidoid: pedido.pedidoid,
+      numero: pedido.numero,
       total: r.total,
       abonado: r.abonado,
       saldo: r.saldo,
@@ -544,7 +545,7 @@ function DetallePedido() {
         </button>
         <div className="detalle-tx-header-text">
           <div className="pedido-titulo-linea">
-            <h1>{pedido.cliente?.nombreCliente || 'Consumidor final'} <span className="pedido-titulo-numero">· Compra #{pedido.pedidoid}</span></h1>
+            <h1>{pedido.cliente?.nombreCliente || 'Consumidor final'} <span className="pedido-titulo-numero">· Compra {pedido.numero}</span></h1>
             <span className={`pedido-estado pedido-estado-${estadoConfig.clase}`}>{estadoConfig.label}</span>
           </div>
           <div className="detalle-tx-breadcrumb">
@@ -552,7 +553,7 @@ function DetallePedido() {
             {pedido.ordenid && (
               <>
                 {' / '}
-                <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedidos/${pedido.ordenid}`)}>{pedido.pedidoProveedor?.nombre || `Pedido #${pedido.ordenid}`}</button>
+                <button className="pedido-link-venta" onClick={() => navigate(`/dashboard/pedidos/${pedido.ordenid}`)}>{pedido.pedidoProveedor ? nombrePedido(pedido.pedidoProveedor) : 'Pedido'}</button>
               </>
             )}
           </div>
@@ -593,7 +594,7 @@ function DetallePedido() {
         </div>
       </div>
 
-      <PanelInferior abierto={menuMas} onCerrar={() => setMenuMas(false)} titulo="Compra" subtitulo={`Compra #${pedido.pedidoid}`} nombreAvatar={pedido.cliente?.nombreCliente || 'Compra'}>
+      <PanelInferior abierto={menuMas} onCerrar={() => setMenuMas(false)} titulo="Compra" subtitulo={`Compra ${pedido.numero}`} nombreAvatar={pedido.cliente?.nombreCliente || 'Compra'}>
         <div className="pi-lista-acciones">
           {accionesMas.map((a) => {
             const Icono = a.icono;
@@ -757,7 +758,7 @@ function DetallePedido() {
 
       {modal === 'editar' && (
         <div className="pedido-pagina">
-          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Editar pedido</EncabezadoPagina>
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra {pedido.numero}</>}>Editar pedido</EncabezadoPagina>
           <div className="pedido-pagina-card">
             <form className="pedido-modal-form" onSubmit={handleGuardarEdicion}>
               <div className="pedido-form-group">
@@ -807,7 +808,7 @@ function DetallePedido() {
 
       {modal === 'pago' && (
         <div className="pedido-pagina">
-          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>{pagoForm.tipo === 'abono' ? 'Registrar abono' : 'Devolver dinero al cliente'}</EncabezadoPagina>
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra {pedido.numero}</>}>{pagoForm.tipo === 'abono' ? 'Registrar abono' : 'Devolver dinero al cliente'}</EncabezadoPagina>
           <div className="pedido-pagina-card">
             <form className="pedido-modal-form" onSubmit={handleGuardarPago}>
               <p className="pedido-modal-texto">
@@ -855,7 +856,7 @@ function DetallePedido() {
 
       {modal === 'entrega' && (
         <div className="pedido-pagina">
-          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Entregar productos</EncabezadoPagina>
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra {pedido.numero}</>}>Entregar productos</EncabezadoPagina>
           <div className="pedido-pagina-card pedido-pagina-ancha">
             <form className="pedido-modal-form" onSubmit={handleEntregar}>
               <p className="pedido-modal-texto">
@@ -931,7 +932,7 @@ function DetallePedido() {
 
       {modal === 'devolucion' && (
         <div className="pedido-pagina">
-          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Devolución de productos</EncabezadoPagina>
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra {pedido.numero}</>}>Devolución de productos</EncabezadoPagina>
           <div className="pedido-pagina-card pedido-pagina-ancha">
             <form className="pedido-modal-form" onSubmit={handleDevolver}>
               <p className="pedido-modal-texto">
@@ -1041,7 +1042,7 @@ function DetallePedido() {
 
       {modal === 'anular' && (
         <div className="pedido-pagina">
-          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>Anular pedido #{pedido.pedidoid}</EncabezadoPagina>
+          <EncabezadoPagina onVolver={volver} migas={<>Pedidos / Compra {pedido.numero}</>}>Anular compra {pedido.numero}</EncabezadoPagina>
           <div className="pedido-pagina-card">
             <form className="pedido-modal-form" onSubmit={handleConfirmarAnulacion}>
               <p className="pedido-modal-texto">

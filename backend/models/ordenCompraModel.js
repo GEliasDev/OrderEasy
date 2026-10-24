@@ -56,6 +56,11 @@ const OrdenCompra = sequelize.define('OrdenCompra', {
     allowNull: false,
     defaultValue: 'borrador'
   },
+  // Número visible y consecutivo del pedido dentro del negocio (el id interno no se muestra)
+  numero: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   // Nombre que le pone el usuario al pedido (ej. "Pedido de octubre")
   nombre: {
     type: DataTypes.STRING(120),

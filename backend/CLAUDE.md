@@ -32,6 +32,11 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 
 - `GET/PUT /api/usuarios/me` (cualquier usuario autenticado) lee y edita el perfil propio: nombres, correo (único) y teléfono; no cambia rol ni negocio y devuelve un token nuevo porque el JWT lleva el correo. La información de la empresa (`PUT /api/negocio`) también la puede editar cualquier usuario.
 
+## Numeración visible de pedidos y compras
+
+- `ordenes_compra.numero` (pedido al proveedor) y `pedidos.numero` (compra de un cliente): consecutivos por negocio, migración 014. El id interno (`ordenid`, `pedidoid`) solo sirve para rutas y relaciones; las pantallas, mensajes y textos guardados muestran el `numero`.
+- Los contadores viven en `negocios.ultimo_numero_pedido` / `ultimo_numero_compra`; `services/numeracionService.siguienteNumero(negocioid, 'pedido'|'compra', t)` los incrementa de forma atómica, así que un número eliminado no se reutiliza. Todo alta de `Pedido` u `OrdenCompra` debe asignar `numero` con él.
+
 ## Precios por cantidad de proveedores
 
 - Cada proveedor suministra categorías (tabla `proveedor_categorias`, migración 013; la columna vieja `proveedor.categoria_suministro` queda sin usar). `GET/POST/PATCH /api/proveedores` devuelven `categorias: [{ categoriaid, nombre }]` y reciben `categoriaids`.

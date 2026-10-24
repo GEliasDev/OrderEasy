@@ -57,7 +57,7 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
     const ok = abrirWhatsApp(pedido.cliente?.telefono, mensajeRecibo({
       negocio: nombreNegocio,
       cliente,
-      pedidoid: pedido.pedidoid,
+      numero: pedido.numero,
       reciboid: pago.pagoid,
       tipo: pago.tipo,
       monto: pago.monto,
@@ -70,7 +70,7 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
   return (
     <div className="pedido-pagina recibo-pagina">
       <div className="no-imprimir">
-        <EncabezadoPagina onVolver={onVolver} migas={<>Pedidos / Compra #{pedido.pedidoid}</>}>{tipo.titulo}</EncabezadoPagina>
+        <EncabezadoPagina onVolver={onVolver} migas={<>Pedidos / Compra {pedido.numero}</>}>{tipo.titulo}</EncabezadoPagina>
         <div className="recibo-barra-acciones">
           <button className="pedidos-btn pedidos-btn-secundario" onClick={enviar}>
             <MessageCircle size={14} /><span>Enviar por WhatsApp</span>
@@ -111,7 +111,7 @@ function ReciboPagina({ pedido, pago, negocio, onVolver }) {
 
           <dl className="recibo-partes">
             <div><dt>Cliente</dt><dd>{cliente}{pedido.cliente?.telefono ? ` · ${pedido.cliente.telefono}` : ''}</dd></div>
-            <div><dt>Pedido</dt><dd>#{pedido.pedidoid}</dd></div>
+            <div><dt>Compra</dt><dd>N° {pedido.numero}</dd></div>
             <div><dt>Método de pago</dt><dd>{METODOS[pago.metodo] || pago.metodo}</dd></div>
             {pago.nota && <div><dt>Nota</dt><dd>{pago.nota}</dd></div>}
           </dl>

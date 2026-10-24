@@ -94,7 +94,7 @@ function Compras() {
         || orden.estado === filtroEstado;
       const proveedor = orden.proveedor?.nombreProveedor || orden.proveedor?.razonSocial || '';
       const coincideTexto = !texto
-        || String(orden.ordenid).includes(texto)
+        || String(orden.numero).includes(texto)
         || (orden.nombre || '').toLowerCase().includes(texto)
         || proveedor.toLowerCase().includes(texto)
         || (orden.descripcion || '').toLowerCase().includes(texto)
@@ -224,7 +224,7 @@ function Compras() {
                         <span className="caja-icono" aria-hidden="true"><Package size={20} /></span>
                         <div className="tbl-cell-texts">
                           <span className="tbl-cell-primary">{nombrePedido(orden)}</span>
-                          <span className="tbl-cell-secondary">#{orden.ordenid} · {formatearFecha(orden.createdAt)}{orden.descripcion ? ` · ${orden.descripcion}` : ''}</span>
+                          <span className="tbl-cell-secondary">{orden.nombre ? `N° ${orden.numero} · ` : ''}{formatearFecha(orden.createdAt)}{orden.descripcion ? ` · ${orden.descripcion}` : ''}</span>
                         </div>
                       </div>
                     </td>
