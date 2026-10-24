@@ -137,7 +137,7 @@ const conCostoEstimado = async (json) => {
     proveedorid: json.proveedorid, negocioid: json.negocioid, detalles: json.detalles || [], grupos: clientes.grupos || [],
   });
   json.costoEstimado = Math.round((estimado.costoStock + estimado.costoClientes) * 100) / 100;
-  json.preciosPorCantidad = estimado.avisos;
+  json.preciosPorCantidad = estimado.aviso;
 };
 
 const conCompras = async (jsons) => {

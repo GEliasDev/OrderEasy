@@ -34,8 +34,8 @@ No hay script de migraciones ni de seed: el esquema se sincroniza automáticamen
 
 ## Precios por cantidad de proveedores
 
-- Tabla `proveedor_precios_escalonados` (migración 012): por proveedor y producto, `desde_cantidad` → `precio`. `GET /api/proveedores/:id/precios` y `PUT /api/proveedores/:id/precios/:productoid` (reemplaza los escalones del producto; lista vacía los quita).
-- `services/preciosPorCantidadService.js`: cuenta la cantidad por producto (suma tallas, compras de clientes y stock del pedido); al llegar a un escalón TODAS las unidades salen a ese precio. Pedido abierto: `costoEstimado` y `preciosPorCantidad` (avisos) en la respuesta; al enviar (`enviarOrden`) se fija el precio en cada línea. Solo afecta lo que se paga al proveedor, no el precio de venta ni `precioCompra` de las compras de clientes.
+- Tabla `proveedor_precios_escalonados` (migración 012): por proveedor, `desde_cantidad` → `precio` fijo. `GET /api/proveedores/:id/precios` y `PUT /api/proveedores/:id/precios` (reemplaza los escalones; lista vacía los quita).
+- `services/preciosPorCantidadService.js`: la cantidad suma TODO lo que se le pide al proveedor en el pedido (cualquier producto y talla, compras de clientes y stock); al llegar a un escalón TODAS las unidades salen a su precio fijo. Por debajo del primer escalón, cada línea conserva su precio normal. Pedido abierto: `costoEstimado` y `preciosPorCantidad` (aviso) en la respuesta; al enviar (`enviarOrden`) se fija el precio en cada línea. Solo afecta lo que se paga al proveedor, no el precio de venta ni `precioCompra` de las compras de clientes.
 
 ## Tallas y unidades de medida
 

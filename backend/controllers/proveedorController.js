@@ -1,5 +1,4 @@
 const Proveedor = require('../models/proveedorModel');
-const Producto = require('../models/productModel');
 const ProveedorPrecioEscalonado = require('../models/proveedorPrecioEscalonadoModel');
 const sequelize = require('../config/database');
 
@@ -155,7 +154,7 @@ const deleteProveedor = async (req, res) => {
 };
 
 // ========================================================
-// 💲 Precios por cantidad del proveedor (desde X unidades, el precio unitario baja)
+// 💲 Precios por cantidad del proveedor (desde X unidades pedidas en total, cada unidad cuesta menos)
 // ========================================================
 const getPrecios = async (req, res) => {
   try {
@@ -164,40 +163,23 @@ const getPrecios = async (req, res) => {
     const proveedor = await Proveedor.findOne({ where: { proveedorid: id, negocioid } });
     if (!proveedor) return res.status(404).json({ mensaje: 'Proveedor no encontrado.' });
 
-    const filas = await ProveedorPrecioEscalonado.findAll({
-      where: { proveedorid: id, negocioid },
-      order: [['productoid', 'ASC'], ['desdeCantidad', 'ASC']],
-    });
-    const productos = await Producto.findAll({
-      where: { productoid: [...new Set(filas.map((f) => f.productoid))], negocioid },
-      attributes: ['productoid', 'nombre', 'precioCompra', 'unidadMedida', 'imagenes'],
-    });
-    const porId = new Map(productos.map((p) => [p.productoid, p.toJSON()]));
-    const agrupado = new Map();
-    for (const fila of filas) {
-      const producto = porId.get(fila.productoid);
-      if (!producto) continue;
-      if (!agrupado.has(fila.productoid)) agrupado.set(fila.productoid, { ...producto, escalones: [] });
-      agrupado.get(fila.productoid).escalones.push({ desde: Number(fila.desdeCantidad), precio: Number(fila.precio) });
-    }
-    res.json([...agrupado.values()]);
+    const filas = await ProveedorPrecioEscalonado.findAll({ where: { proveedorid: id, negocioid }, order: [['desdeCantidad', 'ASC']] });
+    res.json({ escalones: filas.map((f) => ({ desde: Number(f.desdeCantidad), precio: Number(f.precio) })) });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener los precios por cantidad.' });
   }
 };
 
-// Reemplaza los escalones de un producto con este proveedor (lista vacía = quitarlos)
+// Reemplaza los escalones del proveedor (lista vacía = quitarlos)
 const guardarPrecios = async (req, res) => {
   try {
-    const { id, productoid } = req.params;
+    const { id } = req.params;
     const { negocioid } = req.usuario;
     const proveedor = await Proveedor.findOne({ where: { proveedorid: id, negocioid } });
     if (!proveedor) return res.status(404).json({ mensaje: 'Proveedor no encontrado.' });
-    const producto = await Producto.findOne({ where: { productoid, negocioid }, attributes: ['productoid'] });
-    if (!producto) return res.status(404).json({ mensaje: 'Producto no encontrado.' });
 
     const escalones = Array.isArray(req.body?.escalones) ? req.body.escalones : [];
-    if (escalones.length > 10) return res.status(400).json({ mensaje: 'Máximo 10 escalones por producto.' });
+    if (escalones.length > 10) return res.status(400).json({ mensaje: 'Máximo 10 escalones.' });
     const filas = [];
     const vistos = new Set();
     for (const e of escalones) {
@@ -207,11 +189,11 @@ const guardarPrecios = async (req, res) => {
       if (!Number.isFinite(precio) || precio < 0) return res.status(400).json({ mensaje: 'El precio de cada escalón no es válido.' });
       if (vistos.has(desde)) return res.status(400).json({ mensaje: `La cantidad ${desde} está repetida.` });
       vistos.add(desde);
-      filas.push({ negocioid, proveedorid: Number(id), productoid: Number(productoid), desdeCantidad: desde, precio: Math.round(precio * 100) / 100 });
+      filas.push({ negocioid, proveedorid: Number(id), desdeCantidad: desde, precio: Math.round(precio * 100) / 100 });
     }
 
     await sequelize.transaction(async (transaction) => {
-      await ProveedorPrecioEscalonado.destroy({ where: { proveedorid: id, productoid, negocioid }, transaction });
+      await ProveedorPrecioEscalonado.destroy({ where: { proveedorid: id, negocioid }, transaction });
       if (filas.length) await ProveedorPrecioEscalonado.bulkCreate(filas, { transaction });
     });
     res.json({ mensaje: filas.length ? 'Precios por cantidad guardados.' : 'Precios por cantidad quitados.' });

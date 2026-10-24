@@ -44,9 +44,9 @@ router.patch('/:id', verificarToken, updateProveedor);
 // Ruta: DELETE /api/proveedores/:id
 router.delete('/:id', verificarToken, deleteProveedor);
 
-// Precios por cantidad: GET /api/proveedores/:id/precios y PUT /api/proveedores/:id/precios/:productoid
+// Precios por cantidad: GET /api/proveedores/:id/precios y PUT /api/proveedores/:id/precios
 router.get('/:id/precios', verificarToken, getPrecios);
-router.put('/:id/precios/:productoid', verificarToken, guardarPrecios);
+router.put('/:id/precios', verificarToken, guardarPrecios);
 
 // Exportamos el router para usarlo en index.js
 module.exports = router;

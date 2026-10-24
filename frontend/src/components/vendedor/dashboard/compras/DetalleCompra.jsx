@@ -504,19 +504,15 @@ function DetalleCompra() {
         <div className="compras-nota-bloque"><FileText size={14} /><span>{orden.descripcion}</span></div>
       )}
 
-      {abierto && (orden.preciosPorCantidad || []).length > 0 && (
-        <ul className="pedido-precios-cantidad" aria-label="Precios por cantidad del proveedor">
-          {orden.preciosPorCantidad.map((a) => (
-            <li key={a.productoid}>
-              <Tags size={14} aria-hidden="true" />
-              <span>
-                <strong>{a.productoNombre}</strong>: {cantidad(a.cantidad)} und
-                {a.precio !== null ? <> a {formatoMoneda(a.precio)} c/u</> : <> (aún sin descuento)</>}
-                {a.siguiente && <> · con {cantidad(a.siguiente.desde)} und baja a {formatoMoneda(a.siguiente.precio)} c/u (faltan {cantidad(a.siguiente.faltan)})</>}
-              </span>
-            </li>
-          ))}
-        </ul>
+      {abierto && orden.preciosPorCantidad && (
+        <p className="pedido-precios-cantidad" role="status">
+          <Tags size={14} aria-hidden="true" />
+          <span>
+            <strong>Precio por cantidad:</strong> {cantidad(orden.preciosPorCantidad.cantidad)} und en total
+            {orden.preciosPorCantidad.precio !== null ? <> a {formatoMoneda(orden.preciosPorCantidad.precio)} c/u</> : <> (aún sin descuento)</>}
+            {orden.preciosPorCantidad.siguiente && <> · con {cantidad(orden.preciosPorCantidad.siguiente.desde)} und baja a {formatoMoneda(orden.preciosPorCantidad.siguiente.precio)} c/u (faltan {cantidad(orden.preciosPorCantidad.siguiente.faltan)})</>}
+          </span>
+        </p>
       )}
 
       <div className="mod-seccion">
